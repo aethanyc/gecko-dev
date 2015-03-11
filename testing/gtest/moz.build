@@ -45,6 +45,7 @@ if CONFIG['ENABLE_TESTS']:
         'gmock/include/gmock/gmock-generated-nice-strict.h',
         'gmock/include/gmock/gmock-matchers.h',
         'gmock/include/gmock/gmock-more-actions.h',
+        'gmock/include/gmock/gmock-more-matchers.h',
         'gmock/include/gmock/gmock-spec-builders.h',
         'gmock/include/gmock/gmock.h',
     ]
