@@ -91,8 +91,11 @@ public:
   virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
+  void AddDirtyRect(const nsRect& aRect);
+
 private:
   virtual mozilla::layout::FrameChildListID GetAbsoluteListID() const override { return kFixedList; }
+  nsRegion mDirty;
 
 protected:
   /**

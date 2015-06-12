@@ -49,6 +49,7 @@
 #include "ImageContainer.h"
 
 class gfxContext;
+class nsIFrame;
 
 extern uint8_t gLayerManagerLayerBuilder;
 
@@ -1668,6 +1669,16 @@ public:
 #endif
   }
 
+  void SetCreator(nsIFrame* frame)
+  {
+    mCreator = frame;
+  }
+
+  nsIFrame* GetCreator()
+  {
+    return mCreator;
+  }
+
 protected:
   Layer(LayerManager* aManager, void* aImplData);
 
@@ -1772,6 +1783,7 @@ protected:
 #ifdef MOZ_DUMP_PAINTING
   nsTArray<nsCString> mExtraDumpInfo;
 #endif
+  nsIFrame* mCreator;
 };
 
 /**

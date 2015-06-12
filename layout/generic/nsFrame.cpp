@@ -74,6 +74,7 @@
 #include "nsDeckFrame.h"
 #include "nsSubDocumentFrame.h"
 #include "SVGTextFrame.h"
+#include "nsViewportFrame.h"
 
 #include "gfxContext.h"
 #include "nsRenderingContext.h"
@@ -2520,6 +2521,33 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
 }
 
 void
+nsIFrame::ReportDirtyToRoot()
+{
+  // search for container layer owner frame and root frame
+  nsIFrame* parent = mParent;
+  nsIFrame* containerOwner = nullptr;
+  ViewportFrame* root = nullptr;
+  if (!mParent) {
+    return;
+  }
+
+  while (parent) {
+    if (parent->HasAnyStateBits(NS_FRAME_OWNS_CONTAINER_LAYER)) {
+      containerOwner = parent;
+    }
+    if (!parent->mParent) {
+      break;
+    }
+    parent = parent->mParent;
+  }
+  if (parent && containerOwner && parent->GetType() == nsGkAtoms::viewportFrame) {
+    root = static_cast<ViewportFrame*>(parent);
+    root->AddDirtyRect(containerOwner->GetVisualOverflowRectRelativeToParent() +
+                       containerOwner->GetOffsetTo(root));
+  }
+}
+
+void
 nsIFrame::MarkAbsoluteFramesForDisplayList(nsDisplayListBuilder* aBuilder,
                                            const nsRect& aDirtyRect)
 {
@@ -4445,6 +4473,7 @@ nsFrame::DidReflow(nsPresContext*           aPresContext,
   nsSVGEffects::InvalidateDirectRenderingObservers(this, nsSVGEffects::INVALIDATE_REFLOW);
 
   if (nsDidReflowStatus::FINISHED == aStatus) {
+    ReportDirtyToRoot();
     mState &= ~(NS_FRAME_IN_REFLOW | NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
                 NS_FRAME_HAS_DIRTY_CHILDREN);
   }
@@ -4998,6 +5027,7 @@ static void InvalidateFrameInternal(nsIFrame *aFrame, bool aHasDisplayItem = tru
   if (aHasDisplayItem) {
     aFrame->AddStateBits(NS_FRAME_NEEDS_PAINT);
   }
+  aFrame->ReportDirtyToRoot();
   nsSVGEffects::InvalidateDirectRenderingObservers(aFrame);
   bool needsSchedulePaint = false;
   if (nsLayoutUtils::IsPopup(aFrame)) {

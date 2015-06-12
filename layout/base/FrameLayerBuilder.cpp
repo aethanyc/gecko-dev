@@ -5167,6 +5167,8 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
   mContainerLayerGeneration = oldGeneration;
   nsPresContext::ClearNotifySubDocInvalidationData(containerLayer);
 
+  aContainerFrame->AddStateBits(NS_FRAME_OWNS_CONTAINER_LAYER);
+  containerLayer->SetCreator(aContainerFrame);
   return containerLayer.forget();
 }
 

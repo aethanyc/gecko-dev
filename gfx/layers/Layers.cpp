@@ -36,6 +36,7 @@
 #include "nsPrintfCString.h"            // for nsPrintfCString
 #include "nsStyleStruct.h"              // for nsTimingFunction, etc
 #include "protobuf/LayerScopePacket.pb.h"
+#include "nsFrame.h"
 
 uint8_t gLayerManagerLayerBuilder;
 
@@ -226,11 +227,15 @@ Layer::Layer(LayerManager* aManager, void* aImplData) :
   mScrollbarThumbRatio(0.0f),
   mIsScrollbarContainer(false),
   mDebugColorIndex(0),
-  mAnimationGeneration(0)
+  mAnimationGeneration(0),
+  mCreator(nullptr)
 {}
 
 Layer::~Layer()
-{}
+{
+  if (mCreator)
+    mCreator->RemoveStateBits(NS_FRAME_OWNS_CONTAINER_LAYER);
+}
 
 Animation*
 Layer::AddAnimation()

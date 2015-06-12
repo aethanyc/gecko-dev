@@ -51,6 +51,14 @@ ViewportFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   PROFILER_LABEL("ViewportFrame", "BuildDisplayList",
     js::ProfileEntry::Category::GRAPHICS);
 
+  nsRect rect;
+  if (HasAnyStateBits(NS_FRAME_NEEDS_PAINT) || mDirty.IsEmpty()) {
+    rect = aDirtyRect;
+  } else {
+    rect = mDirty.GetBounds();
+    mDirty.SetEmpty();
+  }
+
   nsIFrame* kid = mFrames.FirstChild();
   if (!kid)
     return;
@@ -58,7 +66,7 @@ ViewportFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   // make the kid's BorderBackground our own. This ensures that the canvas
   // frame's background becomes our own background and therefore appears
   // below negative z-index elements.
-  BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
+  BuildDisplayListForChild(aBuilder, kid, rect, aLists);
 }
 
 #ifdef DEBUG
@@ -308,6 +316,12 @@ nsIAtom*
 ViewportFrame::GetType() const
 {
   return nsGkAtoms::viewportFrame;
+}
+
+void
+ViewportFrame::AddDirtyRect(const nsRect& aRect)
+{
+  mDirty.OrWith(aRect);
 }
 
 #ifdef DEBUG_FRAME_DUMP
