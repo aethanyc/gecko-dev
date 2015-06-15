@@ -411,6 +411,7 @@ nsFrame::nsFrame(nsStyleContext* aContext)
 #ifdef DEBUG
   mStyleContext->FrameAddRef();
 #endif
+  mOwningLayer = nullptr;
 }
 
 nsFrame::~nsFrame()
@@ -418,6 +419,8 @@ nsFrame::~nsFrame()
   MOZ_COUNT_DTOR(nsFrame);
 
   NS_IF_RELEASE(mContent);
+  ReportDirtyToRoot();
+//  FrameLayerBuilder::DestroyDisplayItemDataFor(this);
 #ifdef DEBUG
   mStyleContext->FrameRelease();
 #endif
@@ -2336,6 +2339,9 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       nsRect childDirty;
       if (!childDirty.IntersectRect(dirty, child->GetVisualOverflowRect()))
         return;
+      else
+        child->Properties().Set(nsIFrame::LastPaintRect(),
+            new nsRect(child->GetVisualOverflowRectRelativeToSelf()));
       // Usually we could set dirty to childDirty now but there's no
       // benefit, and it can be confusing. It can especially confuse
       // situations where we're going to ignore a scrollframe's clipping;
@@ -2520,6 +2526,8 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   aLists.PositionedDescendants()->AppendToTop(&extraPositionedDescendants);
 }
 
+#include "FrameLayerBuilder.h"
+
 void
 nsIFrame::ReportDirtyToRoot()
 {
@@ -2532,7 +2540,7 @@ nsIFrame::ReportDirtyToRoot()
   }
 
   while (parent) {
-    if (parent->HasAnyStateBits(NS_FRAME_OWNS_CONTAINER_LAYER)) {
+    if (parent->mOwningLayer) {
       containerOwner = parent;
     }
     if (!parent->mParent) {
@@ -2542,8 +2550,46 @@ nsIFrame::ReportDirtyToRoot()
   }
   if (parent && containerOwner && parent->GetType() == nsGkAtoms::viewportFrame) {
     root = static_cast<ViewportFrame*>(parent);
-    root->AddDirtyRect(containerOwner->GetVisualOverflowRectRelativeToParent() +
-                       containerOwner->GetOffsetTo(root));
+    //if (HasAnyStateBits(NS_FRAME_OWNS_SIMPLE_CONTAINER)) {
+    if (containerOwner->mOwningLayer->GetFirstChild() == containerOwner->mOwningLayer->GetLastChild()) {
+      nsRect* lastDirty = static_cast<nsRect*>(Properties().Get(nsIFrame::LastPaintRect()));
+      nsRect dirty = GetVisualOverflowRectRelativeToSelf() +
+                     GetOffsetTo(root);
+
+      root->AddDirtyRect(GetVisualOverflowRectRelativeToSelf() +
+                         GetOffsetTo(root));
+      if (lastDirty)
+        root->AddDirtyRect(*lastDirty + GetOffsetTo(root));
+
+      const nsTArray<FrameLayerBuilder::DisplayItemData*>* array =
+        static_cast<nsTArray<FrameLayerBuilder::DisplayItemData*>*>(Properties().Get(FrameLayerBuilder::LayerManagerDataProperty()));
+      if (array) {
+        for (uint32_t i = 0; i < array->Length(); i++) {
+          FrameLayerBuilder::DisplayItemData* item = array->ElementAt(i);
+          item->MarkRemoved();
+        }
+      }
+
+      nsAutoCString idstr;
+      nsAutoCString clsstr;
+      if (mContent) {
+        if (mContent->GetID())
+          mContent->GetID()->ToUTF8String(idstr);
+        if (mContent->GetClasses()) {
+          nsRefPtr<nsIAtom> clsAtom = mContent->GetClasses()->GetAsAtom();
+          clsAtom->ToUTF8String(clsstr);
+        }
+      }
+
+      printf_stderr("[chiajung] report self(id: %s, cls: %s): %p dirty[%d,%d,%d,%d] to %p, mark %d items to be remove\n",
+          idstr.get(), clsstr.get(), this,
+          dirty.x, dirty.y, dirty.width, dirty.height, root, array ? array->Length() : 0);
+    } else {
+      root->AddDirtyRect(containerOwner->GetVisualOverflowRectRelativeToSelf() +
+                         containerOwner->GetOffsetTo(root));
+      if (containerOwner != root)
+        printf_stderr("[chiajung] report container %p dirty to %p\n", containerOwner, root);
+    }
   }
 }
 

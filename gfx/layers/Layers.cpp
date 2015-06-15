@@ -234,7 +234,7 @@ Layer::Layer(LayerManager* aManager, void* aImplData) :
 Layer::~Layer()
 {
   if (mCreator)
-    mCreator->RemoveStateBits(NS_FRAME_OWNS_CONTAINER_LAYER);
+    mCreator->SetOwningLayer(nullptr);
 }
 
 Animation*

@@ -60,6 +60,7 @@ FrameLayerBuilder::DisplayItemData::DisplayItemData(LayerManagerData* aParent, u
   , mItem(nullptr)
   , mUsed(true)
   , mIsInvalid(false)
+  , mIsRemoved(false)
 {
   MOZ_COUNT_CTOR(FrameLayerBuilder::DisplayItemData);
 
@@ -1629,7 +1630,7 @@ FrameLayerBuilder::RemoveFrameFromLayerManager(nsIFrame* aFrame,
     DisplayItemData* data = array->ElementAt(i);
 
     PaintedLayer* t = data->mLayer->AsPaintedLayer();
-    if (t) {
+    /*if (t) {
       PaintedDisplayItemLayerUserData* paintedData =
           static_cast<PaintedDisplayItemLayerUserData*>(t->GetUserData(&gPaintedDisplayItemLayerUserData));
       if (paintedData) {
@@ -1639,7 +1640,7 @@ FrameLayerBuilder::RemoveFrameFromLayerManager(nsIFrame* aFrame,
         paintedData->mRegionToInvalidate.Or(paintedData->mRegionToInvalidate, rgn);
         paintedData->mRegionToInvalidate.SimplifyOutward(8);
       }
-    }
+    }*/
 
     data->mParent->mDisplayItems.RemoveEntry(data);
   }
@@ -1703,7 +1704,7 @@ FrameLayerBuilder::ProcessRemovedDisplayItems(nsRefPtrHashKey<DisplayItemData>* 
 {
   DisplayItemData* data = aEntry->GetKey();
   FrameLayerBuilder* layerBuilder = static_cast<FrameLayerBuilder*>(aUserArg);
-  if (!data->mUsed) {
+  if (data->mIsRemoved && !data->mUsed) {
     // This item was visible, but isn't anymore.
 
     PaintedLayer* t = data->mLayer->AsPaintedLayer();
@@ -5167,8 +5168,11 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
   mContainerLayerGeneration = oldGeneration;
   nsPresContext::ClearNotifySubDocInvalidationData(containerLayer);
 
-  aContainerFrame->AddStateBits(NS_FRAME_OWNS_CONTAINER_LAYER);
+  // Store some layer info into frame for partially display list building
+  aContainerFrame->SetOwningLayer(containerLayer.get());
   containerLayer->SetCreator(aContainerFrame);
+  printf_stderr("frame %p owns layer %p\n", aContainerFrame, containerLayer.get());
+
   return containerLayer.forget();
 }
 
@@ -5567,6 +5571,10 @@ FrameLayerBuilder::DrawPaintedLayer(PaintedLayer* aLayer,
                                    const nsIntRegion& aRegionToInvalidate,
                                    void* aCallbackData)
 {
+  nsCString str = aRegionToDraw.ToString();
+  printf_stderr("Paint layer %p, parent: %p for region: %s\n", aLayer, aLayer->GetParent(), str.get());
+
+
   DrawTarget& aDrawTarget = *aContext->GetDrawTarget();
 
   PROFILER_LABEL("FrameLayerBuilder", "DrawPaintedLayer",

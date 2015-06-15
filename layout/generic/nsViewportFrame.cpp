@@ -52,9 +52,14 @@ ViewportFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     js::ProfileEntry::Category::GRAPHICS);
 
   nsRect rect;
-  if (HasAnyStateBits(NS_FRAME_NEEDS_PAINT) || mDirty.IsEmpty()) {
+  if (HasAnyStateBits(NS_FRAME_NEEDS_PAINT) || mDirty.IsEmpty() || !aBuilder->IsForPainting()) {
     rect = aDirtyRect;
+    if (aBuilder->IsForPainting())
+      printf_stderr("full build display list for: %p\n", this);
   } else {
+    nsCString cstr = mDirty.ToString();
+    printf_stderr("partial build display list for: %p, rect: %s\n", this,
+                   cstr.get());
     rect = mDirty.GetBounds();
     mDirty.SetEmpty();
   }
@@ -67,6 +72,8 @@ ViewportFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   // frame's background becomes our own background and therefore appears
   // below negative z-index elements.
   BuildDisplayListForChild(aBuilder, kid, rect, aLists);
+  if (aBuilder->IsForPainting())
+    printf_stderr("end build display list for %p\n", this);
 }
 
 #ifdef DEBUG

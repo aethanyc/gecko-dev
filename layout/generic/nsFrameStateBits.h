@@ -600,10 +600,11 @@ FRAME_STATE_GROUP(Table, nsTableFrame)
 FRAME_STATE_BIT(Table, 28, NS_TABLE_PART_HAS_FIXED_BACKGROUND)
 
 
-// == Frame state bits that apply to layer owner frames
+/*// == Frame state bits that apply to layer owner frames
 
-FRAME_STATE_GROUP(LayerOwner, nsIFrame)
-FRAME_STATE_BIT(LayerOwner, 21, NS_FRAME_OWNS_CONTAINER_LAYER)
+FRAME_STATE_GROUP(LayerOwner, nsContainerFrame)
+FRAME_STATE_BIT(LayerOwner, 20, NS_FRAME_OWNS_CONTAINER_LAYER)
+FRAME_STATE_BIT(LayerOwner, 21, NS_FRAME_OWNS_SIMPLE_CONTAINER)*/
 
 #ifdef DEFINED_FRAME_STATE_GROUP
 #undef DEFINED_FRAME_STATE_GROUP

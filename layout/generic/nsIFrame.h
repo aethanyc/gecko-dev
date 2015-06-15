@@ -888,6 +888,8 @@ public:
 
   NS_DECLARE_FRAME_PROPERTY(GenConProperty, DestroyContentArray)
 
+  NS_DECLARE_FRAME_PROPERTY(LastPaintRect, DeleteValue<nsRect>)
+
   nsTArray<nsIContent*>* GetGenConPseudos() {
     const FramePropertyDescriptor* prop = GenConProperty();
     return static_cast<nsTArray<nsIContent*>*>(Properties().Get(prop));
@@ -1117,6 +1119,7 @@ public:
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) {}
   void ReportDirtyToRoot();
+  void SetOwningLayer(Layer* aLayer) { mOwningLayer = aLayer; }
   /**
    * Displays the caret onto the given display list builder. The caret is
    * painted on top of the rest of the display list items.
@@ -3053,6 +3056,7 @@ protected:
   }
 
   nsFrameState     mState;
+  Layer*           mOwningLayer;
 
   // When there is an overflow area only slightly larger than mRect,
   // we store a set of four 1-byte deltas from the edges of mRect
