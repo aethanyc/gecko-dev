@@ -28,6 +28,7 @@
 #include "gfxPlatform.h"
 #include "gfxPrefs.h"
 #include "nsIDocument.h"
+#include "nsIFrame.h"
 
 /**
    XXX TODO XXX
@@ -308,6 +309,9 @@ void nsViewManager::Refresh(nsView *aView, const nsIntRegion& aRegion)
   if (!widget) {
     return;
   }
+
+  if (aView->GetFrame())
+    aView->GetFrame()->AddStateBits(NS_FRAME_NEEDS_PAINT);
 
   NS_ASSERTION(!IsPainting(), "recursive painting not permitted");
   if (IsPainting()) {
@@ -637,6 +641,10 @@ nsViewManager::InvalidateViewNoSuppression(nsView *aView,
   NS_ASSERTION(aView->GetViewManager() == this,
                "InvalidateViewNoSuppression called on view we don't own");
 
+  if (aView->GetFrame()) {
+    aView->GetFrame()->ReportDirtyToRoot();
+  }
+
   nsRect damagedRect(aRect);
   if (damagedRect.IsEmpty()) {
     return;
@@ -715,6 +723,7 @@ bool nsViewManager::PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion)
   // destroyed it during CallWillPaintOnObservers (bug 378273).
   nsView* view = nsView::GetViewFor(aWidget);
   if (view && !aRegion.IsEmpty()) {
+    printf_stderr("[View] Paint %s", aRegion.ToString().get());
     Refresh(view, aRegion);
   }
 

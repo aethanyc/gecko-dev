@@ -336,6 +336,8 @@ ContentClientRemoteBuffer::CreateBuffer(ContentType aType,
                                         RefPtr<gfx::DrawTarget>* aBlackDT,
                                         RefPtr<gfx::DrawTarget>* aWhiteDT)
 {
+  printf_stderr("!!!!!!!!!!!! CreateBuffer\n");
+
   BuildTextureClients(gfxPlatform::GetPlatform()->Optimal2DFormatForContent(aType), aRect, aFlags);
   if (!mTextureClient) {
     return;

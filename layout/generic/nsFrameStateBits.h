@@ -175,6 +175,8 @@ FRAME_STATE_BIT(Generic, 32, NS_FRAME_IS_PUSHED_FLOAT)
 // This bit acts as a loop flag for recursive paint server drawing.
 FRAME_STATE_BIT(Generic, 33, NS_FRAME_DRAWING_AS_PAINTSERVER)
 
+FRAME_STATE_BIT(Generic, 34, NS_FRAME_PAINT_INCREMENTAL)
+
 // Frame is a display root and the retained layer tree needs to be updated
 // at the next paint via display list construction.
 // Only meaningful for display roots, so we don't really need a global state

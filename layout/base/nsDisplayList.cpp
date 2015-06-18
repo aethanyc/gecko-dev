@@ -1615,6 +1615,7 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
 
   layerManager->SetRoot(root);
   layerBuilder->WillEndTransaction();
+  layerBuilder->CheckCorrectness();
 
   if (widgetTransaction ||
       // SVG-as-an-image docs don't paint as part of the retained layer tree,

@@ -222,6 +222,7 @@ public:
   virtual gfx::DrawTarget* BorrowDrawTargetForPainting(PaintState& aPaintState,
                                                        RotatedContentBuffer::DrawIterator* aIter = nullptr) override
   {
+    printf_stderr("TextureClient: %p\n", mBufferProvider);
     return RotatedContentBuffer::BorrowDrawTargetForPainting(aPaintState, aIter);
   }
   virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) override

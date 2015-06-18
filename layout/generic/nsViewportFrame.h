@@ -93,6 +93,7 @@ public:
 
   void AddDirtyRect(const nsRect& aRect);
 
+  bool mIncremental;
 private:
   virtual mozilla::layout::FrameChildListID GetAbsoluteListID() const override { return kFixedList; }
   nsRegion mDirty;

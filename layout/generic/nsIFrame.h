@@ -1119,7 +1119,9 @@ public:
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) {}
   void ReportDirtyToRoot();
-  void SetOwningLayer(Layer* aLayer) { mOwningLayer = aLayer; }
+  void SetOwningLayer(Layer* aLayer) {
+    mOwningLayer = aLayer;
+  }
   /**
    * Displays the caret onto the given display list builder. The caret is
    * painted on top of the rest of the display list items.

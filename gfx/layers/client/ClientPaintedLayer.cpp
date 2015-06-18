@@ -44,6 +44,12 @@ ClientPaintedLayer::PaintThebes()
   }
 #endif
 
+  nsCString vstr, instr;
+  vstr = mValidRegion.ToString();
+  instr = mInvalidRegion.ToString();
+
+  printf_stderr("start ClientPaintedLayer::PaintThebes: %p, valid: %s, invalid: %s\n",
+      this, vstr.get(), instr.get());
   PROFILER_LABEL("ClientPaintedLayer", "PaintThebes",
     js::ProfileEntry::Category::GRAPHICS);
 
@@ -112,6 +118,7 @@ ClientPaintedLayer::PaintThebes()
                                  mVisibleRegion,
                                  state.mDidSelfCopy);
   }
+  printf_stderr("end ClientPaintedLayer::PaintThebes: %p\n", this);
 }
 
 void

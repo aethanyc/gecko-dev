@@ -420,7 +420,8 @@ nsFrame::~nsFrame()
 
   NS_IF_RELEASE(mContent);
   ReportDirtyToRoot();
-//  FrameLayerBuilder::DestroyDisplayItemDataFor(this);
+  FrameLayerBuilder::DestroyDisplayItemDataFor(this);
+  printf_stderr("Frame %p destructed\n");
 #ifdef DEBUG
   mStyleContext->FrameRelease();
 #endif
@@ -2339,9 +2340,6 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       nsRect childDirty;
       if (!childDirty.IntersectRect(dirty, child->GetVisualOverflowRect()))
         return;
-      else
-        child->Properties().Set(nsIFrame::LastPaintRect(),
-            new nsRect(child->GetVisualOverflowRectRelativeToSelf()));
       // Usually we could set dirty to childDirty now but there's no
       // benefit, and it can be confusing. It can especially confuse
       // situations where we're going to ignore a scrollframe's clipping;
@@ -2349,7 +2347,8 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       // bounds in that case.
     }
   }
-
+  child->Properties().Set(nsIFrame::LastPaintRect(),
+              new nsRect(child->GetVisualOverflowRectRelativeToSelf()));
   // XXX need to have inline-block and inline-table set pseudoStackingContext
   
   const nsStyleDisplay* ourDisp = StyleDisplay();
@@ -2550,6 +2549,8 @@ nsIFrame::ReportDirtyToRoot()
   }
   if (parent && containerOwner && parent->GetType() == nsGkAtoms::viewportFrame) {
     root = static_cast<ViewportFrame*>(parent);
+    root->RemoveStateBits(NS_FRAME_PAINT_INCREMENTAL);
+    root->mIncremental = false;
     //if (HasAnyStateBits(NS_FRAME_OWNS_SIMPLE_CONTAINER)) {
     if (containerOwner->mOwningLayer->GetFirstChild() == containerOwner->mOwningLayer->GetLastChild()) {
       nsRect* lastDirty = static_cast<nsRect*>(Properties().Get(nsIFrame::LastPaintRect()));
@@ -2558,15 +2559,22 @@ nsIFrame::ReportDirtyToRoot()
 
       root->AddDirtyRect(GetVisualOverflowRectRelativeToSelf() +
                          GetOffsetTo(root));
-      if (lastDirty)
+      if (lastDirty) {
         root->AddDirtyRect(*lastDirty + GetOffsetTo(root));
+      }
 
+      root->AddStateBits(NS_FRAME_PAINT_INCREMENTAL);
+      root->mIncremental = true;
+      uint32_t count = 0;
       const nsTArray<FrameLayerBuilder::DisplayItemData*>* array =
         static_cast<nsTArray<FrameLayerBuilder::DisplayItemData*>*>(Properties().Get(FrameLayerBuilder::LayerManagerDataProperty()));
       if (array) {
         for (uint32_t i = 0; i < array->Length(); i++) {
           FrameLayerBuilder::DisplayItemData* item = array->ElementAt(i);
-          item->MarkRemoved();
+          if (item->mFrameList[0] == this) {
+            item->MarkRemoved();
+            count++;
+          }
         }
       }
 
@@ -2581,9 +2589,10 @@ nsIFrame::ReportDirtyToRoot()
         }
       }
 
-      printf_stderr("[chiajung] report self(id: %s, cls: %s): %p dirty[%d,%d,%d,%d] to %p, mark %d items to be remove\n",
+      printf_stderr("[chiajung] report self(id: %s, cls: %s): %p dirty[%d,%d,%d,%d] %s last dirty to %p, mark %d items to be remove\n",
           idstr.get(), clsstr.get(), this,
-          dirty.x, dirty.y, dirty.width, dirty.height, root, array ? array->Length() : 0);
+          dirty.x, dirty.y, dirty.width, dirty.height,
+          lastDirty? "w/":"w/o", root, count);
     } else {
       root->AddDirtyRect(containerOwner->GetVisualOverflowRectRelativeToSelf() +
                          containerOwner->GetOffsetTo(root));

@@ -766,6 +766,7 @@ RotatedContentBuffer::BorrowDrawTargetForPainting(PaintState& aPaintState,
     nsIntRegionRectIterator iter(*drawPtr);
     const IntRect *iterRect;
     while ((iterRect = iter.Next())) {
+      printf_stderr("[RotatedBuffer] clear rect [%d,%d,%d,%d]\n", iterRect->x, iterRect->y, iterRect->width, iterRect->height);
       result->ClearRect(Rect(iterRect->x, iterRect->y, iterRect->width, iterRect->height));
     }
   }

@@ -112,6 +112,7 @@ FrameLayerBuilder::DisplayItemData::EndUpdate()
   MOZ_ASSERT(!mItem);
   mIsInvalid = false;
   mUsed = false;
+  mIsRemoved = false;
 }
 
 void
@@ -141,7 +142,6 @@ FrameLayerBuilder::DisplayItemData::BeginUpdate(Layer* aLayer, LayerState aState
   mLayerState = aState;
   mContainerLayerGeneration = aContainerLayerGeneration;
   mUsed = true;
-
   if (aLayer->AsPaintedLayer()) {
     mItem = aItem;
   }
@@ -1630,7 +1630,7 @@ FrameLayerBuilder::RemoveFrameFromLayerManager(nsIFrame* aFrame,
     DisplayItemData* data = array->ElementAt(i);
 
     PaintedLayer* t = data->mLayer->AsPaintedLayer();
-    /*if (t) {
+    if (t) {
       PaintedDisplayItemLayerUserData* paintedData =
           static_cast<PaintedDisplayItemLayerUserData*>(t->GetUserData(&gPaintedDisplayItemLayerUserData));
       if (paintedData) {
@@ -1640,7 +1640,7 @@ FrameLayerBuilder::RemoveFrameFromLayerManager(nsIFrame* aFrame,
         paintedData->mRegionToInvalidate.Or(paintedData->mRegionToInvalidate, rgn);
         paintedData->mRegionToInvalidate.SimplifyOutward(8);
       }
-    }*/
+    }
 
     data->mParent->mDisplayItems.RemoveEntry(data);
   }
@@ -1698,13 +1698,42 @@ FrameLayerBuilder::WillEndTransaction()
   data->mInvalidateAllLayers = false;
 }
 
+PLDHashOperator
+FrameLayerBuilder::CheckItemData(nsRefPtrHashKey<DisplayItemData>* aEntry,
+                                 void* aUserArg)
+{
+  DisplayItemData* data = aEntry->GetKey();
+  FrameLayerBuilder* layerBuilder = static_cast<FrameLayerBuilder*>(aUserArg);
+  if (data->mUsed) {
+    data->mUsed = false;
+  }
+  return PL_DHASH_NEXT;
+}
+
+void
+FrameLayerBuilder::CheckCorrectness()
+{
+  if (!mRetainingManager) {
+    return;
+  }
+
+  // We need to save the data we'll need to support retaining.
+  LayerManagerData* data = static_cast<LayerManagerData*>
+    (mRetainingManager->GetUserData(&gLayerManagerUserData));
+  NS_ASSERTION(data, "Must have data!");
+  // Update all the frames that used to have layers.
+  data->mDisplayItems.EnumerateEntries(CheckItemData, this);
+  data->mInvalidateAllLayers = false;
+}
+
 /* static */ PLDHashOperator
 FrameLayerBuilder::ProcessRemovedDisplayItems(nsRefPtrHashKey<DisplayItemData>* aEntry,
                                               void* aUserArg)
 {
   DisplayItemData* data = aEntry->GetKey();
   FrameLayerBuilder* layerBuilder = static_cast<FrameLayerBuilder*>(aUserArg);
-  if (data->mIsRemoved && !data->mUsed) {
+  if (((data->mIsRemoved && layerBuilder->mDisplayListBuilder->GetIncrementalBuild()) ||
+      !layerBuilder->mDisplayListBuilder->GetIncrementalBuild()) && !data->mUsed) {
     // This item was visible, but isn't anymore.
 
     PaintedLayer* t = data->mLayer->AsPaintedLayer();
@@ -1718,9 +1747,16 @@ FrameLayerBuilder::ProcessRemovedDisplayItems(nsRefPtrHashKey<DisplayItemData>* 
                                     data->mGeometry->ComputeInvalidationRegion(),
                                     data->mClip,
                                     layerBuilder->GetLastPaintOffset(t));
+      printf_stderr("Remove item bound: [%d,%d,%d,%d], frame: %p\n",
+                    data->mGeometry->mBounds.x,
+                    data->mGeometry->mBounds.y,
+                    data->mGeometry->mBounds.width,
+                    data->mGeometry->mBounds.height,
+                    data->mFrameList[0]);
     }
     return PL_DHASH_REMOVE;
-  } else {
+
+  } else if (data->mUsed) {
     layerBuilder->ComputeGeometryChangeForItem(data);
   }
 
@@ -5171,7 +5207,6 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
   // Store some layer info into frame for partially display list building
   aContainerFrame->SetOwningLayer(containerLayer.get());
   containerLayer->SetCreator(aContainerFrame);
-  printf_stderr("frame %p owns layer %p\n", aContainerFrame, containerLayer.get());
 
   return containerLayer.forget();
 }

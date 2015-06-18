@@ -275,7 +275,11 @@ public:
    * for the given display item key. If there isn't one, we return null,
    * otherwise we return the layer.
    */
+  class DisplayItemData;
   static Layer* GetDedicatedLayer(nsIFrame* aFrame, uint32_t aDisplayItemKey);
+  void CheckCorrectness();
+  static PLDHashOperator CheckItemData(nsRefPtrHashKey<DisplayItemData>* aEntry,
+                                   void* aUserArg);
 
   /**
    * This callback must be provided to EndTransaction. The callback data
@@ -509,6 +513,7 @@ public:
      * Used to track if data currently stored in mFramesWithLayers (from an existing
      * paint) has been updated in the current paint.
      */
+  public:
     bool            mUsed;
     bool            mIsInvalid;
     bool            mIsRemoved;

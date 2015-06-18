@@ -20,7 +20,9 @@ using namespace mozilla;
 ViewportFrame*
 NS_NewViewportFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) ViewportFrame(aContext);
+  ViewportFrame* newFrame = new (aPresShell) ViewportFrame(aContext);
+  newFrame->mIncremental = false;
+  return newFrame;
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(ViewportFrame)
@@ -58,6 +60,11 @@ ViewportFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       printf_stderr("full build display list for: %p\n", this);
   } else {
     nsCString cstr = mDirty.ToString();
+    if (HasAnyStateBits(NS_FRAME_PAINT_INCREMENTAL) ^ mIncremental)
+      printf_stderr("[TRAP] flag conflict!!!!!!!!!!!!!\n");
+
+    aBuilder->SetIncrementalBuild(mIncremental, mDirty);
+
     printf_stderr("partial build display list for: %p, rect: %s\n", this,
                    cstr.get());
     rect = mDirty.GetBounds();

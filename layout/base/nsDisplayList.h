@@ -295,6 +295,11 @@ public:
    * that we make.
    */
   bool IsBuildingCaret() { return mBuildCaret; }
+
+  void SetIncrementalBuild(bool aIncremental) {
+    mIncrementalBuild = aIncremental;
+  }
+  bool GetIncrementalBuild() { return mIncrementalBuild; }
   /**
    * Allows callers to selectively override the regular paint suppression checks,
    * so that methods like GetFrameForPoint work when painting is suppressed.
@@ -980,6 +985,7 @@ private:
   bool                           mAccurateVisibleRegions;
   bool                           mAllowMergingAndFlattening;
   bool                           mWillComputePluginGeometry;
+  bool                           mIncrementalBuild;
   // True when we're building a display list that's directly or indirectly
   // under an nsDisplayTransform
   bool                           mInTransform;
