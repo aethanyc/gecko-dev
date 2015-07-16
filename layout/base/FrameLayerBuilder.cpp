@@ -3943,7 +3943,7 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
       newLayerEntry->mAnimatedGeometryRoot = animatedGeometryRoot;
       newLayerEntry->mFixedPosFrameForLayerData = fixedPosFrame;
 
-      // Don't attempt to flatten compnent alpha layers that are within
+      // Don't attempt to flatten component alpha layers that are within
       // a forced active layer, or an active transform;
       if (itemType == nsDisplayItem::TYPE_TRANSFORM ||
           layerState == LAYER_ACTIVE_FORCE) {

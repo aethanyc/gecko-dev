@@ -1737,7 +1737,7 @@ public:
   void Sort(nsDisplayListBuilder* aBuilder, SortLEQ aCmp, void* aClosure);
 
   /**
-   * Compute visiblity for the items in the list.
+   * Compute visibility for the items in the list.
    * We put this logic here so it can be shared by top-level
    * painting and also display items that maintain child lists.
    * This is also a good place to put ComputeVisibility-related logic
@@ -1746,7 +1746,7 @@ public:
    * This sets mIsOpaque if the entire visible area of this list has
    * been removed from aVisibleRegion when we return.
    * This does not remove any items from the list, so we can recompute
-   * visiblity with different regions later (see
+   * visibility with different regions later (see
    * FrameLayerBuilder::DrawPaintedLayer).
    * This method needs to be idempotent.
    * 
