@@ -42,6 +42,8 @@
 
 #include <algorithm>
 
+#define DEBUG_DISPLAY_ITEM_DATA 1
+
 using namespace mozilla::layers;
 using namespace mozilla::gfx;
 
