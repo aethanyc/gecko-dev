@@ -3851,7 +3851,7 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
       nsIntRect clipRectUntyped;
       nsIntRect* clipPtr = itemClip.HasClip() ? &clipRectUntyped : nullptr;
       if (clipPtr) {
-	      clipRectUntyped = ParentLayerIntRect::ToUntyped(clipRect);
+        clipRectUntyped = ParentLayerIntRect::ToUntyped(clipRect);
       }
       if (animatedGeometryRoot == item->Frame() &&
           animatedGeometryRoot != mBuilder->RootReferenceFrame()) {
@@ -3860,12 +3860,12 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
         const nsIFrame* clipAnimatedGeometryRoot =
           mPaintedLayerDataTree.GetParentAnimatedGeometryRoot(animatedGeometryRoot);
         mPaintedLayerDataTree.AddingOwnLayer(clipAnimatedGeometryRoot,
-					     clipPtr,
-					     uniformColorPtr);
+                                             clipPtr,
+                                             uniformColorPtr);
       } else if (prerenderedTransform) {
         mPaintedLayerDataTree.AddingOwnLayer(animatedGeometryRoot,
-					     clipPtr,
-					     uniformColorPtr);
+                                             clipPtr,
+                                             uniformColorPtr);
       } else {
         // Using itemVisibleRect here isn't perfect. itemVisibleRect can be
         // larger or smaller than the potential bounds of item's contents in
