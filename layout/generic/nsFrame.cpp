@@ -5025,6 +5025,8 @@ nsIFrame::GetTransformMatrix(const nsIFrame* aStopAtAncestor,
 static void InvalidateFrameInternal(nsIFrame *aFrame, bool aHasDisplayItem = true)
 {
   if (aHasDisplayItem) {
+    printf_stderr("[TY] %s, Set NS_FRAME_NEEDS_PAINT to %s \n",
+                  __FUNCTION__, aFrame->ToString().get());
     aFrame->AddStateBits(NS_FRAME_NEEDS_PAINT);
   }
   nsSVGEffects::InvalidateDirectRenderingObservers(aFrame);
@@ -5035,6 +5037,8 @@ static void InvalidateFrameInternal(nsIFrame *aFrame, bool aHasDisplayItem = tru
     nsIFrame *parent = nsLayoutUtils::GetCrossDocParentFrame(aFrame);
     while (parent && !parent->HasAnyStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT)) {
       if (aHasDisplayItem) {
+        printf_stderr("[TY] %s, Set NS_FRAME_DESCENDANT_NEEDS_PAINT to %s \n",
+                      __FUNCTION__, parent->ToString().get());
         parent->AddStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT);
       }
       nsSVGEffects::InvalidateDirectRenderingObservers(parent);
@@ -5052,6 +5056,10 @@ static void InvalidateFrameInternal(nsIFrame *aFrame, bool aHasDisplayItem = tru
       needsSchedulePaint = true;
     }
   }
+
+  printf_stderr("[TY] %s, aHasDisplayItem %d, needsSchedulePaint %d\n",
+                __FUNCTION__, aHasDisplayItem, needsSchedulePaint);
+
   if (!aHasDisplayItem) {
     return;
   }
@@ -5113,9 +5121,7 @@ nsIFrame::ClearInvalidationStateBits()
 void
 nsIFrame::InvalidateFrame(uint32_t aDisplayItemKey)
 {
-  nsCString frameTag;
-  ListTag(frameTag);
-  printf_stderr("[TY] %s: %s, aDisplayItemKey %d\n", __FUNCTION__, frameTag.get(), aDisplayItemKey);
+  printf_stderr("[TY] %s: %s, aDisplayItemKey %d\n", __FUNCTION__, ToString().get(), aDisplayItemKey);
   bool hasDisplayItem = 
     !aDisplayItemKey || FrameLayerBuilder::HasRetainedDataFor(this, aDisplayItemKey);
   InvalidateFrameInternal(this, hasDisplayItem);
@@ -5124,11 +5130,12 @@ nsIFrame::InvalidateFrame(uint32_t aDisplayItemKey)
 void
 nsIFrame::InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey)
 {
-  printf_stderr("[TY] %s, aRect (%d, %d, %d, %d), aDisplayItemKey %d\n", __FUNCTION__,
-                aRect.x, aRect.y, aRect.width, aRect.height, aDisplayItemKey);
-
   bool hasDisplayItem = 
     !aDisplayItemKey || FrameLayerBuilder::HasRetainedDataFor(this, aDisplayItemKey);
+
+  printf_stderr("[TY] %s, aRect (%d, %d, %d, %d), aDisplayItemKey %d, hasDisplayItem %d\n", __FUNCTION__,
+                aRect.x, aRect.y, aRect.width, aRect.height, aDisplayItemKey, hasDisplayItem);
+
   bool alreadyInvalid = false;
   if (!HasAnyStateBits(NS_FRAME_NEEDS_PAINT)) {
     InvalidateFrameInternal(this, hasDisplayItem);
@@ -5653,6 +5660,13 @@ void
 DebugListFrameTree(nsIFrame* aFrame)
 {
   ((nsFrame*)aFrame)->List(stderr);
+}
+
+nsCString
+nsIFrame::ToString() const {
+  nsCString tag;
+  ListTag(tag);
+  return tag;
 }
 
 void

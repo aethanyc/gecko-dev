@@ -3224,6 +3224,7 @@ public:
     ListTag(t, aFrame);
     fputs(t.get(), out);
   }
+  nsCString ToString() const;
   void ListTag(nsACString& aTo) const;
   static void ListTag(nsACString& aTo, const nsIFrame* aFrame);
   void ListGeneric(nsACString& aTo, const char* aPrefix = "", uint32_t aFlags = 0) const;

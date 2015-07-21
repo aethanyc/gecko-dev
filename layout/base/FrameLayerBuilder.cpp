@@ -5554,6 +5554,9 @@ FrameLayerBuilder::DrawPaintedLayer(PaintedLayer* aLayer,
                                    const nsIntRegion& aRegionToInvalidate,
                                    void* aCallbackData)
 {
+  printf_stderr("[TY] Paintedlayer %p, parent: %p, region to draw: %s\n",
+                aLayer, aLayer->GetParent(), aRegionToDraw.ToString().get());
+
   DrawTarget& aDrawTarget = *aContext->GetDrawTarget();
 
   PROFILER_LABEL("FrameLayerBuilder", "DrawPaintedLayer",
