@@ -3039,6 +3039,22 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
   PROFILER_LABEL("nsLayoutUtils", "PaintFrame",
     js::ProfileEntry::Category::GRAPHICS);
 
+  printf_stderr("[TY] %s, aDirtyRegion %s\n", __FUNCTION__, aDirtyRegion.ToString().get());
+
+  auto printRegion = [] (const nsRegion& region, const char* description) {
+    nsRegionRectIterator iter(region);
+    nsCString str;
+    str += "<";
+    while (const nsRect* r = iter.Next()) {
+      str += nsPrintfCString("(x=%d, y=%d, w=%d, h=%d)", r->x, r->y, r->width, r->height);
+      str += "; ";
+    }
+    str += ">";
+    printf_stderr("[TY] %s, %s: %s\n", __FUNCTION__, description, str.get());
+  };
+
+  printRegion(aDirtyRegion, "aDirtyRegion");
+
   if (aFlags & PAINT_WIDGET_LAYERS) {
     nsView* view = aFrame->GetView();
     if (!(view && view->GetWidget() && GetDisplayRootFrame(aFrame) == aFrame)) {
@@ -3099,6 +3115,9 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
   } else {
     visibleRegion = aDirtyRegion;
   }
+
+  printf_stderr("[TY] %s, visibleRegion: %s\n", __FUNCTION__, visibleRegion.ToString().get());
+  printRegion(visibleRegion, "visibleRegion");
 
   // If we're going to display something different from what we'd normally
   // paint in a window then we will flush out any retained layer trees before

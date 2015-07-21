@@ -5113,6 +5113,9 @@ nsIFrame::ClearInvalidationStateBits()
 void
 nsIFrame::InvalidateFrame(uint32_t aDisplayItemKey)
 {
+  nsCString frameTag;
+  ListTag(frameTag);
+  printf_stderr("[TY] %s: %s, aDisplayItemKey %d\n", __FUNCTION__, frameTag.get(), aDisplayItemKey);
   bool hasDisplayItem = 
     !aDisplayItemKey || FrameLayerBuilder::HasRetainedDataFor(this, aDisplayItemKey);
   InvalidateFrameInternal(this, hasDisplayItem);
@@ -5121,6 +5124,9 @@ nsIFrame::InvalidateFrame(uint32_t aDisplayItemKey)
 void
 nsIFrame::InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey)
 {
+  printf_stderr("[TY] %s, aRect (%d, %d, %d, %d), aDisplayItemKey %d\n", __FUNCTION__,
+                aRect.x, aRect.y, aRect.width, aRect.height, aDisplayItemKey);
+
   bool hasDisplayItem = 
     !aDisplayItemKey || FrameLayerBuilder::HasRetainedDataFor(this, aDisplayItemKey);
   bool alreadyInvalid = false;
