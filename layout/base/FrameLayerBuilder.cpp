@@ -3903,6 +3903,8 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
 
       nsRect invalid;
       if (item->IsInvalid(invalid)) {
+        printf_stderr("[TY] %s, Item %s(%p) invalid, set whole layers %p invalid!\n",
+                      __FUNCTION__, item->Name(), item->Frame(), ownLayer.get());
         ownLayer->SetInvalidRectToVisibleRegion();
       }
 
@@ -5154,7 +5156,8 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
 
   mContainerLayerGeneration = oldGeneration;
   nsPresContext::ClearNotifySubDocInvalidationData(containerLayer);
-
+  printf_stderr("[TY] %s, aContainerFrame %s, aContainerItem %p, containerLayer %p\n",
+                __FUNCTION__, aContainerFrame->ToString().get(), aContainerItem, containerLayer.get());
   return containerLayer.forget();
 }
 
@@ -5554,8 +5557,8 @@ FrameLayerBuilder::DrawPaintedLayer(PaintedLayer* aLayer,
                                    const nsIntRegion& aRegionToInvalidate,
                                    void* aCallbackData)
 {
-  printf_stderr("[TY] Paintedlayer %p, parent: %p, region to draw: %s\n",
-                aLayer, aLayer->GetParent(), aRegionToDraw.ToString().get());
+  printf_stderr("[TY] %s, Paintedlayer %p, parent: %p, region to draw: %s\n",
+                __FUNCTION__, aLayer, aLayer->GetParent(), aRegionToDraw.ToString().get());
 
   DrawTarget& aDrawTarget = *aContext->GetDrawTarget();
 
