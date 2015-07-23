@@ -74,6 +74,7 @@
 #include "nsDeckFrame.h"
 #include "nsSubDocumentFrame.h"
 #include "SVGTextFrame.h"
+#include "nsViewportFrame.h"
 
 #include "gfxContext.h"
 #include "nsRenderingContext.h"
@@ -2518,6 +2519,34 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   // is sorted by z-order and content in BuildDisplayListForStackingContext,
   // but it means that sort routine needs to do less work.
   aLists.PositionedDescendants()->AppendToTop(&extraPositionedDescendants);
+}
+
+void
+nsIFrame::ReportDirtyRectToRoot(const nsRect& aRect)
+{
+  nsIFrame* current = this;
+  nsIFrame* containerOwner = nullptr;
+
+  while (current) {
+    if (current->mOwningLayer) {
+      containerOwner = current;
+      break;
+    }
+    current = current->mParent;
+  }
+
+  if (containerOwner) {
+    if (containerOwner->GetType() == nsGkAtoms::viewportFrame) {
+      auto viewport = static_cast<ViewportFrame*>(current);
+      nsRect dirtyRect = aRect + GetOffsetTo(viewport);
+      viewport->AddDirtyRect(aRect);
+    } else {
+      printf_stderr("[TY] %s, %s has owning layer, but not viewportFrame\n",
+                    __FUNCTION__, ToString().get());
+    }
+  }
+
+  return;
 }
 
 void
@@ -5036,7 +5065,7 @@ static void InvalidateFrameInternal(nsIFrame *aFrame, bool aHasDisplayItem = tru
     nsIFrame *parent = nsLayoutUtils::GetCrossDocParentFrame(aFrame);
     while (parent && !parent->HasAnyStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT)) {
       if (aHasDisplayItem) {
-        printf_stderr("[TY] %s, Set NS_FRAME_DESCENDANT_NEEDS_PAINT to %s \n", __FUNCTION__, parent->ToString().get());
+        //printf_stderr("[TY] %s, Set NS_FRAME_DESCENDANT_NEEDS_PAINT to %s \n", __FUNCTION__, parent->ToString().get());
         parent->AddStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT);
       }
       nsSVGEffects::InvalidateDirectRenderingObservers(parent);
@@ -5055,12 +5084,15 @@ static void InvalidateFrameInternal(nsIFrame *aFrame, bool aHasDisplayItem = tru
     }
   }
 
-  printf_stderr("[TY] %s, %s, aHasDisplayItem %d, needsSchedulePaint %d\n",
+  printf_stderr("[TY]   %s, %s, aHasDisplayItem %d, needsSchedulePaint %d\n",
                 __FUNCTION__, aFrame->ToString().get(), aHasDisplayItem, needsSchedulePaint);
 
   if (!aHasDisplayItem) {
     return;
   }
+
+  aFrame->ReportDirtyRectToRoot(aFrame->GetVisualOverflowRectRelativeToSelf());
+
   if (needsSchedulePaint) {
     aFrame->SchedulePaint();
   }
@@ -5225,7 +5257,8 @@ nsIFrame::SchedulePaint(PaintType aType)
   nsIFrame *displayRoot = nsLayoutUtils::GetDisplayRootFrame(this);
   nsPresContext *pres = displayRoot->PresContext()->GetRootPresContext();
 
-  printf_stderr("[TY] %s, displayRoot: %s, aType: %d\n", __FUNCTION__, displayRoot->ToString().get(), aType);
+  printf_stderr("[TY] %s, on frame: %s, displayRoot: %s, aType: %d\n",
+                __FUNCTION__, ToString().get(), displayRoot->ToString().get(), aType);
 
   // No need to schedule a paint for an external document since they aren't
   // painted directly.

@@ -56,15 +56,26 @@ ViewportFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (!kid)
     return;
 
-  if (aBuilder->IsForPainting()) {
-    printf_stderr("[TY] %s, %s, aDirtyRect: %s\n",
-                  __FUNCTION__, ToString().get(), ::ToString(aDirtyRect).c_str());
+  nsRect dirtyRect;
+  if (HasAnyStateBits(NS_FRAME_NEEDS_PAINT) || mDirtyRegion.IsEmpty()) {
+    dirtyRect = aDirtyRect;
+    if (aBuilder->IsForPainting()) {
+      printf_stderr("[TY] %s, %s, use aDirtyRect: %s\n",
+                    __FUNCTION__, ToString().get(), ::ToString(dirtyRect).c_str());
+    }
+  } else {
+    dirtyRect = mDirtyRegion.GetBounds();
+    mDirtyRegion.SetEmpty();
+    if (aBuilder->IsForPainting()) {
+      printf_stderr("[TY] %s, %s, use mDirtyRegion: %s\n",
+                    __FUNCTION__, ToString().get(), ::ToString(dirtyRect).c_str());
+    }
   }
 
   // make the kid's BorderBackground our own. This ensures that the canvas
   // frame's background becomes our own background and therefore appears
   // below negative z-index elements.
-  BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
+  BuildDisplayListForChild(aBuilder, kid, dirtyRect, aLists);
 }
 
 #ifdef DEBUG

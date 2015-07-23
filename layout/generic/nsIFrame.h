@@ -3015,6 +3015,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
 
   void SetOwingLayer(Layer* aLayer) { mOwningLayer = aLayer; }
   Layer* GetOwingLayer() const { return mOwningLayer; }
+  void ReportDirtyRectToRoot(const nsRect& aRect);
 
 protected:
   // Members
