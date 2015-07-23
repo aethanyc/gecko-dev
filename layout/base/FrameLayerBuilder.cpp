@@ -4961,6 +4961,11 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
                aContainerItem->Frame() == aContainerFrame,
                "Container display item must match given frame");
 
+  printf_stderr("[TY] aContainerFrame: %s, its parent: %p\n", aContainerFrame->ToString().get(), aContainerFrame->GetParent());
+  printf_stderr("[TY] Begin %s, aContainerFrame: %s, aContainerItem: %s, containerDisplayItemKey %d\n",
+                __FUNCTION__, aContainerFrame->ToString().get(),
+                aContainerItem ? aContainerItem->Name() : "nullptr", containerDisplayItemKey);
+
   if (!aParameters.mXScale || !aParameters.mYScale) {
     return nullptr;
   }
@@ -5156,8 +5161,14 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
 
   mContainerLayerGeneration = oldGeneration;
   nsPresContext::ClearNotifySubDocInvalidationData(containerLayer);
-  printf_stderr("[TY] %s, aContainerFrame %s, aContainerItem %p, containerLayer %p\n",
-                __FUNCTION__, aContainerFrame->ToString().get(), aContainerItem, containerLayer.get());
+
+  printf_stderr("[TY] End %s, aContainerFrame: %s, aContainerItem: %s, containerLayer: %p\n",
+                __FUNCTION__, aContainerFrame->ToString().get(),
+                aContainerItem ? aContainerItem->Name() : "nullptr", containerLayer.get());
+
+  aContainerFrame->SetOwingLayer(containerLayer);
+  containerLayer->SetCreator(aContainerFrame);
+
   return containerLayer.forget();
 }
 

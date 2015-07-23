@@ -5036,7 +5036,7 @@ static void InvalidateFrameInternal(nsIFrame *aFrame, bool aHasDisplayItem = tru
     nsIFrame *parent = nsLayoutUtils::GetCrossDocParentFrame(aFrame);
     while (parent && !parent->HasAnyStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT)) {
       if (aHasDisplayItem) {
-        // printf_stderr("[TY] %s, Set NS_FRAME_DESCENDANT_NEEDS_PAINT to %s \n", __FUNCTION__, parent->ToString().get());
+        printf_stderr("[TY] %s, Set NS_FRAME_DESCENDANT_NEEDS_PAINT to %s \n", __FUNCTION__, parent->ToString().get());
         parent->AddStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT);
       }
       nsSVGEffects::InvalidateDirectRenderingObservers(parent);
@@ -5055,8 +5055,8 @@ static void InvalidateFrameInternal(nsIFrame *aFrame, bool aHasDisplayItem = tru
     }
   }
 
-  printf_stderr("[TY] %s, aHasDisplayItem %d, needsSchedulePaint %d\n",
-                __FUNCTION__, aHasDisplayItem, needsSchedulePaint);
+  printf_stderr("[TY] %s, %s, aHasDisplayItem %d, needsSchedulePaint %d\n",
+                __FUNCTION__, aFrame->ToString().get(), aHasDisplayItem, needsSchedulePaint);
 
   if (!aHasDisplayItem) {
     return;
@@ -5224,6 +5224,8 @@ nsIFrame::SchedulePaint(PaintType aType)
 {
   nsIFrame *displayRoot = nsLayoutUtils::GetDisplayRootFrame(this);
   nsPresContext *pres = displayRoot->PresContext()->GetRootPresContext();
+
+  printf_stderr("[TY] %s, displayRoot: %s, aType: %d\n", __FUNCTION__, displayRoot->ToString().get(), aType);
 
   // No need to schedule a paint for an external document since they aren't
   // painted directly.

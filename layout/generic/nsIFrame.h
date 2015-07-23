@@ -3013,6 +3013,9 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
    */
   virtual mozilla::dom::Element* GetPseudoElement(nsCSSPseudoElements::Type aType);
 
+  void SetOwingLayer(Layer* aLayer) { mOwningLayer = aLayer; }
+  Layer* GetOwingLayer() const { return mOwningLayer; }
+
 protected:
   // Members
   nsRect           mRect;
@@ -3057,6 +3060,8 @@ protected:
 #endif
     mState |= NS_FRAME_IN_REFLOW;
   }
+
+  Layer* mOwningLayer;
 
   nsFrameState     mState;
 

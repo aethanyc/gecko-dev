@@ -50,6 +50,7 @@
 #include "ImageContainer.h"
 
 class gfxContext;
+class nsIFrame;
 
 extern uint8_t gLayerManagerLayerBuilder;
 
@@ -1275,6 +1276,8 @@ public:
   float GetScrollbarThumbRatio() { return mScrollbarThumbRatio; }
   bool IsScrollbarContainer() { return mIsScrollbarContainer; }
   Layer* GetMaskLayer() const { return mMaskLayer; }
+  void SetCreator(nsIFrame* frame) { mCreator = frame; }
+  nsIFrame* GetCreator() const { return mCreator; }
 
   // Ancestor mask layers are associated with FrameMetrics, but for simplicity
   // in maintaining the layer tree structure we attach them to the layer.
@@ -1738,6 +1741,7 @@ protected:
   Layer* mNextSibling;
   Layer* mPrevSibling;
   void* mImplData;
+  nsIFrame* mCreator;
   nsRefPtr<Layer> mMaskLayer;
   nsTArray<nsRefPtr<Layer>> mAncestorMaskLayers;
   gfx::UserData mUserData;

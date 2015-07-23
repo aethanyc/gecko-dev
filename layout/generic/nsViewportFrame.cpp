@@ -14,6 +14,7 @@
 #include "nsSubDocumentFrame.h"
 #include "nsAbsoluteContainingBlock.h"
 #include "GeckoProfiler.h"
+#include "mozilla/ToString.h"
 
 using namespace mozilla;
 
@@ -54,6 +55,11 @@ ViewportFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsIFrame* kid = mFrames.FirstChild();
   if (!kid)
     return;
+
+  if (aBuilder->IsForPainting()) {
+    printf_stderr("[TY] %s, %s, aDirtyRect: %s\n",
+                  __FUNCTION__, ToString().get(), ::ToString(aDirtyRect).c_str());
+  }
 
   // make the kid's BorderBackground our own. This ensures that the canvas
   // frame's background becomes our own background and therefore appears
@@ -306,6 +312,14 @@ nsIAtom*
 ViewportFrame::GetType() const
 {
   return nsGkAtoms::viewportFrame;
+}
+
+void
+ViewportFrame::AddDirtyRect(const nsRect& aRect)
+{
+  mDirtyRegion.OrWith(aRect);
+  printf_stderr("[TY] %s, Add aRect %s:, mDirtyRegion %s\n",
+                __FUNCTION__, ::ToString(aRect).c_str(), mDirtyRegion.ToString().get());
 }
 
 #ifdef DEBUG_FRAME_DUMP
