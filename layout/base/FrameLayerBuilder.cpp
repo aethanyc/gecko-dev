@@ -1751,6 +1751,11 @@ FrameLayerBuilder::WillEndTransaction()
   // Update all the frames that used to have layers.
   for (auto iter = data->mDisplayItems.Iter(); !iter.Done(); iter.Next()) {
     DisplayItemData* data = iter.Get()->GetKey();
+    nsDisplayItem* item = data->GetItem();
+    nsIFrame* frame = item ? item->Frame(): nullptr;
+    auto frameName = frame ? frame->ToString() : nsCString();
+    printf_stderr("[TY] %s, DisplayItem (%i) used: %d, Frame: %p, FrameName: %s\n",
+                  __FUNCTION__, data->mDisplayItemKey, data->mUsed, frame, frameName.get());
     if (!data->mUsed) {
       // This item was visible, but isn't anymore.
       PaintedLayer* t = data->mLayer->AsPaintedLayer();
