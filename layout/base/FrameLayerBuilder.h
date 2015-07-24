@@ -502,7 +502,7 @@ public:
     LayerState      mLayerState;
 
     /**
-     * Temporary stoarage of the display item being referenced, only valid between
+     * Temporary storage of the display item being referenced, only valid between
      * BeginUpdate and EndUpdate.
      */
     nsDisplayItem* mItem;
