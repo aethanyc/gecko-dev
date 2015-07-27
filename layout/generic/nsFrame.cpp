@@ -2539,7 +2539,7 @@ nsIFrame::ReportDirtyRectToRoot(const nsRect& aRect)
     if (containerOwner->GetType() == nsGkAtoms::viewportFrame) {
       auto viewport = static_cast<ViewportFrame*>(current);
       nsRect dirtyRect = aRect + GetOffsetTo(viewport);
-      viewport->AddDirtyRect(aRect);
+      viewport->AddDirtyRect(dirtyRect);
     } else {
       printf_stderr("[TY] %s, %s has owning layer, but not viewportFrame\n",
                     __FUNCTION__, ToString().get());
@@ -4502,6 +4502,7 @@ nsFrame::DidReflow(nsPresContext*           aPresContext,
 
   nsSVGEffects::InvalidateDirectRenderingObservers(this, nsSVGEffects::INVALIDATE_REFLOW);
 
+  printf_stderr("[TY] %s, frame = %s, aStatus = %d\n", __FUNCTION__, ToString().get(), aStatus);
   if (nsDidReflowStatus::FINISHED == aStatus) {
     mState &= ~(NS_FRAME_IN_REFLOW | NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
                 NS_FRAME_HAS_DIRTY_CHILDREN);

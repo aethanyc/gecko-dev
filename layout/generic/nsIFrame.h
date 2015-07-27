@@ -717,6 +717,7 @@ public:
     } else {
       mRect = aRect;
     }
+    printf_stderr("[TY] %s, frame = %s, aRect = %s\n", __FUNCTION__, ToString().get(), mozilla::ToString(mRect).c_str());
   }
   /**
    * Set this frame's rect from a logical rect in its own writing direction

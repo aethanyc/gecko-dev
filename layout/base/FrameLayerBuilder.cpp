@@ -1748,15 +1748,17 @@ FrameLayerBuilder::WillEndTransaction()
     (mRetainingManager->GetUserData(&gLayerManagerUserData));
   NS_ASSERTION(data, "Must have data!");
 
+  printf_stderr("[TY] Begin %s\n", __FUNCTION__);
   // Update all the frames that used to have layers.
   for (auto iter = data->mDisplayItems.Iter(); !iter.Done(); iter.Next()) {
     DisplayItemData* data = iter.Get()->GetKey();
     nsDisplayItem* item = data->GetItem();
     nsIFrame* frame = item ? item->Frame(): nullptr;
     auto frameName = frame ? frame->ToString() : nsCString();
-    printf_stderr("[TY] %s, DisplayItem (%i) used: %d, Frame: %p, FrameName: %s\n",
-                  __FUNCTION__, data->mDisplayItemKey, data->mUsed, frame, frameName.get());
     if (!data->mUsed) {
+      printf_stderr("[TY]   DisplayItem type (%d) used: %d, Frame: %p, FrameName: %s\n",
+                    data->mDisplayItemKey, data->mUsed, frame, frameName.get());
+
       // This item was visible, but isn't anymore.
       PaintedLayer* t = data->mLayer->AsPaintedLayer();
       if (t && data->mGeometry) {
@@ -1773,9 +1775,12 @@ FrameLayerBuilder::WillEndTransaction()
 
       iter.Remove();
     } else {
+      printf_stderr("[TY]   DisplayItem type (%s) used: %d, Frame: %p, FrameName: %s\n",
+                    item ? item->Name() : "Null", data->mUsed, frame, frameName.get());
       ComputeGeometryChangeForItem(data);
     }
   }
+  printf_stderr("[TY] End %s\n", __FUNCTION__);
 
   data->mInvalidateAllLayers = false;
 }
