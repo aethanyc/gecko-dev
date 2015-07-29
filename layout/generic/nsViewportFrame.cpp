@@ -329,7 +329,7 @@ void
 ViewportFrame::AddDirtyRect(const nsRect& aRect)
 {
   mDirtyRegion.OrWith(aRect);
-  printf_stderr("[TY] %s, Add aRect %s:, mDirtyRegion %s\n",
+  printf_stderr("[TY] %s, Add aRect %s, mDirtyRegion %s\n",
                 __FUNCTION__, ::ToString(aRect).c_str(), mDirtyRegion.ToString().get());
 }
 

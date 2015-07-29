@@ -8944,6 +8944,9 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
     return true;
   }
 
+  printf_stderr("[TY] %s, target %s, aInterruptible = %d\n",
+                __FUNCTION__, target->ToString().get(), aInterruptible);
+
   gfxTextPerfMetrics* tp = mPresContext->GetTextPerfMetrics();
   TimeStamp timeStart;
   if (tp) {
