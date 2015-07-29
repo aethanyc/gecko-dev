@@ -4504,6 +4504,8 @@ nsFrame::DidReflow(nsPresContext*           aPresContext,
 
   printf_stderr("[TY] %s, frame = %s, aStatus = %d\n", __FUNCTION__, ToString().get(), aStatus);
   if (nsDidReflowStatus::FINISHED == aStatus) {
+    ReportDirtyRectToRoot(GetVisualOverflowRectRelativeToSelf());
+
     mState &= ~(NS_FRAME_IN_REFLOW | NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
                 NS_FRAME_HAS_DIRTY_CHILDREN);
   }
