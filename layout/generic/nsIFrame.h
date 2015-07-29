@@ -896,6 +896,8 @@ public:
 
   NS_DECLARE_FRAME_PROPERTY(GenConProperty, DestroyContentArray)
 
+  NS_DECLARE_FRAME_PROPERTY(LastPaintRect, DeleteValue<nsRect>)
+
   nsTArray<nsIContent*>* GetGenConPseudos() {
     const FramePropertyDescriptor* prop = GenConProperty();
     return static_cast<nsTArray<nsIContent*>*>(Properties().Get(prop));

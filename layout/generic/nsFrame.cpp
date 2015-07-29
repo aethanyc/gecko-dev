@@ -2335,13 +2335,17 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
         (shell->IgnoringViewportScrolling() && child == shell->GetRootScrollFrame());
     if (!keepDescending) {
       nsRect childDirty;
-      if (!childDirty.IntersectRect(dirty, child->GetVisualOverflowRect()))
+      if (!childDirty.IntersectRect(dirty, child->GetVisualOverflowRect())) {
         return;
-      // Usually we could set dirty to childDirty now but there's no
-      // benefit, and it can be confusing. It can especially confuse
-      // situations where we're going to ignore a scrollframe's clipping;
-      // we wouldn't want to clip the dirty area to the scrollframe's
-      // bounds in that case.
+      } else {
+        // Usually we could set dirty to childDirty now but there's no
+        // benefit, and it can be confusing. It can especially confuse
+        // situations where we're going to ignore a scrollframe's clipping;
+        // we wouldn't want to clip the dirty area to the scrollframe's
+        // bounds in that case.
+        child->Properties().Set(nsIFrame::LastPaintRect(),
+                                new nsRect(child->GetVisualOverflowRectRelativeToSelf()));
+      }
     }
   }
 
@@ -2538,8 +2542,27 @@ nsIFrame::ReportDirtyRectToRoot(const nsRect& aRect)
   if (containerOwner) {
     if (containerOwner->GetType() == nsGkAtoms::viewportFrame) {
       auto viewport = static_cast<ViewportFrame*>(current);
-      nsRect dirtyRect = aRect + GetOffsetTo(viewport);
+      nsPoint offset = GetOffsetTo(viewport);
+      nsRect dirtyRect = aRect + offset;
       viewport->AddDirtyRect(dirtyRect);
+
+      nsRect* lastPaintRect = static_cast<nsRect*>(Properties().Get(nsIFrame::LastPaintRect()));
+
+      if (lastPaintRect) {
+        viewport->AddDirtyRect(*lastPaintRect + offset);
+
+        auto array = static_cast<nsTArray<FrameLayerBuilder::DisplayItemData*>*>(
+          Properties().Get(FrameLayerBuilder::LayerManagerDataProperty()));
+        if (array) {
+          for (uint32_t i = 0; i < array->Length(); i++) {
+            printf_stderr("[TY]   %s, Set DisplayItemData of %s to be removed\n",
+                          __FUNCTION__, ToString().get());
+
+            FrameLayerBuilder::DisplayItemData* item = array->ElementAt(i);
+            item->ToBeRemoved();
+          }
+        }
+      }
     } else {
       printf_stderr("[TY] %s, %s has owning layer, but not viewportFrame\n",
                     __FUNCTION__, ToString().get());

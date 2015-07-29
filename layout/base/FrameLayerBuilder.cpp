@@ -97,6 +97,7 @@ FrameLayerBuilder::DisplayItemData::DisplayItemData(LayerManagerData* aParent, u
   , mItem(nullptr)
   , mUsed(true)
   , mIsInvalid(false)
+  , mToBeRemoved(false)
 {
   MOZ_COUNT_CTOR(FrameLayerBuilder::DisplayItemData);
 
@@ -148,6 +149,7 @@ FrameLayerBuilder::DisplayItemData::EndUpdate()
   MOZ_ASSERT(!mItem);
   mIsInvalid = false;
   mUsed = false;
+  mToBeRemoved = false;
 }
 
 void
@@ -1756,8 +1758,8 @@ FrameLayerBuilder::WillEndTransaction()
     nsIFrame* frame = item ? item->Frame(): nullptr;
     auto frameName = frame ? frame->ToString() : nsCString();
     if (!data->mUsed) {
-      printf_stderr("[TY]   DisplayItem type (%d) used: %d, Frame: %p, FrameName: %s\n",
-                    data->mDisplayItemKey, data->mUsed, frame, frameName.get());
+      printf_stderr("[TY]   DisplayItem type (%d), used: %d, to be removed: %d, Frame: %p, FrameName: %s\n",
+                    data->mDisplayItemKey, data->mUsed, data->mToBeRemoved, frame, frameName.get());
 
       // This item was visible, but isn't anymore.
       PaintedLayer* t = data->mLayer->AsPaintedLayer();
@@ -1775,8 +1777,8 @@ FrameLayerBuilder::WillEndTransaction()
 
       iter.Remove();
     } else {
-      printf_stderr("[TY]   DisplayItem type (%s) used: %d, Frame: %p, FrameName: %s\n",
-                    item ? item->Name() : "Null", data->mUsed, frame, frameName.get());
+      printf_stderr("[TY]   DisplayItem type (%s) used: %d, to be removed: %d, Frame: %p, FrameName: %s\n",
+                    item ? item->Name() : "Null", data->mUsed, data->mToBeRemoved, frame, frameName.get());
       ComputeGeometryChangeForItem(data);
     }
   }
