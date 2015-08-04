@@ -2541,25 +2541,27 @@ nsIFrame::ReportDirtyRectToRoot(const nsRect& aRect)
 
   if (containerOwner) {
     if (containerOwner->GetType() == nsGkAtoms::viewportFrame) {
-      auto viewport = static_cast<ViewportFrame*>(current);
-      nsPoint offset = GetOffsetTo(viewport);
-      nsRect dirtyRect = aRect + offset;
-      viewport->AddDirtyRect(dirtyRect);
+      if (containerOwner->mOwningLayer->GetFirstChild() == containerOwner->mOwningLayer->GetLastChild()) {
+        auto viewport = static_cast<ViewportFrame*>(current);
+        nsPoint offset = GetOffsetTo(viewport);
+        nsRect dirtyRect = aRect + offset;
+        viewport->AddDirtyRect(dirtyRect);
 
-      nsRect* lastPaintRect = static_cast<nsRect*>(Properties().Get(nsIFrame::LastPaintRect()));
+        nsRect* lastPaintRect = static_cast<nsRect*>(Properties().Get(nsIFrame::LastPaintRect()));
 
-      if (lastPaintRect) {
-        viewport->AddDirtyRect(*lastPaintRect + offset);
+        if (lastPaintRect) {
+          viewport->AddDirtyRect(*lastPaintRect + offset);
 
-        auto array = static_cast<nsTArray<FrameLayerBuilder::DisplayItemData*>*>(
-          Properties().Get(FrameLayerBuilder::LayerManagerDataProperty()));
-        if (array) {
-          for (uint32_t i = 0; i < array->Length(); i++) {
-            printf_stderr("[TY]   %s, Set DisplayItemData of %s to be removed\n",
-                          __FUNCTION__, ToString().get());
+          auto array = static_cast<nsTArray<FrameLayerBuilder::DisplayItemData*>*>(
+            Properties().Get(FrameLayerBuilder::LayerManagerDataProperty()));
+          if (array) {
+            for (uint32_t i = 0; i < array->Length(); i++) {
+              printf_stderr("[TY]   %s, Set DisplayItemData of %s to be removed\n",
+                            __FUNCTION__, ToString().get());
 
-            FrameLayerBuilder::DisplayItemData* item = array->ElementAt(i);
-            item->ToBeRemoved();
+              FrameLayerBuilder::DisplayItemData* item = array->ElementAt(i);
+              item->ToBeRemoved();
+            }
           }
         }
       }
