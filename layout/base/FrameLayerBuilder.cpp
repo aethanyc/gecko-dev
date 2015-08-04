@@ -2101,6 +2101,9 @@ ContainerState::AttemptToRecyclePaintedLayer(const nsIFrame* aAnimatedGeometryRo
                             aTopLeft,
                             didResetScrollPositionForLayerPixelAlignment);
 
+  printf_stderr("[TY] ContainerState::AttemptToRecyclePaintedLayer, Recycle %s (%p)\n",
+                layer->Name(), layer.get());
+
   return layer.forget();
 }
 
@@ -2831,8 +2834,11 @@ PaintedLayerDataTree::EnsureNodeFor(const nsIFrame* aAnimatedGeometryRoot)
   MOZ_ASSERT(aAnimatedGeometryRoot);
   PaintedLayerDataNode* node = mNodes.Get(aAnimatedGeometryRoot);
   if (node) {
+    printf_stderr("[TY] %s %s, already in tree \n", __FUNCTION__, aAnimatedGeometryRoot->ToString().get());
     return node;
   }
+
+  printf_stderr("[TY] %s %s, not in tree \n", __FUNCTION__, aAnimatedGeometryRoot->ToString().get());
 
   const nsIFrame* parentAnimatedGeometryRoot = GetParentAnimatedGeometryRoot(aAnimatedGeometryRoot);
   if (!parentAnimatedGeometryRoot) {
@@ -2840,6 +2846,7 @@ PaintedLayerDataTree::EnsureNodeFor(const nsIFrame* aAnimatedGeometryRoot)
     MOZ_ASSERT(aAnimatedGeometryRoot == Builder()->RootReferenceFrame());
     mRoot = MakeUnique<PaintedLayerDataNode>(*this, nullptr, aAnimatedGeometryRoot);
     node = mRoot.get();
+    printf_stderr("[TY] %s %s, create new tree \n", __FUNCTION__, aAnimatedGeometryRoot->ToString().get());
   } else {
     PaintedLayerDataNode* parentNode = EnsureNodeFor(parentAnimatedGeometryRoot);
     MOZ_ASSERT(parentNode);
@@ -3467,6 +3474,8 @@ ContainerState::NewPaintedLayerData(nsDisplayItem* aItem,
   // Allocate another entry for this layer's optimization to ColorLayer/ImageLayer
   mNewChildLayers.AppendElement();
 
+  printf_stderr("[TY] NewPaintedLayerData for %s\n", aItem->Name());
+
   return data;
 }
 
@@ -4012,6 +4021,8 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
           return NewPaintedLayerData(item, itemVisibleRect, animatedGeometryRoot,
                                      topLeft, shouldFixToViewport);
         });
+      printf_stderr("[TY] FindPaintedLayerFor %s, and item %s, forceOwnLayer %d, PaintedLayerData %p\n",
+                    animatedGeometryRoot->ToString().get(), item->Name(), forceOwnLayer, paintedLayerData);
 
       if (itemType == nsDisplayItem::TYPE_LAYER_EVENT_REGIONS) {
         nsDisplayLayerEventRegions* eventRegions =
@@ -4432,6 +4443,9 @@ ContainerState::CollectOldLayers()
 {
   for (Layer* layer = mContainerLayer->GetFirstChild(); layer;
        layer = layer->GetNextSibling()) {
+    printf_stderr("[TY] ContainerState::CollectOldLayers, Recycle %s (%p) \n",
+                  layer->Name(), layer);
+
     NS_ASSERTION(!layer->HasUserData(&gMaskLayerUserData),
                  "Mask layer in layer tree; could not be recycled.");
     if (layer->HasUserData(&gPaintedDisplayItemLayerUserData)) {
@@ -4694,6 +4708,15 @@ ContainerState::Finish(uint32_t* aTextContentFlags, LayerManagerData* aData,
                        const nsIntRect& aContainerPixelBounds,
                        nsDisplayList* aChildItems, bool& aHasComponentAlphaChildren)
 {
+  printf_stderr("[TY] ContainerState::Finish begin\n");
+  for (auto iter = mPaintedLayersAvailableForRecycling.Iter();
+       !iter.Done();
+       iter.Next()) {
+    auto layer = iter.Get()->GetKey();
+    printf_stderr("[TY] ContainerState::Finish, %s (%p) not recycled \n",
+                  layer->Name(), layer);
+  }
+
   mPaintedLayerDataTree.Finish();
 
   NS_ASSERTION(mContainerBounds.IsEqualInterior(mAccumulatedChildBounds),
@@ -4755,11 +4778,15 @@ ContainerState::Finish(uint32_t* aTextContentFlags, LayerManagerData* aData,
   }
   while (layer) {
     Layer *layerToRemove = layer;
+    printf_stderr("[TY] ContainerState::Finish, Remove %s (%p) \n",
+                  layerToRemove->Name(), layerToRemove);
     layer = layer->GetNextSibling();
     mContainerLayer->RemoveChild(layerToRemove);
+
   }
 
   *aTextContentFlags = textContentFlags;
+  printf_stderr("[TY] ContainerState::Finish end\n");
 }
 
 static inline gfxSize RoundToFloatPrecision(const gfxSize& aSize)
