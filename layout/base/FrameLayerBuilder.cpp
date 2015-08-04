@@ -5205,7 +5205,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
                 __FUNCTION__, aContainerFrame->ToString().get(),
                 aContainerItem ? aContainerItem->Name() : "nullptr", containerLayer.get());
 
-  aContainerFrame->SetOwingLayer(containerLayer);
+  aContainerFrame->SetOwningLayer(containerLayer);
   containerLayer->SetCreator(aContainerFrame);
 
   return containerLayer.forget();

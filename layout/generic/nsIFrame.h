@@ -3016,8 +3016,8 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
    */
   virtual mozilla::dom::Element* GetPseudoElement(nsCSSPseudoElements::Type aType);
 
-  void SetOwingLayer(Layer* aLayer) { mOwningLayer = aLayer; }
-  Layer* GetOwingLayer() const { return mOwningLayer; }
+  void SetOwningLayer(Layer* aLayer) { mOwningLayer = aLayer; }
+  Layer* GetOwningLayer() const { return mOwningLayer; }
   void ReportDirtyRectToRoot(const nsRect& aRect);
 
 protected:
