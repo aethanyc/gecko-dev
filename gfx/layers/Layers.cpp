@@ -229,6 +229,7 @@ Layer::Layer(LayerManager* aManager, void* aImplData) :
   mAnimationGeneration(0)
 {
   MOZ_COUNT_CTOR(Layer);
+  printf_stderr("[TY] Create layer %p\n", this);
 }
 
 Layer::~Layer()
