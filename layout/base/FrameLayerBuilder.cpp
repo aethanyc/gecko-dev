@@ -1757,7 +1757,7 @@ FrameLayerBuilder::WillEndTransaction()
     nsDisplayItem* item = data->GetItem();
     nsIFrame* frame = item ? item->Frame(): nullptr;
     auto frameName = frame ? frame->ToString() : nsCString();
-    if (!data->mUsed && data->mToBeRemoved) {
+    if (!data->mUsed) {
       printf_stderr("[TY]   DisplayItem type (%d), used: %d, to be removed: %d, Frame: %p, FrameName: %s\n",
                     data->mDisplayItemKey, data->mUsed, data->mToBeRemoved, frame, frameName.get());
 

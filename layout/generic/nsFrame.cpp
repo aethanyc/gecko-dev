@@ -2541,7 +2541,7 @@ nsIFrame::ReportDirtyRectToRoot(const nsRect& aRect)
 
   if (containerOwner) {
     if (containerOwner->GetType() == nsGkAtoms::viewportFrame) {
-      if (containerOwner->mOwningLayer->GetFirstChild() == containerOwner->mOwningLayer->GetLastChild()) {
+      //if (containerOwner->mOwningLayer->GetFirstChild() == containerOwner->mOwningLayer->GetLastChild()) {
         auto viewport = static_cast<ViewportFrame*>(current);
         nsPoint offset = GetOffsetTo(viewport);
         nsRect dirtyRect = aRect + offset;
@@ -2564,7 +2564,7 @@ nsIFrame::ReportDirtyRectToRoot(const nsRect& aRect)
             }
           }
         }
-      }
+        //}
     } else {
       printf_stderr("[TY] %s, %s has owning layer, but not viewportFrame\n",
                     __FUNCTION__, ToString().get());
