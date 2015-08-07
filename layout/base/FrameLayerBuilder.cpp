@@ -389,7 +389,9 @@ public:
     mImage(nullptr),
     mCommonClipCount(-1),
     mNewChildLayersIndex(-1)
-  {}
+  {
+    // printf_stderr("[TY] %s Constructor PaintedLayerData %p\n", __FUNCTION__, this);
+  }
 
 #ifdef MOZ_DUMP_PAINTING
   /**
@@ -3051,6 +3053,8 @@ void ContainerState::FinishPaintedLayerData(PaintedLayerData& aData, FindOpaqueB
 
   if (!data->mLayer) {
     // No layer was recycled, so we create a new one.
+    printf_stderr("[TY] %s, Create Painted Layer with PaintedLayerData %p\n", __FUNCTION__, data);
+
     nsRefPtr<PaintedLayer> paintedLayer = CreatePaintedLayer(data);
     data->mLayer = paintedLayer;
 
@@ -4443,7 +4447,7 @@ ContainerState::CollectOldLayers()
 {
   for (Layer* layer = mContainerLayer->GetFirstChild(); layer;
        layer = layer->GetNextSibling()) {
-    printf_stderr("[TY] ContainerState::CollectOldLayers, Recycle %s (%p) \n",
+    printf_stderr("[TY] ContainerState::CollectOldLayers, collect %s (%p) \n",
                   layer->Name(), layer);
 
     NS_ASSERTION(!layer->HasUserData(&gMaskLayerUserData),

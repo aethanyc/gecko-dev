@@ -2726,6 +2726,7 @@ public:
     : nsDisplayItem(aBuilder, aFrame)
   {
     MOZ_COUNT_CTOR(nsDisplayLayerEventRegions);
+    printf_stderr("[TY] %s Constructor, frame %s\n", __FUNCTION__, aFrame->ToString().get());
     AddFrame(aBuilder, aFrame);
   }
 #ifdef NS_BUILD_REFCNT_LOGGING
