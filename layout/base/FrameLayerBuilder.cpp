@@ -2103,7 +2103,7 @@ ContainerState::AttemptToRecyclePaintedLayer(const nsIFrame* aAnimatedGeometryRo
                             aTopLeft,
                             didResetScrollPositionForLayerPixelAlignment);
 
-  printf_stderr("[TY] ContainerState::AttemptToRecyclePaintedLayer, Recycle %s (%p)\n",
+  printf_stderr("[TY]  ContainerState::AttemptToRecyclePaintedLayer, Recycle %s (%p)\n",
                 layer->Name(), layer.get());
 
   return layer.forget();
@@ -2616,6 +2616,8 @@ PaintedLayerDataNode::FindPaintedLayerFor(const nsIntRect& aVisibleRect,
         return lowestUsableLayer;
       }
     }
+  } else {
+    printf_stderr("[TY]  %s, mPaintedLayerDataStack is empty!\n", __FUNCTION__);
   }
   return mPaintedLayerDataStack.AppendElement(aNewPaintedLayerCallback());
 }
@@ -2770,6 +2772,8 @@ PaintedLayerDataTree::FindPaintedLayerFor(const nsIFrame* aAnimatedGeometryRoot,
                                           bool aForceOwnLayer,
                                           NewPaintedLayerCallbackType aNewPaintedLayerCallback)
 {
+  printf_stderr("[TY]  %s %s\n", __FUNCTION__, aAnimatedGeometryRoot->ToString().get());
+
   const nsIntRect* bounds = aForceOwnLayer ? nullptr : &aVisibleRect;
   FinishPotentiallyIntersectingNodes(aAnimatedGeometryRoot, bounds);
   PaintedLayerDataNode* node = EnsureNodeFor(aAnimatedGeometryRoot);
@@ -2836,11 +2840,11 @@ PaintedLayerDataTree::EnsureNodeFor(const nsIFrame* aAnimatedGeometryRoot)
   MOZ_ASSERT(aAnimatedGeometryRoot);
   PaintedLayerDataNode* node = mNodes.Get(aAnimatedGeometryRoot);
   if (node) {
-    printf_stderr("[TY] %s %s, already in tree \n", __FUNCTION__, aAnimatedGeometryRoot->ToString().get());
+    printf_stderr("[TY]    %s %s, already in tree, node %p \n", __FUNCTION__, aAnimatedGeometryRoot->ToString().get(), node);
     return node;
   }
 
-  printf_stderr("[TY] %s %s, not in tree \n", __FUNCTION__, aAnimatedGeometryRoot->ToString().get());
+  printf_stderr("[TY]    %s %s, not in tree \n", __FUNCTION__, aAnimatedGeometryRoot->ToString().get());
 
   const nsIFrame* parentAnimatedGeometryRoot = GetParentAnimatedGeometryRoot(aAnimatedGeometryRoot);
   if (!parentAnimatedGeometryRoot) {
@@ -2848,11 +2852,12 @@ PaintedLayerDataTree::EnsureNodeFor(const nsIFrame* aAnimatedGeometryRoot)
     MOZ_ASSERT(aAnimatedGeometryRoot == Builder()->RootReferenceFrame());
     mRoot = MakeUnique<PaintedLayerDataNode>(*this, nullptr, aAnimatedGeometryRoot);
     node = mRoot.get();
-    printf_stderr("[TY] %s %s, create new tree \n", __FUNCTION__, aAnimatedGeometryRoot->ToString().get());
+    printf_stderr("[TY]    %s %s, create new tree, node %p \n", __FUNCTION__, aAnimatedGeometryRoot->ToString().get(), node);
   } else {
     PaintedLayerDataNode* parentNode = EnsureNodeFor(parentAnimatedGeometryRoot);
     MOZ_ASSERT(parentNode);
     node = parentNode->AddChildNodeFor(aAnimatedGeometryRoot);
+    printf_stderr("[TY]    %s %s, seek node in parent %p, node %p\n", __FUNCTION__, aAnimatedGeometryRoot->ToString().get(), parentNode, node);
   }
   MOZ_ASSERT(node);
   mNodes.Put(aAnimatedGeometryRoot, node);
@@ -3478,7 +3483,7 @@ ContainerState::NewPaintedLayerData(nsDisplayItem* aItem,
   // Allocate another entry for this layer's optimization to ColorLayer/ImageLayer
   mNewChildLayers.AppendElement();
 
-  printf_stderr("[TY] NewPaintedLayerData for %s\n", aItem->Name());
+  printf_stderr("[TY]  NewPaintedLayerData for %s\n", aItem->Name());
 
   return data;
 }
@@ -3695,6 +3700,8 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
   PROFILER_LABEL("ContainerState", "ProcessDisplayItems",
     js::ProfileEntry::Category::GRAPHICS);
 
+  printf_stderr("[TY] ----- ProcessDisplayItems BEGIN-----\n");
+
   const nsIFrame* lastAnimatedGeometryRoot = mContainerReferenceFrame;
   nsPoint topLeft(0,0);
 
@@ -3741,6 +3748,10 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
 
     if (mBuilder->NeedToForceTransparentSurfaceForItem(item)) {
       aList->SetNeedsTransparentSurface();
+    }
+
+    if (item->GetType() == nsDisplayItem::TYPE_LAYER_EVENT_REGIONS) {
+      int x = 0;
     }
 
     LayerState layerState = item->GetLayerState(mBuilder, mManager, mParameters);
@@ -4019,13 +4030,19 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
                                          topLeft, nullptr);
     } else {
       bool forceOwnLayer = shouldFixToViewport || IsCaretWithCustomClip(item, itemType);
+      if (itemType == nsDisplayItem::TYPE_LAYER_EVENT_REGIONS) {
+        printf_stderr("[TY]  %s, Process item: %s\n", __FUNCTION__, item->Name());
+      } else {
+        printf_stderr("[TY]  %s, Process item: %s\n", __FUNCTION__, item->Name());
+      }
+
       PaintedLayerData* paintedLayerData =
         mPaintedLayerDataTree.FindPaintedLayerFor(animatedGeometryRoot, itemVisibleRect,
                                                   forceOwnLayer, [&]() {
           return NewPaintedLayerData(item, itemVisibleRect, animatedGeometryRoot,
                                      topLeft, shouldFixToViewport);
         });
-      printf_stderr("[TY] FindPaintedLayerFor %s, and item %s, forceOwnLayer %d, PaintedLayerData %p\n",
+      printf_stderr("[TY]  After FindPaintedLayerFor %s, and item %s, forceOwnLayer %d, PaintedLayerData %p\n",
                     animatedGeometryRoot->ToString().get(), item->Name(), forceOwnLayer, paintedLayerData);
 
       if (itemType == nsDisplayItem::TYPE_LAYER_EVENT_REGIONS) {
@@ -4070,6 +4087,8 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
   }
 
   aList->AppendToTop(&savedItems);
+
+  printf_stderr("[TY] ----- ProcessDisplayItems END-----\n");
 }
 
 void
