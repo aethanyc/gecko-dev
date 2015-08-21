@@ -1760,8 +1760,8 @@ FrameLayerBuilder::WillEndTransaction()
     nsIFrame* frame = item ? item->Frame(): nullptr;
     auto frameName = frame ? frame->ToString() : nsCString();
     if (!data->mUsed) {
-      printf_stderr("[TY]   DisplayItem type (%d), used: %d, to be removed: %d, Frame: %p, FrameName: %s\n",
-                    data->mDisplayItemKey, data->mUsed, data->mToBeRemoved, frame, frameName.get());
+      printf_stderr("[TY]   Remove displayItem type (%d), used: %d, to be removed: %d, Frame: %p, FrameName: %s, Layer: %p\n",
+                    data->mDisplayItemKey, data->mUsed, data->mToBeRemoved, frame, frameName.get(), data->mLayer.get());
 
       // This item was visible, but isn't anymore.
       PaintedLayer* t = data->mLayer->AsPaintedLayer();
@@ -1779,8 +1779,8 @@ FrameLayerBuilder::WillEndTransaction()
 
       iter.Remove();
     } else {
-      printf_stderr("[TY]   DisplayItem type (%s) used: %d, to be removed: %d, Frame: %p, FrameName: %s\n",
-                    item ? item->Name() : "Null", data->mUsed, data->mToBeRemoved, frame, frameName.get());
+      printf_stderr("[TY]   DisplayItem type (%s) used: %d, to be removed: %d, Frame: %p, FrameName: %s, Layer: %p\n",
+                    item ? item->Name() : "Null", data->mUsed, data->mToBeRemoved, frame, frameName.get(), data->mLayer.get());
       ComputeGeometryChangeForItem(data);
     }
   }
@@ -4031,9 +4031,13 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
     } else {
       bool forceOwnLayer = shouldFixToViewport || IsCaretWithCustomClip(item, itemType);
       if (itemType == nsDisplayItem::TYPE_LAYER_EVENT_REGIONS) {
-        printf_stderr("[TY]  %s, Process item: %s\n", __FUNCTION__, item->Name());
+        nsAutoCString tag;
+        item->Frame()->ListTag(tag);
+        printf_stderr("[TY] %s, Process item: %s, %s\n", __FUNCTION__, item->Name(), tag.get());
       } else {
-        printf_stderr("[TY]  %s, Process item: %s\n", __FUNCTION__, item->Name());
+        nsAutoCString tag;
+        item->Frame()->ListTag(tag);
+        printf_stderr("[TY] %s, Process item: %s, %s\n", __FUNCTION__, item->Name(), tag.get());
       }
 
       PaintedLayerData* paintedLayerData =
