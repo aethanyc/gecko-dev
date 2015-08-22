@@ -55,10 +55,22 @@ ViewportFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (!kid)
     return;
 
+  nsRect dirtyRect = aDirtyRect;
+
+  if (aBuilder->IsForPainting()) {
+    bool useDirtyRect = !HasAnyStateBits(NS_FRAME_NEEDS_PAINT) &&
+      !mDirtyRegion.IsEmpty();
+
+    if (useDirtyRect) {
+      dirtyRect = mDirtyRegion.GetBounds();
+      mDirtyRegion.SetEmpty();
+    }
+  }
+
   // make the kid's BorderBackground our own. This ensures that the canvas
   // frame's background becomes our own background and therefore appears
   // below negative z-index elements.
-  BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
+  BuildDisplayListForChild(aBuilder, kid, dirtyRect, aLists);
 }
 
 #ifdef DEBUG

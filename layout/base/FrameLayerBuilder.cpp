@@ -1751,7 +1751,7 @@ FrameLayerBuilder::WillEndTransaction()
   // Update all the frames that used to have layers.
   for (auto iter = data->mDisplayItems.Iter(); !iter.Done(); iter.Next()) {
     DisplayItemData* data = iter.Get()->GetKey();
-    if (!data->mUsed) {
+    if (!data->mUsed && data->mToBeRemoved) {
       // This item was visible, but isn't anymore.
       PaintedLayer* t = data->mLayer->AsPaintedLayer();
       if (t && data->mGeometry) {
