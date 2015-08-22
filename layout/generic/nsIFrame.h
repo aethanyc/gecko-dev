@@ -92,6 +92,7 @@ namespace mozilla {
 class EventStates;
 
 namespace layers {
+class ContainerLayer;
 class Layer;
 } // namespace layers
 
@@ -409,6 +410,7 @@ class nsIFrame : public nsQueryFrame
 public:
   typedef mozilla::FramePropertyDescriptor FramePropertyDescriptor;
   typedef mozilla::FrameProperties FrameProperties;
+  typedef mozilla::layers::ContainerLayer ContainerLayer;
   typedef mozilla::layers::Layer Layer;
   typedef mozilla::layout::FrameChildList ChildList;
   typedef mozilla::layout::FrameChildListID ChildListID;
@@ -3013,6 +3015,9 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
    */
   virtual mozilla::dom::Element* GetPseudoElement(nsCSSPseudoElements::Type aType);
 
+  void SetOwningLayer(ContainerLayer* aLayer) { mOwningLayer = aLayer; }
+  ContainerLayer* GetOwningLayer() const { return mOwningLayer; }
+
 protected:
   // Members
   nsRect           mRect;
@@ -3057,6 +3062,8 @@ protected:
 #endif
     mState |= NS_FRAME_IN_REFLOW;
   }
+
+  ContainerLayer* mOwningLayer;
 
   nsFrameState     mState;
 
