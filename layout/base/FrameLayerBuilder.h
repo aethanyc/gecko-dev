@@ -443,6 +443,7 @@ public:
     Layer* GetLayer() { return mLayer; }
     nsDisplayItemGeometry* GetGeometry() const { return mGeometry.get(); }
     void Invalidate() { mIsInvalid = true; }
+    void ToBeRemoved() { mToBeRemoved = true; }
 
   private:
     DisplayItemData(LayerManagerData* aParent,
@@ -514,6 +515,7 @@ public:
      */
     bool            mUsed;
     bool            mIsInvalid;
+    bool            mToBeRemoved;
   };
 
 protected:

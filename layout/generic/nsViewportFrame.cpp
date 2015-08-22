@@ -308,6 +308,12 @@ ViewportFrame::GetType() const
   return nsGkAtoms::viewportFrame;
 }
 
+void
+ViewportFrame::AddDirtyRect(const nsRect& aRect)
+{
+  mDirtyRegion.OrWith(aRect);
+}
+
 #ifdef DEBUG_FRAME_DUMP
 nsresult
 ViewportFrame::GetFrameName(nsAString& aResult) const

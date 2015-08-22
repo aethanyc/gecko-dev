@@ -87,12 +87,16 @@ public:
    */
   nsRect AdjustReflowStateAsContainingBlock(nsHTMLReflowState* aReflowState) const;
 
+  void AddDirtyRect(const nsRect& aRect);
+
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
 private:
   virtual mozilla::layout::FrameChildListID GetAbsoluteListID() const override { return kFixedList; }
+
+  nsRegion mDirtyRegion;
 
 protected:
   /**

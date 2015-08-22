@@ -897,6 +897,8 @@ public:
 
   NS_DECLARE_FRAME_PROPERTY(GenConProperty, DestroyContentArray)
 
+  NS_DECLARE_FRAME_PROPERTY(LastPaintRect, DeleteValue<nsRect>)
+
   nsTArray<nsIContent*>* GetGenConPseudos() {
     const FramePropertyDescriptor* prop = GenConProperty();
     return static_cast<nsTArray<nsIContent*>*>(Properties().Get(prop));
@@ -3017,6 +3019,8 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
 
   void SetOwningLayer(ContainerLayer* aLayer) { mOwningLayer = aLayer; }
   ContainerLayer* GetOwningLayer() const { return mOwningLayer; }
+
+  void ReportDirtyRectToRoot(const nsRect& aRect);
 
 protected:
   // Members

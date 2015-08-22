@@ -95,6 +95,7 @@ FrameLayerBuilder::DisplayItemData::DisplayItemData(LayerManagerData* aParent, u
   , mItem(nullptr)
   , mUsed(true)
   , mIsInvalid(false)
+  , mToBeRemoved(false)
 {
   MOZ_COUNT_CTOR(FrameLayerBuilder::DisplayItemData);
 
@@ -146,6 +147,7 @@ FrameLayerBuilder::DisplayItemData::EndUpdate()
   MOZ_ASSERT(!mItem);
   mIsInvalid = false;
   mUsed = false;
+  mToBeRemoved = false;
 }
 
 void

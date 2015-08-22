@@ -74,6 +74,7 @@
 #include "nsDeckFrame.h"
 #include "nsSubDocumentFrame.h"
 #include "SVGTextFrame.h"
+#include "nsViewportFrame.h"
 
 #include "gfxContext.h"
 #include "nsRenderingContext.h"
@@ -2334,13 +2335,17 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
         (shell->IgnoringViewportScrolling() && child == shell->GetRootScrollFrame());
     if (!keepDescending) {
       nsRect childDirty;
-      if (!childDirty.IntersectRect(dirty, child->GetVisualOverflowRect()))
+      if (!childDirty.IntersectRect(dirty, child->GetVisualOverflowRect())) {
         return;
-      // Usually we could set dirty to childDirty now but there's no
-      // benefit, and it can be confusing. It can especially confuse
-      // situations where we're going to ignore a scrollframe's clipping;
-      // we wouldn't want to clip the dirty area to the scrollframe's
-      // bounds in that case.
+      } else {
+        // Usually we could set dirty to childDirty now but there's no
+        // benefit, and it can be confusing. It can especially confuse
+        // situations where we're going to ignore a scrollframe's clipping;
+        // we wouldn't want to clip the dirty area to the scrollframe's
+        // bounds in that case.
+        child->Properties().Set(nsIFrame::LastPaintRect(),
+                                new nsRect(child->GetVisualOverflowRectRelativeToSelf()));
+      }
     }
   }
 
@@ -2518,6 +2523,56 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   // is sorted by z-order and content in BuildDisplayListForStackingContext,
   // but it means that sort routine needs to do less work.
   aLists.PositionedDescendants()->AppendToTop(&extraPositionedDescendants);
+}
+
+void
+nsIFrame::ReportDirtyRectToRoot(const nsRect& aRect)
+{
+  nsIFrame* current = this;
+  nsIFrame* containerOwner = nullptr;
+
+  while (current) {
+    if (current->mOwningLayer) {
+      containerOwner = current;
+      break;
+    }
+    current = current->mParent;
+  }
+
+  if (!containerOwner ||
+      containerOwner->GetType() != nsGkAtoms::viewportFrame ||
+      // XXX: Crashed during un-supressing painting, so added this line.
+      containerOwner == this) {
+    return;
+  }
+
+  Layer* firstChild = containerOwner->mOwningLayer->GetFirstChild();
+  Layer* secondChild = firstChild ? firstChild->GetNextSibling() : nullptr;
+
+  if (!(firstChild && !secondChild)) {
+    // Skip if the container layer has more than one child.
+    return;
+  }
+
+  auto viewport = static_cast<ViewportFrame*>(current);
+  nsPoint offset = GetOffsetTo(viewport);
+  nsRect dirtyRect = aRect + offset;
+  viewport->AddDirtyRect(dirtyRect);
+
+  nsRect* lastPaintRect = static_cast<nsRect*>(Properties().Get(nsIFrame::LastPaintRect()));
+
+  if (lastPaintRect) {
+    viewport->AddDirtyRect(*lastPaintRect + offset);
+
+    auto array = static_cast<nsTArray<FrameLayerBuilder::DisplayItemData*>*>(
+      Properties().Get(FrameLayerBuilder::LayerManagerDataProperty()));
+    if (array) {
+      for (uint32_t i = 0; i < array->Length(); i++) {
+        FrameLayerBuilder::DisplayItemData* item = array->ElementAt(i);
+        item->ToBeRemoved();
+      }
+    }
+  }
 }
 
 void
@@ -4474,6 +4529,8 @@ nsFrame::DidReflow(nsPresContext*           aPresContext,
   nsSVGEffects::InvalidateDirectRenderingObservers(this, nsSVGEffects::INVALIDATE_REFLOW);
 
   if (nsDidReflowStatus::FINISHED == aStatus) {
+    ReportDirtyRectToRoot(GetVisualOverflowRectRelativeToSelf());
+
     mState &= ~(NS_FRAME_IN_REFLOW | NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
                 NS_FRAME_HAS_DIRTY_CHILDREN);
   }
@@ -5055,6 +5112,9 @@ static void InvalidateFrameInternal(nsIFrame *aFrame, bool aHasDisplayItem = tru
   if (!aHasDisplayItem) {
     return;
   }
+
+  aFrame->ReportDirtyRectToRoot(aFrame->GetVisualOverflowRectRelativeToSelf());
+
   if (needsSchedulePaint) {
     aFrame->SchedulePaint();
   }
