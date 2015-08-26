@@ -2374,6 +2374,7 @@ SetOuterVisibleRegion(Layer* aLayer, nsIntRegion* aOuterVisibleRegion,
     }
   }
 
+  printf_stderr("[TY] aOuterVisibleRegion %s, Set to layer %p\n", aOuterVisibleRegion->ToString().get(), aLayer);
   aLayer->SetVisibleRegion(*aOuterVisibleRegion);
 }
 
@@ -3098,6 +3099,7 @@ void ContainerState::FinishPaintedLayerData(PaintedLayerData& aData, FindOpaqueB
   }
 
   if (mLayerBuilder->IsBuildingRetainedLayers()) {
+    printf_stderr("[TY] data->mVisibleRegion %s\n", data->mVisibleRegion.ToString().get());
     newLayerEntry->mVisibleRegion = data->mVisibleRegion;
     newLayerEntry->mOpaqueRegion = data->mOpaqueRegion;
     newLayerEntry->mHideAllLayersBelow = data->mHideAllLayersBelow;
@@ -3378,6 +3380,9 @@ PaintedLayerData::Accumulate(ContainerState* aState,
       mIsSolidColorInVisibleRegion = false;
     }
 
+    printf_stderr("[TY] Accumulate rect (%d, %d, %d, %d) into region\n",
+                  aVisibleRect.x, aVisibleRect.y, aVisibleRect.width, aVisibleRect.height);
+    //mVisibleRegion.Or(mVisibleRegion, nsIntRect(0, 0, 300, 300));
     mVisibleRegion.Or(mVisibleRegion, aVisibleRect);
     mVisibleRegion.SimplifyOutward(4);
   }
@@ -5020,6 +5025,8 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
   nsRect childrenVisible =
       aContainerItem ? aContainerItem->GetVisibleRectForChildren() :
           aContainerFrame->GetVisualOverflowRectRelativeToSelf();
+  printf_stderr("[TY] Child bounds (%d, %d, %d, %d)\n", bounds.x, bounds.y, bounds.width, bounds.height);
+  printf_stderr("[TY] Child visible (%d, %d, %d, %d)\n", childrenVisible.x, childrenVisible.y, childrenVisible.width, childrenVisible.height);
   if (!ChooseScaleAndSetTransform(this, aBuilder, aContainerFrame,
                                   aContainerItem,
                                   bounds.Intersect(childrenVisible),
@@ -5147,9 +5154,14 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
   // call stack is responsible for setting containerLayer's visible region.
   if (!aContainerItem) {
     containerLayer->SetVisibleRegion(pixBounds);
+    printf_stderr("[TY] pixBound (%d, %d, %d, %d)\n",
+                  pixBounds.x, pixBounds.y, pixBounds.width, pixBounds.height);
   }
   if (aParameters.mLayerContentsVisibleRect) {
     *aParameters.mLayerContentsVisibleRect = pixBounds + scaleParameters.mOffset;
+    printf_stderr("[TY] Content visible rect (%d, %d, %d, %d)\n",
+                  (*aParameters.mLayerContentsVisibleRect).x, (*aParameters.mLayerContentsVisibleRect).y,
+                  (*aParameters.mLayerContentsVisibleRect).width, (*aParameters.mLayerContentsVisibleRect).height);
   }
 
   mContainerLayerGeneration = oldGeneration;

@@ -65,6 +65,11 @@ ViewportFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       dirtyRect = mDirtyRegion.GetBounds();
       mDirtyRegion.SetEmpty();
     }
+
+    printf_stderr("[TY] Build %s display list!\n",
+                  useDirtyRect ? "partial" : "full");
+    printf_stderr("[TY] viewport rect (%d, %d, %d, %d)\n",
+                  dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
   }
 
   // make the kid's BorderBackground our own. This ensures that the canvas
