@@ -86,8 +86,9 @@ static mozilla::LazyLogModule sRefreshDriverLog("nsRefreshDriver");
 #define DEFAULT_THROTTLED_FRAME_RATE 1
 #define DEFAULT_RECOMPUTE_VISIBILITY_INTERVAL_MS 1000
 #define DEFAULT_NOTIFY_INTERSECTION_OBSERVERS_INTERVAL_MS 100
-// after 10 minutes, stop firing off inactive timers
-#define DEFAULT_INACTIVE_TIMER_DISABLE_SECONDS 600
+// After 1 second, stop firing off inactive timers. This allows exactly only
+// one tick fired.
+#define DEFAULT_INACTIVE_TIMER_DISABLE_SECONDS 1
 
 // The number of seconds spent skipping frames because we are waiting for the compositor
 // before logging.
