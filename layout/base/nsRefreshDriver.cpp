@@ -883,6 +883,8 @@ protected:
 
   void ScheduleNextTick(TimeStamp aNowTime) override
   {
+    return;
+
     if (mDisableAfterMilliseconds > 0.0 &&
         mNextTickDuration > mDisableAfterMilliseconds)
     {
