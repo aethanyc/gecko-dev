@@ -218,6 +218,8 @@ protected:
   template <typename T> using NotNull = mozilla::NotNull<T>;
 
 public:
+  void DumpStyles();
+
   typedef mozilla::net::ReferrerPolicy ReferrerPolicyEnum;
   typedef mozilla::dom::Element Element;
   typedef mozilla::dom::FullscreenRequest FullscreenRequest;

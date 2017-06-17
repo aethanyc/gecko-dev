@@ -2,7 +2,4 @@
 <head>
 <bindings xmlns="http://www.mozilla.org/xbl"><binding id="x"><content><caption xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"><children xmlns="http://www.mozilla.org/xbl"/></caption></content></binding></bindings>
 </head>
-<body onload="document.getElementById('y').innerHTML = '9';">
-<span id="y" style="-moz-binding: url(#x)"><div>123</div></span>
-</body>
-</html>
+<body onload="document.getElementById('y').innerHTML = '9';document.dumpStyles();"><span id="y" style="-moz-binding: url(#x)"><div>123</div></span></body></html>

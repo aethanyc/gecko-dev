@@ -278,6 +278,10 @@
 
 #include "nsIURIClassifier.h"
 
+#include "nsComputedDOMStyle.h"
+#include "DocumentStyleRootIterator.h"
+#include "ChildIterator.h"
+
 using namespace mozilla;
 using namespace mozilla::dom;
 
@@ -13489,6 +13493,54 @@ nsDocument::IsThirdParty()
   // Fall-through. Document is not a Third-Party Document.
   mIsThirdParty.emplace(false);
   return mIsThirdParty.value();
+}
+static void
+DumpStyles(Element* aElement, int aDepth)
+{
+  nsString line;
+
+  for (int i = 0; i < aDepth; i++) {
+    line.AppendLiteral("  ");
+  }
+
+  line.Append('<');
+  line.Append(aElement->LocalName());
+  line.AppendLiteral("> ");
+
+  if (nsIFrame* f = aElement->GetPrimaryFrame()) {
+    RefPtr<nsComputedDOMStyle> cs = new nsComputedDOMStyle(aElement, nsString(), aElement->OwnerDoc()->GetShell(), nsComputedDOMStyle::eAll);
+    for (uint32_t i = 0; i < cs->Length(); i++) {
+      nsString prop;
+      cs->Item(i, prop);
+      line.Append(prop);
+      line.AppendLiteral(": ");
+      nsString s;
+      cs->GetPropertyValue(prop, s);
+      line.Append(s);
+      line.AppendLiteral("; ");
+    }
+  } else {
+    line.AppendLiteral("(no frame)");
+  }
+
+  line.Append('\n');
+  printf("%s", NS_ConvertUTF16toUTF8(line).get());
+
+  AllChildrenIterator it(aElement, 0);
+  for (nsIContent* n = it.GetNextChild(); n; n = it.GetNextChild()) {
+    if (n->IsElement()) {
+      DumpStyles(n->AsElement(), aDepth + 1);
+    }
+  }
+}
+
+void
+nsIDocument::DumpStyles()
+{
+  DocumentStyleRootIterator iter(this);
+  while (Element* root = iter.GetNextStyleRoot()) {
+    ::DumpStyles(root, 0);
+  }
 }
 
 static bool

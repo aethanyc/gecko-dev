@@ -465,3 +465,7 @@ Document implements ParentNode;
 Document implements OnErrorEventHandlerForNodes;
 Document implements GeometryUtils;
 Document implements FontFaceSource;
+
+partial interface Document {
+  void dumpStyles();
+};
