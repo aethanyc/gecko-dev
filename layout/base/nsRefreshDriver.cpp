@@ -886,12 +886,12 @@ protected:
 
     mTargetTime = mLastFireTime + mRateDuration;
 
-    uint32_t delay = static_cast<uint32_t>(mRateMilliseconds);
-    mTimer->InitWithNamedFuncCallback(TimerTickOne,
-                                      this,
-                                      delay,
-                                      nsITimer::TYPE_ONE_SHOT,
-                                      "InactiveRefreshDriverTimer::StartTimer");
+    // uint32_t delay = static_cast<uint32_t>(mRateMilliseconds);
+    // mTimer->InitWithNamedFuncCallback(TimerTickOne,
+    //                                   this,
+    //                                   delay,
+    //                                   nsITimer::TYPE_ONE_SHOT,
+    //                                   "InactiveRefreshDriverTimer::StartTimer");
   }
 
   void StopTimer() override
