@@ -4169,6 +4169,7 @@ nsBlockFrame::DoReflowInlineFrames(BlockReflowInput& aState,
     if (iter.Next() && iter.GetLine()->IsInline()) {
       iter.GetLine()->MarkDirty();
       if (iter.GetContainer() != this) {
+        aState.mReflowStatus.SetIncomplete();
         aState.mReflowStatus.SetNextInFlowNeedsReflow();
       }
     }
@@ -6405,7 +6406,9 @@ nsBlockFrame::ReflowFloat(BlockReflowInput& aState,
   }
 
   if (aReflowStatus.NextInFlowNeedsReflow()) {
-    aState.mReflowStatus.SetNextInFlowNeedsReflow();
+    MOZ_ASSERT(!aReflowStatus.IsFullyComplete(),
+               "aReflowStatus shouldn't be fully complete!");
+    aState.mReflowStatus.MergeCompletionStatusFrom(aReflowStatus);
   }
 
   if (aFloat->IsLetterFrame()) {
