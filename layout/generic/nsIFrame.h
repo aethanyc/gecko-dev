@@ -289,10 +289,14 @@ public:
 
   // mNextInFlowNeedsReflow bit flag means that the next-in-flow is dirty,
   // and also needs to be reflowed. This status only makes sense for a frame
-  // that is not complete, i.e. you wouldn't set mNextInFlowNeedsReflow when
-  // IsComplete() is true.
+  // that is not complete, i.e. you wouldn't call SetNextInFlowNeedsReflow()
+  // when IsFullyComplete() is true.
   bool NextInFlowNeedsReflow() const { return mNextInFlowNeedsReflow; }
-  void SetNextInFlowNeedsReflow() { mNextInFlowNeedsReflow = true; }
+  void SetNextInFlowNeedsReflow() {
+    MOZ_ASSERT(!IsFullyComplete(),
+               "A fully complete frame shouldn't set this bit.");
+    mNextInFlowNeedsReflow = true;
+  }
 
   // mTruncated bit flag means that the part of the frame before the first
   // possible break point was unable to fit in the available space.
