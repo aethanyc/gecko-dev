@@ -6405,7 +6405,7 @@ nsBlockFrame::ReflowFloat(BlockReflowInput& aState,
   }
 
   if (aReflowStatus.NextInFlowNeedsReflow()) {
-    aState.mReflowStatus.SetNextInFlowNeedsReflow();
+    aState.mReflowStatus.MergeCompletionStatusFrom(aReflowStatus);
   }
 
   if (aFloat->IsLetterFrame()) {
