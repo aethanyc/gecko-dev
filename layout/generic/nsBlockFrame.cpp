@@ -4168,9 +4168,6 @@ nsBlockFrame::DoReflowInlineFrames(BlockReflowInput& aState,
     nsBlockInFlowLineIterator iter(this, aLine, pushedToOverflowLines);
     if (iter.Next() && iter.GetLine()->IsInline()) {
       iter.GetLine()->MarkDirty();
-      if (iter.GetContainer() != this) {
-        aState.mReflowStatus.SetNextInFlowNeedsReflow();
-      }
     }
   }
 
