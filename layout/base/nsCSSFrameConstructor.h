@@ -1937,6 +1937,23 @@ private:
                                    bool*          aHaveFirstLetterStyle,
                                    bool*          aHaveFirstLineStyle);
 
+  /**
+   * Takes aUnsplitChildItems and reparents consecutive runs of column-span and
+   * non-column span blocks into an anonymous block wrapper. The parent of this
+   * wrapper becomes the original block's grand parent (i.e. it is pushed one
+   * level up in the frame hierarchy).
+   * Each column-span wrapper is given an appropriate style context and each
+   * non-column-span wrapper is either given the parent's style context or
+   * aNonSpannerSC if it exists. It also sets IB-split bits here.
+   * We refer to this process as 'splitting'. The list of wrapped children
+   * is returned as aSplitChildItems.
+   */
+  void SplitBlocks(nsFrameConstructorState& aState,
+                   nsContainerFrame*        aOldParent,
+                   nsFrameList&             aUnsplitChildItems,
+                   nsFrameItems&            aSplitChildItems,
+                   nsStyleContext*          aNonSpannerSC = nullptr);
+
   // |aContentParentFrame| should be null if it's really the same as
   // |aParentFrame|.
   // @param aFrameItems where we want to put the block in case it's in-flow.

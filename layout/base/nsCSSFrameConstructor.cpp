@@ -697,6 +697,32 @@ FindFirstNonBlock(const nsFrameList& aList)
   return link;
 }
 
+static nsFrameList::FrameLinkEnumerator
+FindFirstColumnSpan(const nsFrameList& aList)
+{
+  nsFrameList::FrameLinkEnumerator link(aList);
+  for (; !link.AtEnd(); link.Next()) {
+    if (link.NextFrame()->StyleColumn()->mColumnSpan
+          == NS_STYLE_COLUMN_SPAN_ALL) {
+      break;
+    }
+  }
+  return link;
+}
+
+static nsFrameList::FrameLinkEnumerator
+FindFirstNonColumnSpan(const nsFrameList& aList)
+{
+  nsFrameList::FrameLinkEnumerator link(aList);
+  for (; !link.AtEnd(); link.Next()) {
+    if (link.NextFrame()->StyleColumn()->mColumnSpan
+          != NS_STYLE_COLUMN_SPAN_ALL) {
+      break;
+    }
+  }
+  return link;
+}
+
 inline void
 SetInitialSingleChild(nsContainerFrame* aParent, nsIFrame* aFrame)
 {
@@ -12162,6 +12188,9 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
     aState.PushAbsoluteContainingBlock(newFrame, newFrame, absoluteSaveState);
   }
 
+  // Mark if this inline is under a multicol element
+  newFrame->SetHasMulticolAncestor(aParentFrame->HasMulticolAncestor());
+
   // Process the child content
   nsFrameItems childItems;
   ConstructFramesFromItemList(aState, aItem.mChildItems, newFrame,
@@ -12201,6 +12230,70 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
 }
 
 void
+nsCSSFrameConstructor::SplitBlocks(nsFrameConstructorState& aState,
+                                   nsContainerFrame*        aOldParent,
+                                   nsFrameList&             aUnsplitChildItems,
+                                   nsFrameItems&            aSplitChildItems,
+                                   nsStyleContext*          aNonSpannerSC)
+{
+  MOZ_ASSERT(aUnsplitChildItems.NotEmpty(), "Child items cannot be empty here!");
+
+  nsBlockFrame* previousSplitBlock = nullptr;
+  while (aUnsplitChildItems.NotEmpty()) {
+    nsContainerFrame* grandParent = aOldParent->GetParent();
+    MOZ_ASSERT(grandParent, "Parent cannot be empty here!");
+    nsIContent* content = aOldParent->GetContent();
+    nsStyleContext* styleContext = aOldParent->StyleContext();
+
+    nsBlockFrame* splitBlock = NS_NewBlockFrame(mPresShell, styleContext);
+    InitAndRestoreFrame(aState, content, grandParent, splitBlock, false);
+    splitBlock->SetHasMulticolAncestor(aOldParent->HasMulticolAncestor());
+
+    nsFrameList::
+    FrameLinkEnumerator firstColumnSpan = FindFirstColumnSpan(aUnsplitChildItems);
+    nsFrameList splitBlockChildren = aUnsplitChildItems.ExtractHead(firstColumnSpan);
+
+    if (splitBlockChildren.IsEmpty()) {
+      // If the extracted child item list is empty, this means that the spanner
+      // is the first child/ first few children inside childItems so create
+      // a block that only contains spanners (as opposed to only non spanners)
+
+      RefPtr<nsStyleContext> spannerSC = mPresShell->StyleSet()->
+        ResolveInheritingAnonymousBoxStyle(nsCSSAnonBoxes::mozColumnSpanWrapper,
+                                           styleContext);
+      splitBlock->SetStyleContextWithoutNotification(spannerSC);
+
+      // The column span wrapper must establish a BFC.
+      splitBlock->AddStateBits(NS_BLOCK_FORMATTING_CONTEXT_STATE_BITS);
+
+      nsFrameList::
+      FrameLinkEnumerator firstNonColumnSpan = FindFirstNonColumnSpan(aUnsplitChildItems);
+      splitBlockChildren = aUnsplitChildItems.ExtractHead(firstNonColumnSpan);
+    } else if (aNonSpannerSC) {
+      splitBlock->SetStyleContextWithoutNotification(aNonSpannerSC);
+    }
+
+    if (aOldParent->Type() == LayoutFrameType::Block) {
+      splitBlock->AddStateBits(aOldParent->GetStateBits());
+    }
+    MoveChildrenTo(aOldParent, splitBlock, splitBlockChildren);
+    aSplitChildItems.AddChild(splitBlock);
+
+    if (previousSplitBlock) {
+      SetFrameIsIBSplit(previousSplitBlock, splitBlock);
+    }
+    previousSplitBlock = splitBlock;
+  }
+
+  // If after splitting we still have only one splitChildItem then it means
+  // there was no column-span found. Therefore, it doesn't make sense to mark
+  // this single frame as an IB-Split with a null next frame.
+  if (aSplitChildItems.GetLength() > 1) {
+    SetFrameIsIBSplit(previousSplitBlock, nullptr);
+  }
+}
+
+void
 nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
                                         nsContainerFrame* aInitialInline,
                                         bool aIsPositioned,
@@ -12211,7 +12304,7 @@ nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
   nsStyleContext* styleContext = aInitialInline->StyleContext();
   nsContainerFrame* parentFrame = aInitialInline->GetParent();
 
-  // Resolve the right style context for our anonymous blocks.
+  // Resolve the right style context for our non-spanner anonymous blocks.
   // The distinction in styles is needed because of CSS 2.1, section
   // 9.2.1.1, which says:
   //   When such an inline box is affected by relative positioning, any
@@ -12230,22 +12323,25 @@ nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
     NS_PRECONDITION(!aChildItems.FirstChild()->IsInlineOutside(),
                     "Must have list starting with block");
 
-    // The initial run of blocks belongs to an anonymous block that we create
-    // right now. The anonymous block will be the parent of these block
-    // children of the inline.
-    nsBlockFrame* blockFrame = NS_NewBlockFrame(mPresShell, blockSC);
-    InitAndRestoreFrame(aState, content, parentFrame, blockFrame, false);
-
     // Find the first non-block child which defines the end of our block kids
     // and the start of our next inline's kids
     nsFrameList::FrameLinkEnumerator firstNonBlock =
       FindFirstNonBlock(aChildItems);
     nsFrameList blockKids = aChildItems.ExtractHead(firstNonBlock);
 
-    MoveChildrenTo(aInitialInline, blockFrame, blockKids);
+    // The initial run of blocks need to be split into runs of blocks with
+    // and without column-span:all and wrapped with anonymous blocks.
+    // This is needed because blocks with column-span:all must be
+    // given an anonymous block wrapper with a pseudo style to distinguish
+    // them from regular blocks so we can perform column-span
+    // related splitting later, if needed.
+    nsFrameItems splitBlocks;
+    SplitBlocks(aState, aInitialInline, blockKids, splitBlocks, blockSC);
+    MOZ_ASSERT(splitBlocks.NotEmpty(), "List of split blocks cannot be empty!");
 
-    SetFrameIsIBSplit(lastNewInline, blockFrame);
-    aSiblings.AddChild(blockFrame);
+    SetFrameIsIBSplit(lastNewInline,
+                      static_cast<nsContainerFrame*>(splitBlocks.FirstChild()));
+    aSiblings.AppendFrames(parentFrame, splitBlocks);
 
     // Now grab the initial inlines in aChildItems and put them into an inline
     // frame.
@@ -12265,7 +12361,9 @@ nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
       MoveChildrenTo(aInitialInline, inlineFrame, inlineKids);
     }
 
-    SetFrameIsIBSplit(blockFrame, inlineFrame);
+    inlineFrame->SetHasMulticolAncestor(aInitialInline->HasMulticolAncestor());
+    SetFrameIsIBSplit(static_cast<nsContainerFrame*>(aSiblings.LastChild()),
+                      inlineFrame);
     aSiblings.AddChild(inlineFrame);
     lastNewInline = inlineFrame;
   } while (aChildItems.NotEmpty());
