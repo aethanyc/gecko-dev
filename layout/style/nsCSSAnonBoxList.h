@@ -62,6 +62,16 @@ CSS_NON_INHERITING_ANON_BOX(oofPlaceholder, ":-moz-oof-placeholder")
 CSS_ANON_BOX(firstLetterContinuation, ":-moz-first-letter-continuation")
 
 CSS_ANON_BOX(mozBlockInsideInlineWrapper, ":-moz-block-inside-inline-wrapper")
+
+// used for styling wrappers for one *or more* frames with column-span set
+// during splitting frames due to the presence of a column-span. The parent of
+// the topmost column span wrapper is the ColumnSetWrapperFrame. Consecutive
+// spanner frames are wrapped into one single wrapper.
+CSS_ANON_BOX(mozColumnSpanWrapper, ":-moz-column-span-wrapper")
+// used for styling ColumnSetFrames. These frames exist inside a
+// ColumnSetWrapperFrame.
+CSS_ANON_BOX(mozColumnSet, ":-moz-column-set")
+
 CSS_WRAPPER_ANON_BOX(mozMathMLAnonymousBlock, ":-moz-mathml-anonymous-block")
 CSS_ANON_BOX(mozXULAnonymousBlock, ":-moz-xul-anonymous-block")
 

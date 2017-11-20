@@ -180,6 +180,20 @@
   z-index: inherit;
 }
 
+*|*::-moz-column-span-wrapper {
+  column-span: all;
+}
+
+*|*::-moz-column-set {
+  display: block !important;
+  columns: inherit;
+  column-gap: inherit;
+  column-rule: inherit;
+  column-fill: inherit;
+  height: 100%; //xxxNeerja - remove this workaround after fix for Bug 1411422
+  width: 100%; //xxxNeerja - remove this workaround after fix for Bug 1411422
+}
+
 *|*::-moz-xul-anonymous-block {
   display: block;
   -moz-box-ordinal-group: inherit;
