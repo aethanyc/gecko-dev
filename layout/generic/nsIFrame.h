@@ -630,6 +630,7 @@ public:
     , mMayHaveTransformAnimation(false)
     , mMayHaveOpacityAnimation(false)
     , mAllDescendantsAreInvisible(false)
+    , mHasMulticolAncestor(false)
   {
     mozilla::PodZero(&mOverflow);
   }
@@ -2054,6 +2055,24 @@ public:
   bool IsPrimaryFrame() const { return mIsPrimaryFrame; }
 
   void SetIsPrimaryFrame(bool aIsPrimary) { mIsPrimaryFrame = aIsPrimary; }
+
+  /**
+   * Returns if the current frame has an ancestor with column-count or
+   * column-width set.
+   */
+   bool HasMulticolAncestor() const
+   {
+     return mHasMulticolAncestor;
+   }
+
+   /**
+    * Set if the current frame has an ancestor with column-count or
+    * column-width set.
+    */
+    void SetHasMulticolAncestor(bool aHasMulticolAncestor)
+    {
+      mHasMulticolAncestor = aHasMulticolAncestor;
+    }
 
   /**
    * This call is invoked on the primary frame for a character data content
@@ -4371,6 +4390,11 @@ private:
   bool mAllDescendantsAreInvisible : 1;
 
 protected:
+  /**
+   * True if the frame has an ancestor that has either column-count or
+   * column-width defined.
+   */
+  bool mHasMulticolAncestor : 1;
 
   // There is no gap left here.
 
