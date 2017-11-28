@@ -282,6 +282,26 @@ nsSplittableFrame::GetLogicalSkipSides(const ReflowInput* aReflowInput) const
     }
   }
 
+  if (GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) {
+    // All but the last part of an column-span split should skip the "bottom"
+    // side (as determined by this frame's direction) and all but the first
+    // part of such a split should skip the "top" side.
+    // But figuring out which part of the split we are involves getting
+    // our first continuation, which might be expensive. So don't bother if
+    // we already have the relevant bits set.
+    if (skip != LogicalSides(eLogicalSideBitsBBoth)) {
+      // We're missing one of the skip bits, so check whether we need to set it.
+      // Only get the first continuation once, as an optimization.
+      nsIFrame* firstContinuation = FirstContinuation();
+      if (firstContinuation->FrameIsNonLastInIBSplit()) {
+        skip |= eLogicalSideBitsBEnd;
+      }
+      if (firstContinuation->FrameIsNonFirstInIBSplit()) {
+        skip |= eLogicalSideBitsBStart;
+      }
+    }
+  }
+
  return skip;
 }
 
