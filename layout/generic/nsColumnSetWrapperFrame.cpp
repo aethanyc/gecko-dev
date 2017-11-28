@@ -27,6 +27,14 @@ nsColumnSetWrapperFrame::nsColumnSetWrapperFrame(nsStyleContext* aContext)
 {
 }
 
+void
+nsColumnSetWrapperFrame::AppendDirectlyOwnedAnonBoxes(nsTArray<OwnedAnonBox>& aResult)
+{
+  if (mFrames.NotEmpty()) {
+    aResult.AppendElement(OwnedAnonBox(mFrames.FirstChild()));
+  }
+}
+
 /*
  * Any append, insert or remove operation is disallowed on ColumnSetWrapperFrame
  * because in that case we must recreate the entire frame hierarchy under this

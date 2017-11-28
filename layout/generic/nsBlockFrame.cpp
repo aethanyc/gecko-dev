@@ -946,6 +946,42 @@ nsBlockFrame::GetPrefWidthTightBounds(gfxContext* aRenderingContext,
   return NS_OK;
 }
 
+void
+nsBlockFrame::UpdateStyleOfOwnedAnonBoxesForColumnSpanSplit(
+  mozilla::ServoRestyleState& aRestyleState) {
+  MOZ_ASSERT(StyleContext()->StyleColumn()->mColumnSpan ==
+    NS_STYLE_COLUMN_SPAN_ALL, "Why call this if we are not the column span?");
+
+  nsIFrame* blockFrame = GetProperty(nsIFrame::IBSplitPrevSibling());
+  if (!blockFrame) {
+    // If this column-span is not an IB-split sibling then no need to restyle it?
+    return;
+  }
+
+  // The later blocks need to get original parent's style.
+  ServoStyleContext* originalStyle = blockFrame->StyleContext()->AsServo();
+
+  // The anonymous block's style inherits from the original parent
+  RefPtr<ServoStyleContext> newContext =
+  aRestyleState.StyleSet().ResolveInheritingAnonymousBoxStyle(
+    nsCSSAnonBoxes::mozColumnSpanWrapper, originalStyle);
+
+  MOZ_ASSERT(!GetPrevContinuation(), "Must be first continuation");
+  MOZ_ASSERT(StyleContext()->GetPseudo() == nsCSSAnonBoxes::mozColumnSpanWrapper,
+              "Unexpected kind of style context");
+
+  for (nsIFrame* cont = this; cont; cont = cont->GetNextContinuation()) {
+    cont->SetStyleContext(newContext);
+  }
+
+  nsIFrame* nextSibling = GetProperty(nsIFrame::IBSplitSibling());
+  if (nextSibling) {
+    for (nsIFrame* cont = nextSibling; cont; cont = cont->GetNextContinuation()) {
+      cont->SetStyleContext(originalStyle);
+    }
+  }
+}
+
 /**
  * Return whether aNewAvailableSpace is smaller *on either side*
  * (inline-start or inline-end) than aOldAvailableSpace, so that we know

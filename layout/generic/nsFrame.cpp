@@ -11215,7 +11215,14 @@ nsIFrame::DoUpdateStyleOfOwnedAnonBoxes(ServoRestyleState& aRestyleState)
     if (box.mUpdateStyleFn) {
       box.mUpdateStyleFn(this, box.mAnonBoxFrame, aRestyleState);
     } else {
-      UpdateStyleOfChildAnonBox(box.mAnonBoxFrame, aRestyleState);
+      if (box.mAnonBoxFrame->StyleContext()->StyleColumn()->mColumnSpan ==
+            NS_STYLE_COLUMN_SPAN_ALL) {
+        nsBlockFrame* blockFrame = static_cast<nsBlockFrame*>(box.mAnonBoxFrame);
+        MOZ_ASSERT(blockFrame, "This must be a valid block frame!");
+        blockFrame->UpdateStyleOfOwnedAnonBoxesForColumnSpanSplit(aRestyleState);
+      } else {
+        UpdateStyleOfChildAnonBox(box.mAnonBoxFrame, aRestyleState);
+      }
     }
   }
 }

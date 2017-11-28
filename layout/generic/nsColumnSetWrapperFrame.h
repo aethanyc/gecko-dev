@@ -27,6 +27,8 @@ public:
                                                    nsStyleContext* aContext,
                                                    nsFrameState aStateFlags);
 
+  void AppendDirectlyOwnedAnonBoxes(nsTArray<OwnedAnonBox>& aResult) override;
+
   virtual nsContainerFrame* GetContentInsertionFrame() override {
     MOZ_ASSERT_UNREACHABLE("Should not be called because we don't know whether"
                            " we're inserting a column-span or not.");

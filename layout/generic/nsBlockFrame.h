@@ -293,6 +293,11 @@ public:
                                    nscoord* aX,
                                    nscoord* aXMost) override;
 
+  // Restyles the block wrappers around our column spans.
+  // This will only be called when such wrappers exist.
+  void UpdateStyleOfOwnedAnonBoxesForColumnSpanSplit(
+    mozilla::ServoRestyleState& aRestyleState);
+
   /**
    * Compute the final block size of this frame.
    *

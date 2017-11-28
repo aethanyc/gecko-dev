@@ -975,7 +975,9 @@ nsInlineFrame::UpdateStyleOfOwnedAnonBoxesForIBSplit(
                "Must be first continuation");
 
     MOZ_ASSERT(blockFrame->StyleContext()->GetPseudo() ==
-               nsCSSAnonBoxes::mozBlockInsideInlineWrapper,
+               nsCSSAnonBoxes::mozBlockInsideInlineWrapper ||
+               blockFrame->StyleContext()->GetPseudo() ==
+               nsCSSAnonBoxes::mozColumnSpanWrapper,
                "Unexpected kind of style context");
 
     // We don't want to just walk through using GetNextContinuationWithSameStyle
