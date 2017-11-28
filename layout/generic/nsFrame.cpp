@@ -362,7 +362,11 @@ nsIFrame::MarkAsAbsoluteContainingBlock()
   MOZ_ASSERT(GetStateBits() & NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
   NS_ASSERTION(!GetProperty(AbsoluteContainingBlockProperty()),
                "Already has an abs-pos containing block property?");
-  NS_ASSERTION(!HasAnyStateBits(NS_FRAME_HAS_ABSPOS_CHILDREN),
+
+  // This assertion can fail in the case of a having a multicol parent because
+  // we are copying state bits as is of the original unsplit parent to the new
+  // split parent so skip this check for multicol ancestors.
+  NS_ASSERTION(HasMulticolAncestor() || !HasAnyStateBits(NS_FRAME_HAS_ABSPOS_CHILDREN),
                "Already has NS_FRAME_HAS_ABSPOS_CHILDREN state bit?");
   AddStateBits(NS_FRAME_HAS_ABSPOS_CHILDREN);
   SetProperty(AbsoluteContainingBlockProperty(), new nsAbsoluteContainingBlock(GetAbsoluteListID()));

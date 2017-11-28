@@ -415,6 +415,12 @@ public:
   // be done at a slightly different time than our other pseudo-elements.
   void UpdateFirstLetterStyle(mozilla::ServoRestyleState& aRestyleState);
 
+  /**
+   * Move any floats under this block frame to their new parents. These new
+   * parent frames are the parents of the placeholder frame for each float.
+   */
+  void TransferFloats();
+
 protected:
   explicit nsBlockFrame(nsStyleContext* aContext, ClassID aID = kClassID)
     : nsContainerFrame(aContext, aID)

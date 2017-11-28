@@ -38,6 +38,7 @@ class nsIDocument;
 class nsPageContentFrame;
 struct PendingBinding;
 class nsGenericDOMDataNode;
+struct nsAbsoluteItems;
 
 class nsFrameConstructorState;
 
@@ -1938,6 +1939,27 @@ private:
                                    bool*          aHaveFirstLineStyle);
 
   /**
+   * This method includes all column-span related implementation.
+   * See function definition for more details.
+   */
+  void ProcessColumnSpan(nsFrameConstructorState& aState,
+                         nsContainerFrame*        aOldParent,
+                         nsContainerFrame**       aNewFrame,
+                         nsFrameItems&            aChildItems,
+                         nsFrameItems&            aFrameItems,
+                         nsContainerFrame*        aFinalParent,
+                         nsIFrame*                aPositionedFrameForAbsPosContainer);
+
+  /**
+   * Checks to see if aFrame is part of a multicol frame heirarchy. If yes,
+   * and aFrame is not a colum-span then returns true since aChildItems will
+   * need to be split via nsCSSFrameConstructor::SplitBlocks (Unless aChildItems
+   * is an empty list in which case we return false)
+   */
+  bool DoChildrenNeedSplitting(nsContainerFrame* aFrame,
+                               nsFrameItems& aChildItems);
+
+  /**
    * Takes aUnsplitChildItems and reparents consecutive runs of column-span and
    * non-column span blocks into an anonymous block wrapper. The parent of this
    * wrapper becomes the original block's grand parent (i.e. it is pushed one
@@ -1953,6 +1975,20 @@ private:
                    nsFrameList&             aUnsplitChildItems,
                    nsFrameItems&            aSplitChildItems,
                    nsStyleContext*          aNonSpannerSC = nullptr);
+
+  /**
+   * Create ColumnSetFrames around any consecutive non-spanning elements
+   * present in aInitialChildItems. Let the spanning items stay as is and return
+   * this new list in aFinalChildItems.
+   */
+  void WrapNonSpannerChildrenInColumnSets(nsFrameConstructorState& aState,
+                                          nsContainerFrame*        aOldParent,
+                                          nsFrameItems&            aInitialChildItems,
+                                          nsFrameItems&            aFinalChildItems);
+
+  void SplitAbsoluteListForSplitBlock(nsContainerFrame* aSplitFrame,
+                                      nsAbsoluteItems&  aOriginalAbsoluteList,
+                                      nsFrameList&      aSplitAbsoluteList);
 
   // |aContentParentFrame| should be null if it's really the same as
   // |aParentFrame|.

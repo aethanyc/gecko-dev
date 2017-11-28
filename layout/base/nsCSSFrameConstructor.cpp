@@ -930,6 +930,10 @@ public:
 #endif
   }
 
+  void OverwriteAbsoluteState(nsContainerFrame*            aNewAbsoluteContainingBlock,
+                              nsFrameList&                 aSplitAbsoluteList,
+                              nsFrameConstructorSaveState& aAbsoluteSaveState);
+
   // Function to push the existing absolute containing block state and
   // create a new scope. Code that uses this function should get matching
   // logic in GetAbsoluteContainingBlock.
@@ -1001,6 +1005,10 @@ public:
     return mFixedPosIsAbsPos ? mAbsoluteItems : mFixedItems;
   }
 
+  nsAbsoluteItems& GetAbsoluteItems()
+  {
+      return mAbsoluteItems;
+  }
 
   /**
    * class to automatically push and pop a pending binding in the frame
@@ -1183,6 +1191,17 @@ AdjustAbsoluteContainingBlock(nsContainerFrame* aContainingBlockIn)
   // Always use the container's first continuation. (Inline frames can have
   // non-fluid bidi continuations...)
   return static_cast<nsContainerFrame*>(aContainingBlockIn->FirstContinuation());
+}
+
+void
+nsFrameConstructorState::OverwriteAbsoluteState(nsContainerFrame*            aNewAbsoluteContainingBlock,
+                                                nsFrameList&                 aSplitAbsoluteList,
+                                                nsFrameConstructorSaveState& aSaveState)
+{
+  mAbsoluteItems = nsAbsoluteItems(AdjustAbsoluteContainingBlock(aNewAbsoluteContainingBlock));
+  while (aSplitAbsoluteList.NotEmpty()) {
+    mAbsoluteItems.AddChild(aSplitAbsoluteList.RemoveFirstChild());
+  }
 }
 
 void
@@ -12035,39 +12054,73 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
                                       nsIFrame*                aPositionedFrameForAbsPosContainer,
                                       PendingBinding*          aPendingBinding)
 {
-  // Create column wrapper if necessary
+  // If the block under construction has column-count or column-width styling,
+  // then we create a multicol parent of type ColumnSetWrapperFrame.
+  // This frame will be the top most parent for any ColumnSetFrames
+  // and/or spanner frames i.e. blocks with column-span set.
+  // The children of ColumnSetWrapperFrame are created is like so -
+  // 1. Set ColumnSetWrapperFrame as parent of new block *for now* so that we
+  //    can call ProcessChildren on aNewFrame.
+  // 2. If the returned childFrame list is empty then we
+  //    create an empty ColumnSetFrame, reparent our new block to it and
+  //    ColumnSetWrapperFrame is set as parent of ColumnSetFrame.
+  //    So the frame hierarchy looks like -
+  //    ColumnSetWrapperFrame
+  //      ColumnSetFrame
+  //       Block (originally passed to us as aNewFrame, now -moz-column-content)
+  // 3. If the child list is not empty or we find spanner children then we must
+  //    partition this child list and this is done by
+  //    nsCSSFrameConstructor::ProcessColumnSpan (step 3 continued there)
+
   nsContainerFrame* blockFrame = *aNewFrame;
   NS_ASSERTION((blockFrame->IsBlockFrame() || blockFrame->IsDetailsFrame()),
                "not a block frame nor a details frame?");
   nsContainerFrame* parent = aParentFrame;
   RefPtr<nsStyleContext> blockStyle = aStyleContext;
+  RefPtr<nsStyleContext> columnSetStyle = nullptr;
   const nsStyleColumn* columns = aStyleContext->StyleColumn();
+
+  // Something to let us know that we are constructing blocks inside a multicol
+  // parent.
+  blockFrame->SetHasMulticolAncestor(parent->HasMulticolAncestor());
 
   if (columns->mColumnCount != NS_STYLE_COLUMN_COUNT_AUTO
       || columns->mColumnWidth.GetUnit() != eStyleUnit_Auto) {
-    nsContainerFrame* columnSetFrame =
-      NS_NewColumnSetFrame(mPresShell, aStyleContext,
-                           nsFrameState(NS_FRAME_OWNS_ANON_BOXES));
 
-    InitAndRestoreFrame(aState, aContent, aParentFrame, columnSetFrame);
+    nsContainerFrame* columnSetWrapper =
+      NS_NewColumnSetWrapperFrame(mPresShell,
+                                  aStyleContext,
+                                  nsFrameState(NS_FRAME_OWNS_ANON_BOXES));
+    InitAndRestoreFrame(aState, aContent, aParentFrame, columnSetWrapper);
+
+    // Create a columnSetStyle here because we need to have the correct parent
+    // for blockStyle.
+    columnSetStyle = mPresShell->StyleSet()->
+      ResolveInheritingAnonymousBoxStyle(nsCSSAnonBoxes::mozColumnSet,
+                                         aStyleContext);
+
     blockStyle = mPresShell->StyleSet()->
       ResolveInheritingAnonymousBoxStyle(nsCSSAnonBoxes::columnContent,
-                                         aStyleContext);
-    parent = columnSetFrame;
-    *aNewFrame = columnSetFrame;
-    if (aPositionedFrameForAbsPosContainer == blockFrame) {
-      aPositionedFrameForAbsPosContainer = columnSetFrame;
-    }
+                                         columnSetStyle);
 
-    SetInitialSingleChild(columnSetFrame, blockFrame);
+    parent = columnSetWrapper;
+    *aNewFrame = columnSetWrapper;
+    if (aPositionedFrameForAbsPosContainer == blockFrame) {
+      aPositionedFrameForAbsPosContainer = columnSetWrapper;
+    }
+    blockFrame->SetHasMulticolAncestor(true);
+
+  } else if (columns->mColumnSpan == NS_STYLE_COLUMN_SPAN_ALL) {
+    // Column span must be establish a BFC.
+    blockFrame->AddStateBits(NS_BLOCK_FORMATTING_CONTEXT_STATE_BITS);
+    blockFrame->SetHasMulticolAncestor(true);
   }
 
   blockFrame->SetStyleContextWithoutNotification(blockStyle);
   InitAndRestoreFrame(aState, aContent, parent, blockFrame);
 
   aState.AddChild(*aNewFrame, aFrameItems, aContent,
-                  aContentParentFrame ? aContentParentFrame :
-                                        aParentFrame);
+                  aContentParentFrame ? aContentParentFrame : aParentFrame);
   if (!mRootElementFrame) {
     // The frame we're constructing will be the root element frame.
     // Set mRootElementFrame before processing children.
@@ -12084,8 +12137,9 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
   nsFrameConstructorSaveState absoluteSaveState;
   (*aNewFrame)->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
   if (aPositionedFrameForAbsPosContainer) {
-    //    NS_ASSERTION(aRelPos, "should have made area frame for this");
-    aState.PushAbsoluteContainingBlock(*aNewFrame, aPositionedFrameForAbsPosContainer, absoluteSaveState);
+    aState.PushAbsoluteContainingBlock(*aNewFrame,
+                                       aPositionedFrameForAbsPosContainer,
+                                       absoluteSaveState);
   }
 
   // Process the child content
@@ -12093,8 +12147,326 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
   ProcessChildren(aState, aContent, aStyleContext, blockFrame, true,
                   childItems, true, aPendingBinding);
 
-  // Set the frame's initial child list
-  blockFrame->SetInitialChildList(kPrincipalList, childItems);
+  if (!DoChildrenNeedSplitting(blockFrame, childItems)) {
+    if ((*aNewFrame)->Type() == LayoutFrameType::ColumnSetWrapper &&
+        (childItems.IsEmpty() || blockFrame->IsDetailsFrame())) {
+      MOZ_ASSERT((*aNewFrame) != blockFrame,
+                 "NewFrame and blockFrame must be different here!");
+
+      // Let an empty ColumnSetWrapper contain an empty ColumnSetFrame for
+      // cases when children are added to the blockFrame later (say via
+      // content appended notifications). In that case we need a valid
+      // insertion point for this wrapper.
+      (*aNewFrame)->AddStateBits(blockFrame->GetStateBits());
+      nsContainerFrame* columnSetFrame =
+        NS_NewColumnSetFrame(mPresShell, columnSetStyle,
+                             nsFrameState(NS_FRAME_OWNS_ANON_BOXES));
+      InitAndRestoreFrame(aState, aContent, *aNewFrame, columnSetFrame);
+      SetInitialSingleChild(*aNewFrame, columnSetFrame);
+
+      nsFrameList tempList(blockFrame, blockFrame);
+      MoveChildrenTo(*aNewFrame, columnSetFrame, tempList);
+
+      blockFrame->SetInitialChildList(kPrincipalList, childItems);
+    } else {
+      (*aNewFrame)->SetInitialChildList(kPrincipalList, childItems);
+    }
+    return;
+  }
+
+  ProcessColumnSpan(aState, blockFrame, aNewFrame, childItems, aFrameItems,
+                    aContentParentFrame ? aContentParentFrame : aParentFrame,
+                    aPositionedFrameForAbsPosContainer);
+}
+
+bool
+nsCSSFrameConstructor::DoChildrenNeedSplitting(nsContainerFrame* aFrame,
+                                               nsFrameItems&     aChildItems)
+{
+  if (aFrame->StyleContext()->StyleColumn()->mColumnSpan
+        != NS_STYLE_COLUMN_SPAN_ALL &&
+      aChildItems.NotEmpty() &&
+      aFrame->HasMulticolAncestor() &&
+      !aFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW) &&
+      !aFrame->IsDetailsFrame()) {
+    // The childen of a column-span will never need to be split because
+    // even if there is a nested column-span inside it, the nested column-span
+    // is not inside the BFC of a multicol ancestor since it's parent
+    // column-span sets up its own BFC. Therefore, the nested column-span
+    // is the same case as a column-span outside of a multicol.
+    // Similarly, OOFs also cannot be split.
+    // Don't split details frames for now.
+    // A frame with no children doesn't need splitting because there are
+    // no children to split.
+    // Anything under a multicol parent (other than the exceptions mentioned)
+    // will need to be 'split' whether it has column-span children or not
+    // because we must recreate the frame hierarchy even for non column-span
+    // containing branches of the frame tree.
+    return true;
+  }
+
+  return false;
+}
+
+void
+nsCSSFrameConstructor::
+ProcessColumnSpan(nsFrameConstructorState& aState,
+                  nsContainerFrame*        aOldParent,
+                  nsContainerFrame**       aNewFrame,
+                  nsFrameItems&            aChildItems,
+                  nsFrameItems&            aFrameItems,
+                  nsContainerFrame*        aFinalParent,
+                  nsIFrame*                aPositionedFrameForAbsPosContainer)
+{
+  //  When we have a block (aOldParent) as a descendent of a valid multicol,
+  //  then ProcessColumnSpan creates frames under this multicol by keeping
+  //  spanner frames in mind.
+  //  One example of the final frame hierarchy would be -
+  //
+  //  For HTML -
+  //  <div style="-moz-column-count: 2;">
+  //    <div style="column-span: all">a</div>
+  //      <div>b</div>
+  //      <div>c</div>
+  //    <div>
+  //      <div>
+  //        d
+  //        <div style="column-span: all">e</div>
+  //        <div style="column-span: all">f</div>
+  //        g
+  //      </div>
+  //    </div>
+  //    <div>h</div>
+  //  </div>
+  //  <div style="column-span: all">i</div>
+  //
+  //01  ColumnSetWrapperFrame (original sc)
+  //02    Block (a, spanner(new BFC))
+  //03    ColumnSetFrame (anonymous, -moz-column-set)
+  //04      Block (anonymous, -moz-column-content)  -> 1st column
+  //05        Block (b)
+  //06        Block (c)
+  //07      Block (anonymous, -moz-column-content)  -> 2nd column
+  //08        Block
+  //09          Block (d)
+  //10    Block (anonymous, spanner(new BFC), -moz-column-span-wrapper)
+  //11      Block (anonymous, spanner(new BFC), -moz-column-span-wrapper)
+  //12        Block(e, spanner(new BFC))
+  //13        Block(f, spanner(new BFC))
+  //14    ColumnSetFrame (anonymous, -moz-column-set)
+  //15      Block (anonymous, -moz-column-content)  -> 1st column
+  //16        Block
+  //17          Block (g)
+  //18      Block (anonymous, -moz-column-content)  -> 2nd column
+  //19        Block
+  //20          Block (h)
+  //21  Block (i, spanner(new BFC)) <-This is outside of the multicol parent
+  //
+  // Here the IB-split sibling chains are -
+  // 08 <-> 10 <-> 16
+  // 09 <-> 11 <-> 17
+
+
+  MOZ_ASSERT(aChildItems.NotEmpty(), "Child items cannot be empty here!");
+
+  nsContainerFrame* grandParent = aOldParent->GetParent();
+  MOZ_ASSERT(grandParent, "Parent cannot be empty here!");
+  nsIContent* content = aOldParent->GetContent();
+
+  if ((*aNewFrame)->Type() != LayoutFrameType::ColumnSetWrapper) {
+    MOZ_ASSERT(grandParent->Type() != LayoutFrameType::ColumnSetWrapper,
+                "Grandparent cannot be columnSetWrapper! In that case newFrame==gparent");
+
+    nsFrameItems splitChildren;
+    SplitBlocks(aState, aOldParent, aChildItems, splitChildren);
+    MOZ_ASSERT(splitChildren.NotEmpty(), "Child items cannot be empty here!");
+
+    aFrameItems.RemoveFrame(aOldParent);
+    //aOldParent is guaranteed to be a block here.
+    nsBlockFrame* oldBlockParent = static_cast<nsBlockFrame*>(aOldParent);
+    oldBlockParent->TransferFloats();
+
+    *aNewFrame = static_cast<nsContainerFrame*>(splitChildren.FirstChild());
+    while (splitChildren.NotEmpty()) {
+      nsContainerFrame* currChild =
+          static_cast<nsContainerFrame*>(splitChildren.RemoveFirstChild());
+      aState.AddChild(currChild, aFrameItems, content, aFinalParent);
+
+      if (aPositionedFrameForAbsPosContainer &&
+          aPositionedFrameForAbsPosContainer == aOldParent) {
+        nsFrameList splitAbsoluteList;
+        SplitAbsoluteListForSplitBlock(currChild, aState.GetAbsoluteItems(), splitAbsoluteList);
+        nsFrameConstructorSaveState absoluteSaveState;
+        currChild->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
+        aState.OverwriteAbsoluteState(currChild, splitAbsoluteList, absoluteSaveState);
+        aState.PushAbsoluteContainingBlock(currChild, currChild, absoluteSaveState);
+      }
+    }
+  } else {
+    nsFrameItems finalChildItems;
+    WrapNonSpannerChildrenInColumnSets(aState, aOldParent, aChildItems,
+                                       finalChildItems);
+    MOZ_ASSERT(finalChildItems.NotEmpty(), "Child items cannot be empty here!");
+
+    // aOldParent is guaranteed to be a block here.
+    nsBlockFrame* oldBlockParent = static_cast<nsBlockFrame*>(aOldParent);
+    oldBlockParent->TransferFloats();
+    grandParent->AddStateBits(aOldParent->GetStateBits());
+    MoveChildrenTo(aOldParent, grandParent, finalChildItems);
+  }
+  aOldParent->Destroy();
+}
+
+void
+nsCSSFrameConstructor::SplitBlocks(nsFrameConstructorState& aState,
+                                   nsContainerFrame*        aOldParent,
+                                   nsFrameList&             aUnsplitChildItems,
+                                   nsFrameItems&            aSplitChildItems,
+                                   nsStyleContext*          aNonSpannerSC)
+{
+  MOZ_ASSERT(aUnsplitChildItems.NotEmpty(), "Child items cannot be empty here!");
+
+  nsBlockFrame* previousSplitBlock = nullptr;
+  while (aUnsplitChildItems.NotEmpty()) {
+    nsContainerFrame* grandParent = aOldParent->GetParent();
+    MOZ_ASSERT(grandParent, "Parent cannot be empty here!");
+    nsIContent* content = aOldParent->GetContent();
+    nsStyleContext* styleContext = aOldParent->StyleContext();
+
+    nsBlockFrame* splitBlock = NS_NewBlockFrame(mPresShell, styleContext);
+    InitAndRestoreFrame(aState, content, grandParent, splitBlock, false);
+    splitBlock->SetHasMulticolAncestor(aOldParent->HasMulticolAncestor());
+
+    nsFrameList::
+    FrameLinkEnumerator firstColumnSpan = FindFirstColumnSpan(aUnsplitChildItems);
+    nsFrameList splitBlockChildren = aUnsplitChildItems.ExtractHead(firstColumnSpan);
+
+    if (splitBlockChildren.IsEmpty()) {
+      // If the extracted child item list is empty, this means that the spanner
+      // is the first child/ first few children inside childItems so create
+      // a block that only contains spanners (as opposed to only non spanners)
+
+      RefPtr<nsStyleContext> spannerSC = mPresShell->StyleSet()->
+        ResolveInheritingAnonymousBoxStyle(nsCSSAnonBoxes::mozColumnSpanWrapper,
+                                           styleContext);
+      splitBlock->SetStyleContextWithoutNotification(spannerSC);
+
+      // The column span wrapper must establish a BFC.
+      splitBlock->AddStateBits(NS_BLOCK_FORMATTING_CONTEXT_STATE_BITS);
+
+      nsFrameList::
+      FrameLinkEnumerator firstNonColumnSpan = FindFirstNonColumnSpan(aUnsplitChildItems);
+      splitBlockChildren = aUnsplitChildItems.ExtractHead(firstNonColumnSpan);
+    } else if (aNonSpannerSC) {
+      splitBlock->SetStyleContextWithoutNotification(aNonSpannerSC);
+    }
+
+    if (aOldParent->Type() == LayoutFrameType::Block) {
+      splitBlock->AddStateBits(aOldParent->GetStateBits());
+    }
+    MoveChildrenTo(aOldParent, splitBlock, splitBlockChildren);
+    aSplitChildItems.AddChild(splitBlock);
+
+    if (previousSplitBlock) {
+      SetFrameIsIBSplit(previousSplitBlock, splitBlock);
+    }
+    previousSplitBlock = splitBlock;
+  }
+
+  // If after splitting we still have only one splitChildItem then it means
+  // there was no column-span found. Therefore, it doesn't make sense to mark
+  // this single frame as an IB-Split with a null next frame.
+  if (aSplitChildItems.GetLength() > 1) {
+    SetFrameIsIBSplit(previousSplitBlock, nullptr);
+  }
+}
+
+void
+nsCSSFrameConstructor::
+WrapNonSpannerChildrenInColumnSets(nsFrameConstructorState& aState,
+                                   nsContainerFrame*        aOldParent,
+                                   nsFrameItems&            aInitialChildItems,
+                                   nsFrameItems&            aFinalChildItems)
+{
+  nsIFrame* parent = aOldParent->GetParent();
+  MOZ_ASSERT(parent, "Parent cannot be null!");
+
+  nsContainerFrame* columnSetWrapper = static_cast<nsContainerFrame*>(parent);
+  MOZ_ASSERT(columnSetWrapper->Type() == LayoutFrameType::ColumnSetWrapper,
+             "The grandparent must be a columnSetWrapper here!");
+
+  nsIContent* content = columnSetWrapper->GetContent();
+  nsStyleContext* styleContext = columnSetWrapper->StyleContext();
+
+  RefPtr<nsStyleContext> columnSetStyle = mPresShell->StyleSet()->
+    ResolveInheritingAnonymousBoxStyle(nsCSSAnonBoxes::mozColumnSet,
+                                       styleContext);
+
+  RefPtr<nsStyleContext> blockStyle = mPresShell->StyleSet()->
+    ResolveInheritingAnonymousBoxStyle(nsCSSAnonBoxes::columnContent,
+                                       columnSetStyle);
+
+  while (aInitialChildItems.NotEmpty()) {
+    nsFrameList::
+    FrameLinkEnumerator firstColumnSpan = FindFirstColumnSpan(aInitialChildItems);
+    nsFrameList children = aInitialChildItems.ExtractHead(firstColumnSpan);
+
+    if (children.IsEmpty()) {
+      // If the extracted child item list is empty, this means that the spanner
+      // is the first child/ first few children inside childItems.
+      nsFrameList::FrameLinkEnumerator firstNonColumnSpan =
+        FindFirstNonColumnSpan(aInitialChildItems);
+      children = aInitialChildItems.ExtractHead(firstNonColumnSpan);
+      aFinalChildItems.AppendFrames(columnSetWrapper, children);
+      continue;
+    }
+
+    nsContainerFrame* columnSetFrame =
+      NS_NewColumnSetFrame(mPresShell, columnSetStyle,
+                           nsFrameState(NS_FRAME_OWNS_ANON_BOXES));
+    InitAndRestoreFrame(aState, content, columnSetWrapper, columnSetFrame);
+
+    nsBlockFrame* blockFrame = NS_NewBlockFrame(mPresShell, blockStyle);
+    InitAndRestoreFrame(aState, content, columnSetFrame, blockFrame);
+    blockFrame->AddStateBits(aOldParent->GetStateBits());
+
+    MoveChildrenTo(aOldParent, blockFrame, children);
+    SetInitialSingleChild(columnSetFrame, blockFrame);
+
+    // Setting parent to columnSetWrapper is unnecessary here because
+    // MoveChildrenTo (later on) will reparent the finalchildList.
+    aFinalChildItems.AppendFrame(columnSetWrapper, columnSetFrame);
+  }
+
+  // Note: Because of this function, column-span wrappers and ColumnSetFrame
+  // wrappers are not ib-siblings of each other since we create columnSetFrames
+  // as one additional wrapper around non-spanning elements and this would upset
+  // the IB-sibling chain.
+}
+
+void
+nsCSSFrameConstructor::SplitAbsoluteListForSplitBlock(nsContainerFrame* aSplitFrame,
+                                                      nsAbsoluteItems&  aOriginalAbsoluteList,
+                                                      nsFrameList&      aSplitAbsoluteList)
+{
+  for (nsIFrame* currAbsoluteFrame = aOriginalAbsoluteList.FirstChild(); currAbsoluteFrame != nullptr;) {
+      nsIFrame* placeholder = currAbsoluteFrame->GetPlaceholderFrame();
+      NS_ASSERTION(placeholder, "An OOF exists with a null placeholder!");
+
+      // Check if this placeholder is a descendent of aSplitFrame, if it is then
+      // move its OOF into the splitAbsoluteList.
+      nsIFrame* parent = placeholder->GetParent();
+      while (parent && parent != aSplitFrame) {
+        parent = parent->GetParent();
+      }
+      if (parent) {
+        nsIFrame* nextAbsoluteFrame = currAbsoluteFrame->GetNextSibling();
+        aOriginalAbsoluteList.RemoveFrame(currAbsoluteFrame);
+
+        aSplitAbsoluteList.AppendFrame(aSplitFrame, currAbsoluteFrame);
+        currAbsoluteFrame = nextAbsoluteFrame;
+      }
+    }
 }
 
 nsIFrame*
@@ -12227,70 +12599,6 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   CreateIBSiblings(aState, newFrame, positioned, childItems, aFrameItems);
 
   return newFrame;
-}
-
-void
-nsCSSFrameConstructor::SplitBlocks(nsFrameConstructorState& aState,
-                                   nsContainerFrame*        aOldParent,
-                                   nsFrameList&             aUnsplitChildItems,
-                                   nsFrameItems&            aSplitChildItems,
-                                   nsStyleContext*          aNonSpannerSC)
-{
-  MOZ_ASSERT(aUnsplitChildItems.NotEmpty(), "Child items cannot be empty here!");
-
-  nsBlockFrame* previousSplitBlock = nullptr;
-  while (aUnsplitChildItems.NotEmpty()) {
-    nsContainerFrame* grandParent = aOldParent->GetParent();
-    MOZ_ASSERT(grandParent, "Parent cannot be empty here!");
-    nsIContent* content = aOldParent->GetContent();
-    nsStyleContext* styleContext = aOldParent->StyleContext();
-
-    nsBlockFrame* splitBlock = NS_NewBlockFrame(mPresShell, styleContext);
-    InitAndRestoreFrame(aState, content, grandParent, splitBlock, false);
-    splitBlock->SetHasMulticolAncestor(aOldParent->HasMulticolAncestor());
-
-    nsFrameList::
-    FrameLinkEnumerator firstColumnSpan = FindFirstColumnSpan(aUnsplitChildItems);
-    nsFrameList splitBlockChildren = aUnsplitChildItems.ExtractHead(firstColumnSpan);
-
-    if (splitBlockChildren.IsEmpty()) {
-      // If the extracted child item list is empty, this means that the spanner
-      // is the first child/ first few children inside childItems so create
-      // a block that only contains spanners (as opposed to only non spanners)
-
-      RefPtr<nsStyleContext> spannerSC = mPresShell->StyleSet()->
-        ResolveInheritingAnonymousBoxStyle(nsCSSAnonBoxes::mozColumnSpanWrapper,
-                                           styleContext);
-      splitBlock->SetStyleContextWithoutNotification(spannerSC);
-
-      // The column span wrapper must establish a BFC.
-      splitBlock->AddStateBits(NS_BLOCK_FORMATTING_CONTEXT_STATE_BITS);
-
-      nsFrameList::
-      FrameLinkEnumerator firstNonColumnSpan = FindFirstNonColumnSpan(aUnsplitChildItems);
-      splitBlockChildren = aUnsplitChildItems.ExtractHead(firstNonColumnSpan);
-    } else if (aNonSpannerSC) {
-      splitBlock->SetStyleContextWithoutNotification(aNonSpannerSC);
-    }
-
-    if (aOldParent->Type() == LayoutFrameType::Block) {
-      splitBlock->AddStateBits(aOldParent->GetStateBits());
-    }
-    MoveChildrenTo(aOldParent, splitBlock, splitBlockChildren);
-    aSplitChildItems.AddChild(splitBlock);
-
-    if (previousSplitBlock) {
-      SetFrameIsIBSplit(previousSplitBlock, splitBlock);
-    }
-    previousSplitBlock = splitBlock;
-  }
-
-  // If after splitting we still have only one splitChildItem then it means
-  // there was no column-span found. Therefore, it doesn't make sense to mark
-  // this single frame as an IB-Split with a null next frame.
-  if (aSplitChildItems.GetLength() > 1) {
-    SetFrameIsIBSplit(previousSplitBlock, nullptr);
-  }
 }
 
 void

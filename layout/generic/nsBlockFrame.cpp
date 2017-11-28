@@ -5622,6 +5622,41 @@ nsBlockFrame::UpdateFirstLetterStyle(ServoRestyleState& aRestyleState)
   // set up to inherit from parentStyle, which is what we want.
 }
 
+void
+nsBlockFrame::TransferFloats()
+{
+  // Remember the next sibling here because RemoveFloat() later resets
+  // the sibling chain.
+  nsIFrame* currFloat = mFloats.FirstChild();
+  nsIFrame* nextFloat = nullptr;
+  if (currFloat) {
+    nextFloat = currFloat->GetNextSibling();
+  }
+  while (currFloat) {
+    nsIFrame* placeholder = currFloat->GetPlaceholderFrame();
+    NS_ASSERTION(placeholder, "An OOF exists with a null placeholder!");
+
+    // Find the topmost block parent this placeholder belongs to
+    nsIFrame* finalParent = placeholder->GetParent();
+    while (!finalParent->IsFloatContainingBlock()) {
+      finalParent = finalParent->GetParent();
+    }
+
+    RemoveFloat(currFloat);
+
+    // Add this float to the float list of its new and final parent
+    nsBlockFrame* finalBlockParent = static_cast<nsBlockFrame*>(finalParent);
+    currFloat->SetParent(finalBlockParent);
+    nsFrameList temp(currFloat, currFloat);
+    finalBlockParent->AppendFrames(nsIFrame::kFloatList, temp);
+
+    currFloat = nextFloat;
+    if (nextFloat) {
+      nextFloat = nextFloat->GetNextSibling();
+    }
+  }
+}
+
 static nsIFrame*
 FindChildContaining(nsBlockFrame* aFrame, nsIFrame* aFindFrame)
 {
