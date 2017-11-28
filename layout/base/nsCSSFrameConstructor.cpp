@@ -646,6 +646,28 @@ GetIBContainingBlockFor(nsIFrame* aFrame)
   return parentFrame;
 }
 
+static nsIFrame*
+GetMulticolContainingBlockFor(nsIFrame* aFrame)
+{
+  NS_PRECONDITION(aFrame->HasMulticolAncestor(),
+                  "GetMulticolContainingBlockFor() should only be called on"
+                  "frames inside a multicol element!");
+
+  nsIFrame* currFrame = aFrame->GetParent();
+  while (currFrame){
+    // Find the first non-multicol, non-pseudo styled parent frame
+    if (!currFrame->HasMulticolAncestor() &&
+        !currFrame->StyleContext()->GetPseudo()) {
+      break;
+    }
+    currFrame = currFrame->GetParent();
+  }
+
+  MOZ_ASSERT(currFrame, "No valid ColumnSetWrapper in multicol hierarchy!");
+
+  return currFrame;
+}
+
 // This is a bit slow, but sometimes we need it.
 static bool
 ParentIsWrapperAnonBox(nsIFrame* aParent)
@@ -9179,6 +9201,9 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext*    aPresContext,
                "no support for fragmenting table captions yet");
     newFrame = NS_NewColumnSetFrame(shell, styleContext, nsFrameState(0));
     newFrame->Init(content, aParentFrame, aFrame);
+  } else if (LayoutFrameType::ColumnSetWrapper == frameType) {
+    newFrame = NS_NewColumnSetWrapperFrame(shell, styleContext, nsFrameState(0));
+    newFrame->Init(content, aParentFrame, aFrame);
   } else if (LayoutFrameType::Page == frameType) {
     nsContainerFrame* canvasFrame;
     newFrame = ConstructPageFrame(shell, aParentFrame, aFrame, canvasFrame);
@@ -9555,6 +9580,11 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame)
   NS_PRECONDITION(aFrame->GetParent(), "Frame shouldn't be root");
   NS_PRECONDITION(aFrame == aFrame->FirstContinuation(),
                   "aFrame not the result of GetPrimaryFrame()?");
+
+  if (aFrame->HasMulticolAncestor()) {
+    ReframeContainingBlock(aFrame);
+    return true;
+  }
 
   if (IsFramePartOfIBSplit(aFrame)) {
     // The removal functions can't handle removal of an {ib} split directly; we
@@ -13078,6 +13108,11 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
   // Now we have several cases involving {ib} splits.  Put them all in a
   // do/while with breaks to take us to the "go and reconstruct" code.
   do {
+    if (aFrame->HasMulticolAncestor() ||
+        aFrame->Type() == LayoutFrameType::ColumnSetWrapper) {
+      // Need to go ahead and reconstruct.
+      break;
+    }
     if (IsInlineFrame(aFrame)) {
       if (aItems.AreAllItemsInline()) {
         // We can just put the kids in.
@@ -13140,11 +13175,12 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
   // them).
   while (IsFramePartOfIBSplit(aContainingBlock) ||
          aContainingBlock->IsInlineOutside() ||
-         aContainingBlock->StyleContext()->GetPseudo()) {
+         aContainingBlock->StyleContext()->GetPseudo() ||
+         aContainingBlock->HasMulticolAncestor()) {
     aContainingBlock = aContainingBlock->GetParent();
     NS_ASSERTION(aContainingBlock,
-                 "Must have non-inline, non-ib-split, non-pseudo frame as "
-                 "root (or child of root, for a table root)!");
+                 "Must have non-inline, non-ib-split, non-pseudo, non-multicol"
+                 " frame as root (or child of root, for a table root)!");
   }
 
   // Tell parent of the containing block to reformulate the
@@ -13187,7 +13223,12 @@ nsCSSFrameConstructor::ReframeContainingBlock(nsIFrame* aFrame)
   }
 
   // Get the first "normal" ancestor of the target frame.
-  nsIFrame* containingBlock = GetIBContainingBlockFor(aFrame);
+  nsIFrame* containingBlock = nullptr;
+  if (aFrame->HasMulticolAncestor()) {
+    containingBlock = GetMulticolContainingBlockFor(aFrame);
+  } else {
+    containingBlock = GetIBContainingBlockFor(aFrame);
+  }
   if (containingBlock) {
     // From here we look for the containing block in case the target
     // frame is already a block (which can happen when an inline frame
