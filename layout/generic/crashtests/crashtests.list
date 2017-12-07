@@ -443,7 +443,7 @@ load 613455-1.svg
 load 613629-1.xhtml
 load 616052-1.html
 load 619021.html
-load 621424-1.html
+asserts(2) load 621424-1.html # bug 731659
 load 621841-1.html
 load 622596.html
 load 641724.html
@@ -577,7 +577,7 @@ load 1003441.xul
 load 1015562.html
 asserts(1-2) load 1015563-1.html
 asserts(1-2) load 1015563-2.html
-asserts(11) asserts-if(stylo&&Android,274) load 1015844.html # bug 574889, bug 1374479
+asserts(5) asserts-if(stylo&&Android,274) load 1015844.html # bug 574889, bug 1374479
 pref(font.size.inflation.minTwips,200) load 1032450.html
 load 1032613-1.svg
 load 1032613-2.html
