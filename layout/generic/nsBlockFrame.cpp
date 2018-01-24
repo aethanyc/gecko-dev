@@ -7072,6 +7072,10 @@ nsBlockFrame::SetInitialChildList(ChildListID     aListID,
     // the outermost frame for the content is the primary frame in
     // most cases; the ones when it's not (like tables) can't be
     // StyleDisplay::ListItem).
+    // We also check to make sure we're not adding a bullet to a
+    // ColumnSetWrapper. This is because we move the final children of CSW
+    // twice during frame construction which might end up adding
+    // extra bullet frames here.
     nsIFrame* possibleListItem = this;
     while (1) {
       nsIFrame* parent = possibleListItem->GetParent();
@@ -7082,7 +7086,7 @@ nsBlockFrame::SetInitialChildList(ChildListID     aListID,
     }
     if (mozilla::StyleDisplay::ListItem ==
           possibleListItem->StyleDisplay()->mDisplay &&
-        !GetPrevInFlow()) {
+        !GetPrevInFlow() && Type() != LayoutFrameType::ColumnSetWrapper) {
       // Resolve style for the bullet frame
       const nsStyleList* styleList = StyleList();
       CounterStyle* style = styleList->mCounterStyle;
