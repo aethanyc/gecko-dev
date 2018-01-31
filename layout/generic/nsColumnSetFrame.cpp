@@ -1306,6 +1306,62 @@ nsColumnSetFrame::AppendDirectlyOwnedAnonBoxes(nsTArray<OwnedAnonBox>& aResult)
   aResult.AppendElement(OwnedAnonBox(column));
 }
 
+// xxxNeerja - this is necessary for a ColumnSetFrame to take up the entire
+// BSize of its parent wrapper. Until Bug 1411422 is fixed,
+// we can assume that one ColumnSetFrame will be the only child of the
+// ColumnSetWrapper.
+LogicalSize
+nsColumnSetFrame::ComputeAutoSize(gfxContext*                 aRenderingContext,
+                                  mozilla::WritingMode        aWM,
+                                  const mozilla::LogicalSize& aCBSize,
+                                  nscoord                     aAvailableISize,
+                                  const mozilla::LogicalSize& aMargin,
+                                  const mozilla::LogicalSize& aBorder,
+                                  const mozilla::LogicalSize& aPadding,
+                                  ComputeSizeFlags            aFlags)
+{
+  LogicalSize result(aWM, 0xdeadbeef, NS_UNCONSTRAINEDSIZE);
+  nscoord availBased = aAvailableISize - aMargin.ISize(aWM) -
+  aBorder.ISize(aWM) - aPadding.ISize(aWM);
+    // replaced elements always shrink-wrap
+  if ((aFlags & ComputeSizeFlags::eShrinkWrap) || IsFrameOfType(eReplaced)) {
+      // don't bother setting it if the result won't be used
+    if (StylePosition()->ISize(aWM).GetUnit() == eStyleUnit_Auto) {
+      result.ISize(aWM) = ShrinkWidthToFit(aRenderingContext, availBased, aFlags);
+    }
+  } else {
+    result.ISize(aWM) = availBased;
+  }
+
+  // Use up as much of the parent container's Bsize as possible.
+  auto parentPosition = GetParent()->StylePosition();
+
+  LogicalSize boxSizingAdjust(aWM);
+  if (parentPosition->mBoxSizing == StyleBoxSizing::Border) {
+    boxSizingAdjust = aBorder + aPadding;
+  }
+
+  if (!nsLayoutUtils::IsAutoBSize(parentPosition->BSize(aWM), aCBSize.BSize(aWM))) {
+    result.BSize(aWM) =
+      nsLayoutUtils::ComputeBSizeValue(aCBSize.BSize(aWM),
+                                       boxSizingAdjust.BSize(aWM),
+                                       parentPosition->BSize(aWM));
+  } else if (!nsLayoutUtils::IsAutoBSize(parentPosition->MaxBSize(aWM),
+                                        aCBSize.BSize(aWM))) {
+    result.BSize(aWM) =
+      nsLayoutUtils::ComputeBSizeValue(aCBSize.BSize(aWM),
+                                       boxSizingAdjust.BSize(aWM),
+                                       parentPosition->MaxBSize(aWM));
+  } else if (!nsLayoutUtils::IsAutoBSize(parentPosition->MinBSize(aWM),
+                                         aCBSize.BSize(aWM))) {
+    result.BSize(aWM) =
+      nsLayoutUtils::ComputeBSizeValue(aCBSize.BSize(aWM),
+                                       boxSizingAdjust.BSize(aWM),
+                                       parentPosition->MinBSize(aWM));
+  }
+  return result;
+}
+
 #ifdef DEBUG
 void
 nsColumnSetFrame::SetInitialChildList(ChildListID     aListID,

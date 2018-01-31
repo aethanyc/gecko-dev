@@ -3466,6 +3466,17 @@ nsBlockFrame::ReflowBlockFrame(BlockReflowInput& aState,
       aState.mPresContext, aState.mReflowInput, frame,
       availSpace.Size(wm).ConvertTo(frame->GetWritingMode(), wm));
 
+    // xxxNeerja - this is necessary for a ColumnSetFrame to take up the min/max
+    // BSize constraints of its parent wrapper. Until Bug 1411422 is fixed,
+    // we can assume that one ColumnSetFrame will be the only child of the
+    // ColumnSetWrapper.
+    if (Type() == LayoutFrameType::ColumnSetWrapper) {
+      if (frame->IsColumnSetFrame()) {
+        blockHtmlRI->ComputedMinBSize() = aState.mReflowInput.ComputedMinBSize();
+        blockHtmlRI->ComputedMaxBSize() = aState.mReflowInput.ComputedMaxBSize();
+      }
+    }
+
     nsFloatManager::SavedState floatManagerState;
     nsReflowStatus frameReflowStatus;
     do {
