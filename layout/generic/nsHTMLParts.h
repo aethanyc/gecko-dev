@@ -109,6 +109,8 @@ NS_NewWBRFrame(nsIPresShell* aPresShell, nsStyleContext* aContext) {
   return NS_NewEmptyFrame(aPresShell, aContext);
 }
 
+nsBlockFrame*
+NS_NewColumnSetWrapperFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrameState aStateFlags);
 nsContainerFrame*
 NS_NewColumnSetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrameState aStateFlags);
 

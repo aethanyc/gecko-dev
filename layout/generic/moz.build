@@ -137,6 +137,7 @@ UNIFIED_SOURCES += [
     'nsBulletFrame.cpp',
     'nsCanvasFrame.cpp',
     'nsColumnSetFrame.cpp',
+    'nsColumnSetWrapperFrame.cpp',
     'nsContainerFrame.cpp',
     'nsFirstLetterFrame.cpp',
     'nsFlexContainerFrame.cpp',
