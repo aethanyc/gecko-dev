@@ -592,8 +592,8 @@ private:
      @param ComputedStyle the style to be used for the frame.
   */
   struct FrameConstructionData;
-  typedef const FrameConstructionData*
-    (* FrameConstructionDataGetter)(const Element&, ComputedStyle&);
+  using FrameConstructionDataGetter =
+    mozilla::Maybe<const FrameConstructionData>(*)(const Element&, ComputedStyle&);
 
   /* A constructor function that's used for complicated construction tasks.
      This is expected to create the new frame, initialize it, add whatever
@@ -817,37 +817,43 @@ private:
                                             ComputedStyle&,
                                             uint32_t aFlags);
 
-  const FrameConstructionData* FindDataForContent(nsIContent&,
-                                                  ComputedStyle&,
-                                                  nsIFrame* aParentFrame,
-                                                  nsAtom* aTag,
-                                                  uint32_t aFlags);
+  mozilla::Maybe<const FrameConstructionData> FindDataForContent(
+    nsIContent&,
+    ComputedStyle&,
+    nsIFrame* aParentFrame,
+    nsAtom* aTag,
+    uint32_t aFlags);
 
   // aParentFrame might be null.  If it is, that means it was an inline frame.
-  static const FrameConstructionData* FindTextData(const Text&,
-                                                   nsIFrame* aParentFrame);
-  const FrameConstructionData* FindElementData(const Element&,
-                                               ComputedStyle&,
-                                               nsIFrame* aParentFrame,
-                                               nsAtom* aTag,
-                                               uint32_t aFlags);
-  const FrameConstructionData* FindElementTagData(const Element&,
-                                                  ComputedStyle&,
-                                                  nsIFrame* aParentFrame,
-                                                  nsAtom* aTag,
-                                                  uint32_t aFlags);
+  static mozilla::Maybe<const FrameConstructionData> FindTextData(
+    const Text&,
+    nsIFrame* aParentFrame);
+
+  mozilla::Maybe<const FrameConstructionData> FindElementData(
+    const Element&,
+    ComputedStyle&,
+    nsIFrame* aParentFrame,
+    nsAtom* aTag,
+    uint32_t aFlags);
+
+  mozilla::Maybe<const FrameConstructionData> FindElementTagData(
+    const Element&,
+    ComputedStyle&,
+    nsIFrame* aParentFrame,
+    nsAtom* aTag,
+    uint32_t aFlags);
 
   /* A function that takes an integer, content, style, and array of
      FrameConstructionDataByInts and finds the appropriate frame construction
      data to use and returns it.  This can return null if none of the integers
      match or if the matching integer has a FrameConstructionDataGetter that
      returns null. */
-  static const FrameConstructionData*
-    FindDataByInt(int32_t aInt,
-                  const Element&,
-                  ComputedStyle&,
-                  const FrameConstructionDataByInt* aDataPtr,
-                  uint32_t aDataLength);
+  static mozilla::Maybe<const FrameConstructionData> FindDataByInt(
+    int32_t aInt,
+    const Element&,
+    ComputedStyle&,
+    const FrameConstructionDataByInt* aDataPtr,
+    uint32_t aDataLength);
 
   /**
    * A function that takes a tag, content, style, and array of
@@ -858,7 +864,7 @@ private:
    * FrameConstructionDataGetter that returns null. In the case that the tags
    * actually match, aTagFound will be true, even if the return value is null.
    */
-  static const FrameConstructionData*
+  static mozilla::Maybe<const FrameConstructionData>
     FindDataByTag(nsAtom* aTag,
                   const Element& aElement,
                   ComputedStyle& aComputedStyle,
@@ -899,7 +905,7 @@ private:
     // around it cannot be performed.
     // Also, the return value is always non-null, thanks to infallible 'new'.
     FrameConstructionItem* AppendItem(nsCSSFrameConstructor* aFCtor,
-                                      const FrameConstructionData* aFCData,
+                                      const FrameConstructionData& aFCData,
                                       nsIContent* aContent,
                                       PendingBinding* aPendingBinding,
                                       already_AddRefed<ComputedStyle>&& aComputedStyle,
@@ -917,7 +923,7 @@ private:
 
     // Arguments are the same as AppendItem().
     FrameConstructionItem* PrependItem(nsCSSFrameConstructor* aFCtor,
-                                       const FrameConstructionData* aFCData,
+                                       const FrameConstructionData& aFCData,
                                        nsIContent* aContent,
                                        PendingBinding* aPendingBinding,
                                        already_AddRefed<ComputedStyle>&& aComputedStyle,
@@ -1150,7 +1156,7 @@ private:
   struct FrameConstructionItem final
     : public mozilla::LinkedListElement<FrameConstructionItem>
   {
-    FrameConstructionItem(const FrameConstructionData* aFCData,
+    FrameConstructionItem(const FrameConstructionData& aFCData,
                           nsIContent* aContent,
                           PendingBinding* aPendingBinding,
                           already_AddRefed<ComputedStyle>&& aComputedStyle,
@@ -1182,7 +1188,7 @@ private:
     }
 
     ParentType DesiredParentType() {
-      return FCDATA_DESIRED_PARENT_TYPE(mFCData->mBits);
+      return FCDATA_DESIRED_PARENT_TYPE(mFCData.mBits);
     }
 
     // Indicates whether (when in a flex or grid container) this item needs
@@ -1199,14 +1205,14 @@ private:
     bool IsWhitespace(nsFrameConstructorState& aState) const;
 
     bool IsLineBoundary() const {
-      return mIsBlock || (mFCData->mBits & FCDATA_IS_LINE_BREAK);
+      return mIsBlock || (mFCData.mBits & FCDATA_IS_LINE_BREAK);
     }
 
     // Child frame construction items.
     FrameConstructionItemList mChildItems;
 
     // The FrameConstructionData to use.
-    const FrameConstructionData* mFCData;
+    const FrameConstructionData mFCData;
     // The nsIContent node to use when initializing the new frame.
     nsIContent* mContent;
     // The PendingBinding for this frame construction item, if any.  May be
@@ -1392,7 +1398,7 @@ private:
   // GetGeometricParent, and stuff like the frameitems and parent frame should
   // be kept track of in the state...
   void AdjustParentFrame(nsContainerFrame**           aParentFrame,
-                         const FrameConstructionData* aFCData,
+                         const FrameConstructionData& aFCData,
                          ComputedStyle*              aComputedStyle);
 
   // END TABLE SECTION
@@ -1435,7 +1441,7 @@ private:
                                   const nsStyleDisplay* aStyleDisplay,
                                   nsFrameItems& aFrameItems);
 
-  void ConstructTextFrame(const FrameConstructionData* aData,
+  void ConstructTextFrame(const FrameConstructionData& aData,
                           nsFrameConstructorState& aState,
                           nsIContent*              aContent,
                           nsContainerFrame*        aParentFrame,
@@ -1456,20 +1462,22 @@ private:
   void AddPageBreakItem(nsIContent* aContent,
                         FrameConstructionItemList& aItems);
 
-  // Function to find FrameConstructionData for aElement.  Will return
+  // Function to find FrameConstructionData for an element.  Will return
   // null if aElement is not HTML.
   // aParentFrame might be null.  If it is, that means it was an
   // inline frame.
-  static const FrameConstructionData* FindHTMLData(const Element&,
-                                                   nsIFrame* aParentFrame,
-                                                   ComputedStyle&);
+  static mozilla::Maybe<const FrameConstructionData> FindHTMLData(
+    const Element&,
+    nsIFrame* aParentFrame,
+    ComputedStyle&);
+
   // HTML data-finding helper functions
-  static const FrameConstructionData* FindImgData(const Element&, ComputedStyle&);
-  static const FrameConstructionData* FindGeneratedImageData(const Element&, ComputedStyle&);
-  static const FrameConstructionData* FindImgControlData(const Element&, ComputedStyle&);
-  static const FrameConstructionData* FindInputData(const Element&, ComputedStyle&);
-  static const FrameConstructionData* FindObjectData(const Element&, ComputedStyle&);
-  static const FrameConstructionData* FindCanvasData(const Element&, ComputedStyle&);
+  static mozilla::Maybe<const FrameConstructionData> FindImgData(const Element&, ComputedStyle&);
+  static mozilla::Maybe<const FrameConstructionData> FindGeneratedImageData(const Element&, ComputedStyle&);
+  static mozilla::Maybe<const FrameConstructionData> FindImgControlData(const Element&, ComputedStyle&);
+  static mozilla::Maybe<const FrameConstructionData> FindInputData(const Element&, ComputedStyle&);
+  static mozilla::Maybe<const FrameConstructionData> FindObjectData(const Element&, ComputedStyle&);
+  static mozilla::Maybe<const FrameConstructionData> FindCanvasData(const Element&, ComputedStyle&);
 
   /* Construct a frame from the given FrameConstructionItem.  This function
      will handle adding the frame to frame lists, processing children, setting
@@ -1545,25 +1553,25 @@ private:
 
   // Function to find FrameConstructionData for an element.  Will return
   // null if the element is not MathML.
-  static const FrameConstructionData* FindMathMLData(const Element&, ComputedStyle&);
+  static mozilla::Maybe<const FrameConstructionData> FindMathMLData(const Element&, ComputedStyle&);
 
   // Function to find FrameConstructionData for an element.  Will return
   // null if the element is not XUL.
   //
   // NOTE(emilio): This gets the overloaded tag and namespace id since they can
   // be overriden by extends="" in XBL.
-  static const FrameConstructionData* FindXULTagData(const Element&,
+  static mozilla::Maybe<const FrameConstructionData> FindXULTagData(const Element&,
                                                      nsAtom* aTag,
                                                      ComputedStyle&);
   // XUL data-finding helper functions and structures
 #ifdef MOZ_XUL
-  static const FrameConstructionData* FindPopupGroupData(const Element&, ComputedStyle&);
+  static mozilla::Maybe<const FrameConstructionData> FindPopupGroupData(const Element&, ComputedStyle&);
   // sXULTextBoxData used for both labels and descriptions
   static const FrameConstructionData sXULTextBoxData;
-  static const FrameConstructionData* FindXULLabelData(const Element&, ComputedStyle&);
-  static const FrameConstructionData* FindXULDescriptionData(const Element&, ComputedStyle&);
+  static mozilla::Maybe<const FrameConstructionData> FindXULLabelData(const Element&, ComputedStyle&);
+  static mozilla::Maybe<const FrameConstructionData> FindXULDescriptionData(const Element&, ComputedStyle&);
 #ifdef XP_MACOSX
-  static const FrameConstructionData* FindXULMenubarData(const Element&, ComputedStyle&);
+  static mozilla::Maybe<const FrameConstructionData> FindXULMenubarData(const Element&, ComputedStyle&);
 #endif /* XP_MACOSX */
 #endif /* MOZ_XUL */
 
@@ -1572,8 +1580,9 @@ private:
   // type.  This function performs no other checks, so should only be called if
   // we know for sure that the element is not something that should get a frame
   // constructed by tag.
-  static const FrameConstructionData* FindXULDisplayData(const nsStyleDisplay&,
-                                                         const Element&);
+  static mozilla::Maybe<const FrameConstructionData> FindXULDisplayData(
+    const nsStyleDisplay&,
+    const Element&);
 
   /**
    * Constructs an outer frame, an anonymous child that wraps its real
@@ -1609,16 +1618,18 @@ private:
                             const nsStyleDisplay*    aDisplay,
                             nsFrameItems&            aFrameItems);
 
-  static const FrameConstructionData* FindSVGData(const Element&,
-                                                  nsIFrame* aParentFrame,
-                                                  bool aIsWithinSVGText,
-                                                  bool aAllowsTextPathChild,
-                                                  ComputedStyle&);
+  static mozilla::Maybe<const FrameConstructionData> FindSVGData(
+    const Element&,
+    nsIFrame* aParentFrame,
+    bool aIsWithinSVGText,
+    bool aAllowsTextPathChild,
+    ComputedStyle&);
 
   // Not static because it does PropagateScrollToViewport.  If this
   // changes, make this static.
-  const FrameConstructionData* FindDisplayData(const nsStyleDisplay&,
-                                               const Element&);
+  mozilla::Maybe<const FrameConstructionData> FindDisplayData(
+    const nsStyleDisplay&,
+    const Element&);
 
   /**
    * Construct a scrollable block frame
