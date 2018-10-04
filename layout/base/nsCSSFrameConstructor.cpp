@@ -2321,11 +2321,8 @@ NeedFrameFor(const nsFrameConstructorState& aState,
              nsIFrame*   aParentFrame,
              nsIContent* aChildContent)
 {
-  // XXX the GetContent() != aChildContent check is needed due to bug 135040.
-  // Remove it once that's fixed.
   MOZ_ASSERT(!aChildContent->GetPrimaryFrame() ||
-             aState.mCreatingExtraFrames ||
-             aChildContent->GetPrimaryFrame()->GetContent() != aChildContent,
+             aState.mCreatingExtraFrames,
              "Why did we get called?");
 
   // don't create a whitespace frame if aParentFrame doesn't want it.
@@ -5316,11 +5313,7 @@ nsCSSFrameConstructor::ShouldCreateItemsForChild(nsFrameConstructorState& aState
                                                  nsContainerFrame* aParentFrame)
 {
   aContent->UnsetFlags(NODE_DESCENDANTS_NEED_FRAMES | NODE_NEEDS_FRAME);
-  // XXX the GetContent() != aContent check is needed due to bug 135040.
-  // Remove it once that's fixed.
-  if (aContent->GetPrimaryFrame() &&
-      aContent->GetPrimaryFrame()->GetContent() == aContent &&
-      !aState.mCreatingExtraFrames) {
+  if (aContent->GetPrimaryFrame() && !aState.mCreatingExtraFrames) {
     MOZ_ASSERT(false,
                "asked to create frame construction item for a node that "
                "already has a frame");
@@ -6362,12 +6355,8 @@ nsCSSFrameConstructor::FindSiblingInternal(
     // IsDisplayContents to get the correct insertion point when multiple
     // siblings go from display: non-none to display: contents.
     if (nsIFrame* primaryFrame = sibling->GetPrimaryFrame()) {
-      // XXX the GetContent() == sibling check is needed due to bug 135040.
-      // Remove it once that's fixed.
-      if (primaryFrame->GetContent() == sibling) {
-        if (nsIFrame* frame = adjust(primaryFrame)) {
-          return frame;
-        }
+      if (nsIFrame* frame = adjust(primaryFrame)) {
+        return frame;
       }
     }
 
@@ -6581,13 +6570,6 @@ nsCSSFrameConstructor::GetContentInsertionFrameFor(nsIContent* aContent)
     }
   }
 
-  // If the content of the frame is not the desired content then this is not
-  // really a frame for the desired content.
-  // XXX This check is needed due to bug 135040. Remove it once that's fixed.
-  if (frame->GetContent() != aContent) {
-    return nullptr;
-  }
-
   nsContainerFrame* insertionFrame = frame->GetContentInsertionFrame();
 
   NS_ASSERTION(!insertionFrame || insertionFrame == frame || !frame->IsLeaf(),
@@ -6734,20 +6716,12 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
 
   // Set NODE_NEEDS_FRAME on the new nodes.
   if (aOperation == CONTENTINSERT) {
-    NS_ASSERTION(!aChild->GetPrimaryFrame() ||
-                 aChild->GetPrimaryFrame()->GetContent() != aChild,
-                 //XXX the aChild->GetPrimaryFrame()->GetContent() != aChild
-                 // check is needed due to bug 135040. Remove it once that's
-                 // fixed.
+    NS_ASSERTION(!aChild->GetPrimaryFrame(),
                  "setting NEEDS_FRAME on a node that already has a frame?");
     aChild->SetFlags(NODE_NEEDS_FRAME);
   } else { // CONTENTAPPEND
     for (nsIContent* child = aChild; child; child = child->GetNextSibling()) {
-      NS_ASSERTION(!child->GetPrimaryFrame() ||
-                   child->GetPrimaryFrame()->GetContent() != child,
-                   //XXX the child->GetPrimaryFrame()->GetContent() != child
-                   // check is needed due to bug 135040. Remove it once that's
-                   // fixed.
+      NS_ASSERTION(!child->GetPrimaryFrame(),
                    "setting NEEDS_FRAME on a node that already has a frame?");
       child->SetFlags(NODE_NEEDS_FRAME);
     }
@@ -6967,10 +6941,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent* aFirstNewContent,
   for (nsIContent* child = aFirstNewContent;
        child;
        child = child->GetNextSibling()) {
-    // XXX the GetContent() != child check is needed due to bug 135040.
-    // Remove it once that's fixed.
-    MOZ_ASSERT(!child->GetPrimaryFrame() ||
-               child->GetPrimaryFrame()->GetContent() != child,
+    MOZ_ASSERT(!child->GetPrimaryFrame(),
                "asked to construct a frame for a node that already has a frame");
   }
 #endif
@@ -7282,10 +7253,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent* aStartChild,
   for (nsIContent* child = aStartChild;
        child != aEndChild;
        child = child->GetNextSibling()) {
-    // XXX the GetContent() != child check is needed due to bug 135040.
-    // Remove it once that's fixed.
-    NS_ASSERTION(!child->GetPrimaryFrame() ||
-                 child->GetPrimaryFrame()->GetContent() != child,
+    NS_ASSERTION(!child->GetPrimaryFrame(),
                  "asked to construct a frame for a node that already has a frame");
   }
 #endif
@@ -7761,11 +7729,6 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aChild,
 #endif
 
   nsIFrame* childFrame = aChild->GetPrimaryFrame();
-  if (!childFrame || childFrame->GetContent() != aChild) {
-    // XXXbz the GetContent() != aChild check is needed due to bug 135040.
-    // Remove it once that's fixed.
-    childFrame = nullptr;
-  }
 
   // If we're removing the root, then make sure to remove things starting at
   // the viewport's child instead of the primary frame (which might even be
@@ -7918,9 +7881,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aChild,
 
       // Recover childFrame and parentFrame
       childFrame = aChild->GetPrimaryFrame();
-      if (!childFrame || childFrame->GetContent() != aChild) {
-        // XXXbz the GetContent() != aChild check is needed due to bug 135040.
-        // Remove it once that's fixed.
+      if (!childFrame) {
         return false;
       }
       parentFrame = childFrame->GetParent();

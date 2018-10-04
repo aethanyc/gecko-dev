@@ -1473,15 +1473,6 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       continue;
     }
 
-    if (frame && frame->GetContent() != content) {
-      // XXXbz this is due to image maps messing with the primary frame of
-      // <area>s.  See bug 135040.  Remove this block once that's fixed.
-      frame = nullptr;
-      if (!(hint & nsChangeHint_ReconstructFrame)) {
-        continue;
-      }
-    }
-
     if ((hint & nsChangeHint_UpdateContainingBlock) && frame &&
         !(hint & nsChangeHint_ReconstructFrame)) {
       if (NeedToReframeForAddingOrRemovingTransform(frame) ||
@@ -2659,13 +2650,6 @@ RestyleManager::ProcessPostTraversal(
   bool wasRestyled;
   nsChangeHint changeHint =
     static_cast<nsChangeHint>(Servo_TakeChangeHint(aElement, &wasRestyled));
-
-  // We should really fix the weird primary frame mapping for image maps
-  // (bug 135040)...
-  if (styleFrame && styleFrame->GetContent() != aElement) {
-    MOZ_ASSERT(static_cast<nsImageFrame*>(do_QueryFrame(styleFrame)));
-    styleFrame = nullptr;
-  }
 
   // Handle lazy frame construction by posting a reconstruct for any lazily-
   // constructed roots.

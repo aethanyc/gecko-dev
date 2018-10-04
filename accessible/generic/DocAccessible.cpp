@@ -47,6 +47,7 @@
 #include "mozilla/dom/TabChild.h"
 #include "mozilla/dom/DocumentType.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/HTMLAreaElement.h"
 #include "mozilla/dom/MutationEventBinding.h"
 
 using namespace mozilla;
@@ -1432,11 +1433,12 @@ DocAccessible::ProcessInvalidationList()
 Accessible*
 DocAccessible::GetAccessibleEvenIfNotInMap(nsINode* aNode) const
 {
-if (!aNode->IsContent() || !aNode->AsContent()->IsHTMLElement(nsGkAtoms::area))
+  if (!aNode->IsContent() || !aNode->AsContent()->IsHTMLElement(nsGkAtoms::area)) {
     return GetAccessible(aNode);
+  }
 
-  // XXX Bug 135040, incorrect when multiple images use the same map.
-  nsIFrame* frame = aNode->AsContent()->GetPrimaryFrame();
+  // XXX Bug 135083, incorrect when multiple images use the same map.
+  nsIFrame* frame = dom::HTMLAreaElement::FromNode(aNode)->GetImageFrame();
   nsImageFrame* imageFrame = do_QueryFrame(frame);
   if (imageFrame) {
     Accessible* parent = GetAccessible(imageFrame->GetContent());

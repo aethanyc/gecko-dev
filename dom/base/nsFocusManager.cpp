@@ -48,6 +48,7 @@
 #include "mozilla/AccessibleCaretEventHub.h"
 #include "mozilla/ContentEvents.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/HTMLAreaElement.h"
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/HTMLInputElement.h"
 #include "mozilla/dom/HTMLSlotElement.h"
@@ -1616,18 +1617,20 @@ nsFocusManager::CheckIfFocusable(Element* aElement, uint32_t aFlags)
     return nullptr;
   }
 
+  if (auto* area = HTMLAreaElement::FromNode(aElement)) {
+    // HTML areas do not have their own primary frame, and the img frame we
+    // get from GetImageFrame() is not relevant as to whether it is
+    // focusable or not, so we have to do all the relevant checks manually
+    // for them.
+    nsIFrame* frame = area->GetImageFrame();
+    return frame && frame->IsVisibleConsideringAncestors() &&
+           aElement->IsFocusable() ? aElement : nullptr;
+  }
+
   nsIFrame* frame = aElement->GetPrimaryFrame();
   if (!frame) {
     LOGCONTENT("Cannot focus %s as it has no frame", aElement)
     return nullptr;
-  }
-
-  if (aElement->IsHTMLElement(nsGkAtoms::area)) {
-    // HTML areas do not have their own frame, and the img frame we get from
-    // GetPrimaryFrame() is not relevant as to whether it is focusable or
-    // not, so we have to do all the relevant checks manually for them.
-    return frame->IsVisibleConsideringAncestors() &&
-           aElement->IsFocusable() ? aElement : nullptr;
   }
 
   // if this is a child frame content node, check if it is visible and

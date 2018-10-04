@@ -86,6 +86,7 @@
 #include "nsIController.h"
 #include "nsICommandParams.h"
 #include "mozilla/Services.h"
+#include "mozilla/dom/HTMLAreaElement.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/HTMLLabelElement.h"
 #include "mozilla/dom/Selection.h"
@@ -463,8 +464,20 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     !aTargetFrame || !aTargetFrame->GetContent() ||
     aTargetFrame->GetContent() == aTargetContent ||
     aTargetFrame->GetContent()->GetFlattenedTreeParent() == aTargetContent ||
-    aTargetFrame->IsGeneratedContentFrame(),
+    aTargetFrame->IsGeneratedContentFrame() ||
+    (aTargetContent->IsHTMLElement(nsGkAtoms::area) &&
+     HTMLAreaElement::FromNode(aTargetContent)->GetImageFrame() == aTargetFrame),
     "aTargetFrame should be related with aTargetContent");
+
+  // if (aTargetFrame) {
+  //   printf_stderr("TY: aTargetFrame %s\n", aTargetFrame->ListTag().get());
+  //   if (aTargetContent && aTargetContent->IsElement()) {
+  //     nsAutoString s;
+  //     aTargetContent->AsElement()->Describe(s);
+  //     printf_stderr("TY: aTargetContent %s\n", NS_LossyConvertUTF16toASCII(s).get());
+  //   }
+  // }
+
 #if DEBUG
   if (aTargetFrame && aTargetFrame->IsGeneratedContentFrame()) {
     nsCOMPtr<nsIContent> targetContent;

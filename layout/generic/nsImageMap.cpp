@@ -719,10 +719,10 @@ void
 nsImageMap::AreaRemoved(HTMLAreaElement* aArea)
 {
   if (aArea->IsInUncomposedDoc()) {
-    NS_ASSERTION(aArea->GetPrimaryFrame() == mImageFrame,
-                 "Unexpected primary frame");
+    NS_ASSERTION(aArea->GetImageFrame() == mImageFrame,
+                 "Unexpected image frame");
 
-    aArea->SetPrimaryFrame(nullptr);
+    aArea->SetImageFrame(nullptr);
   }
 
   aArea->RemoveSystemEventListener(NS_LITERAL_STRING("focus"), this, false);
@@ -833,12 +833,7 @@ nsImageMap::AddArea(HTMLAreaElement* aArea)
   aArea->AddSystemEventListener(NS_LITERAL_STRING("focus"), this, false, false);
   aArea->AddSystemEventListener(NS_LITERAL_STRING("blur"), this, false, false);
 
-  // This is a nasty hack.  It needs to go away: see bug 135040.  Once this is
-  // removed, the code added to RestyleManager::RestyleElement,
-  // nsCSSFrameConstructor::ContentRemoved (both hacks there), and
-  // RestyleManager::ProcessRestyledFrames to work around this issue can
-  // be removed.
-  aArea->SetPrimaryFrame(mImageFrame);
+  aArea->SetImageFrame(mImageFrame);
 
   nsAutoString coords;
   aArea->GetAttr(kNameSpaceID_None, nsGkAtoms::coords, coords);

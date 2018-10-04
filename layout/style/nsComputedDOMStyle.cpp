@@ -570,12 +570,7 @@ nsComputedDOMStyle::DoGetComputedStyleNoFlush(Element* aElement,
     return nullptr;
   }
 
-  // XXX the !aElement->IsHTMLElement(nsGkAtoms::area)
-  // check is needed due to bug 135040 (to avoid using
-  // mPrimaryFrame). Remove it once that's fixed.
-  if (inDocWithShell &&
-      aStyleType == eAll &&
-      !aElement->IsHTMLElement(nsGkAtoms::area)) {
+  if (inDocWithShell && aStyleType == eAll) {
     Element* element = nullptr;
     if (aPseudo == nsCSSPseudoElements::before()) {
       element = nsLayoutUtils::GetBeforePseudo(aElement);
@@ -940,10 +935,7 @@ nsComputedDOMStyle::UpdateCurrentStyleSources(bool aNeedsLayoutFlush)
     mComputedStyle = nullptr;
   }
 
-  // XXX the !mElement->IsHTMLElement(nsGkAtoms::area)
-  // check is needed due to bug 135040 (to avoid using
-  // mPrimaryFrame). Remove it once that's fixed.
-  if (mStyleType == eAll && !mElement->IsHTMLElement(nsGkAtoms::area)) {
+  if (mStyleType == eAll) {
     mOuterFrame = nullptr;
 
     if (!mPseudo) {

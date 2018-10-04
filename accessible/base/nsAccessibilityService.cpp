@@ -1091,21 +1091,8 @@ nsAccessibilityService::CreateAccessible(nsINode* aNode,
     return nullptr;
   }
 
-  if (frame->GetContent() != content) {
-    // Not the main content for this frame. This happens because <area>
-    // elements return the image frame as their primary frame. The main content
-    // for the image frame is the image content. If the frame is not an image
-    // frame or the node is not an area element then null is returned.
-    // This setup will change when bug 135040 is fixed. Make sure we don't
-    // create area accessible here. Hopefully assertion below will handle that.
-
-#ifdef DEBUG
-  nsImageFrame* imageFrame = do_QueryFrame(frame);
-  NS_ASSERTION(imageFrame && content->IsHTMLElement(nsGkAtoms::area),
-               "Unknown case of not main content for the frame!");
-#endif
-    return nullptr;
-  }
+  MOZ_ASSERT(frame->GetContent() == content,
+             "Who messes the content's primary frame?");
 
 #ifdef DEBUG
   nsImageFrame* imageFrame = do_QueryFrame(frame);

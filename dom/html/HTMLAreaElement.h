@@ -191,6 +191,9 @@ public:
     nsGenericHTMLElement::NodeInfoChanged(aOldDoc);
   }
 
+  nsIFrame* GetImageFrame() const { return mImageFrame; }
+  void SetImageFrame(nsIFrame* aImageFrame) { mImageFrame = aImageFrame; }
+
 protected:
   virtual ~HTMLAreaElement();
 
@@ -203,6 +206,7 @@ protected:
                                 bool aNotify) override;
 
   RefPtr<nsDOMTokenList > mRelList;
+  nsIFrame* mImageFrame = nullptr;
 };
 
 } // namespace dom

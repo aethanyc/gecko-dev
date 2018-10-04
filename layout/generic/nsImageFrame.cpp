@@ -83,6 +83,7 @@
 
 #include "mozilla/dom/Link.h"
 #include "SVGImageContext.h"
+#include "mozilla/dom/HTMLAreaElement.h"
 #include "mozilla/dom/HTMLAnchorElement.h"
 
 using namespace mozilla;
@@ -2140,10 +2141,13 @@ nsImageFrame::GetContentForEvent(WidgetEvent* aEvent,
   nsIContent* capturingContent =
     aEvent->HasMouseEventMessage() ? nsIPresShell::GetCapturingContent() :
                                      nullptr;
-  if (capturingContent && capturingContent->GetPrimaryFrame() == this) {
-    *aContent = capturingContent;
-    NS_IF_ADDREF(*aContent);
-    return NS_OK;
+  if (capturingContent) {
+    auto* area = HTMLAreaElement::FromNode(capturingContent);
+    if (area && area->GetImageFrame() == this) {
+      *aContent = capturingContent;
+      NS_IF_ADDREF(*aContent);
+      return NS_OK;
+    }
   }
 
   if (nsImageMap* map = GetImageMap()) {
