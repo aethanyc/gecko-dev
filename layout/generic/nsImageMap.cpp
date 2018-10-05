@@ -718,12 +718,7 @@ nsImageMap::GetBoundsForAreaContent(nsIContent *aContent, nsRect& aBounds)
 void
 nsImageMap::AreaRemoved(HTMLAreaElement* aArea)
 {
-  if (aArea->IsInUncomposedDoc()) {
-    NS_ASSERTION(aArea->GetImageFrame() == mImageFrame,
-                 "Unexpected image frame");
-
-    aArea->SetImageFrame(nullptr);
-  }
+  aArea->SetImageFrame(nullptr);
 
   aArea->RemoveSystemEventListener(NS_LITERAL_STRING("focus"), this, false);
   aArea->RemoveSystemEventListener(NS_LITERAL_STRING("blur"), this, false);

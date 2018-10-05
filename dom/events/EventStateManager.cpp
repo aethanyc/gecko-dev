@@ -464,9 +464,7 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     !aTargetFrame || !aTargetFrame->GetContent() ||
     aTargetFrame->GetContent() == aTargetContent ||
     aTargetFrame->GetContent()->GetFlattenedTreeParent() == aTargetContent ||
-    aTargetFrame->IsGeneratedContentFrame() ||
-    (aTargetContent->IsHTMLElement(nsGkAtoms::area) &&
-     HTMLAreaElement::FromNode(aTargetContent)->GetImageFrame() == aTargetFrame),
+    aTargetFrame->IsGeneratedContentFrame(),
     "aTargetFrame should be related with aTargetContent");
 
   // if (aTargetFrame) {
