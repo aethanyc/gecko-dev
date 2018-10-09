@@ -29,6 +29,7 @@ fuzzy-if(OSX,0-32,0-1000) == columnfill-auto.html columnfill-auto-ref.html
 == columnfill-overflow.html columnfill-overflow-ref.html
 == margin-collapsing-bug616722-1.html margin-collapsing-bug616722-1-ref.html
 == margin-collapsing-bug616722-2.html margin-collapsing-bug616722-2-ref.html
+== margin-bottom.html margin-bottom-ref.html
 == column-balancing-nested-000.html column-balancing-nested-000-ref.html
 == column-balancing-nested-001.html column-balancing-nested-001-ref.html
 == columnrule-overflow.html columnrule-overflow-ref.html

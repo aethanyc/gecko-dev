@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test: multi-column and margin bottom of last child</title>
+  <link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-multicol-1/#the-multi-column-model">
+  <link rel="match" href="margin-bottom-ref.html">
+  <meta name="assert" content="This test checks the margin-bottom of the last child of a multi-column should not affect its parent's margin-bottom.">
+
+  <style>
+  article {
+    color: green;
+    background-color: green;
+    width: 130px;
+    column-count: 2;
+    column-gap: 0;
+    margin-bottom: 0;
+  }
+
+  article div:last-child {
+    margin-bottom: 15px;
+  }
+  </style>
+
+  <body>
+    <p>Test passes if there is one filled green rectangle, not <strong>two</strong>.</p>
+    <article>
+      <div>12 34 56 78 90</div>
+      <div>12 34</div>
+    </article>
+    <article>
+      <div>12 34 56 78 90</div>
+      <div>12 34</div>
+    </article>
+  </body>
+</html>

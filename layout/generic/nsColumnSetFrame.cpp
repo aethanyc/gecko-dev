@@ -844,31 +844,33 @@ nsColumnSetFrame::ReflowChildren(ReflowOutput&     aDesiredSize,
       break;
     } else {
       ++columnCount;
-      // Make sure that the column has a next-in-flow. If not, we must
-      // create one to hold the overflowing stuff, even if we're just
-      // going to put it on our overflow list and let *our*
-      // next in flow handle it.
-      if (!kidNextInFlow) {
-        NS_ASSERTION(aStatus.NextInFlowNeedsReflow(),
-                     "We have to create a continuation, but the block doesn't want us to reflow it?");
+      if (columnCount < aConfig.mBalanceColCount) {
+        // Make sure that the column has a next-in-flow. If not, we must
+        // create one to hold the overflowing stuff, even if we're just
+        // going to put it on our overflow list and let *our*
+        // next in flow handle it.
+        if (!kidNextInFlow) {
+          NS_ASSERTION(aStatus.NextInFlowNeedsReflow(),
+                       "We have to create a continuation, but the block doesn't want us to reflow it?");
 
-        // We need to create a continuing column
-        kidNextInFlow = CreateNextInFlow(child);
-      }
+          // We need to create a continuing column
+          kidNextInFlow = CreateNextInFlow(child);
+        }
 
-      // Make sure we reflow a next-in-flow when it switches between being
-      // normal or overflow container
-      if (aStatus.IsOverflowIncomplete()) {
-        if (!(kidNextInFlow->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
+        // Make sure we reflow a next-in-flow when it switches between being
+        // normal or overflow container
+        if (aStatus.IsOverflowIncomplete()) {
+          if (!(kidNextInFlow->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
+            aStatus.SetNextInFlowNeedsReflow();
+            reflowNext = true;
+            kidNextInFlow->AddStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
+          }
+        }
+        else if (kidNextInFlow->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
           aStatus.SetNextInFlowNeedsReflow();
           reflowNext = true;
-          kidNextInFlow->AddStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
+          kidNextInFlow->RemoveStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
         }
-      }
-      else if (kidNextInFlow->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
-        aStatus.SetNextInFlowNeedsReflow();
-        reflowNext = true;
-        kidNextInFlow->RemoveStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
       }
 
       if ((contentBEnd > aReflowInput.ComputedMaxBSize() ||
