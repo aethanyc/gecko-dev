@@ -10765,7 +10765,7 @@ void nsCSSFrameConstructor::FinishBuildingColumns(
     } else {
       auto* continuingColumnSet = static_cast<nsContainerFrame*>(
           CreateContinuingFrame(mPresShell->GetPresContext(), prevColumnSet,
-                                aColumnSetWrapper, false));
+                                aColumnSetWrapper));
       f->SetParent(continuingColumnSet);
       SetInitialSingleChild(continuingColumnSet, f);
       finalItems.AddChild(continuingColumnSet);
@@ -10843,7 +10843,7 @@ nsFrameItems nsCSSFrameConstructor::CreateColumnSpanSiblings(
     // continuation of the last non-column-span wrapper frame.
     auto* nonColumnSpanWrapper = static_cast<nsContainerFrame*>(
         CreateContinuingFrame(mPresShell->GetPresContext(),
-                              lastNonColumnSpanWrapper, parentFrame, false));
+                              lastNonColumnSpanWrapper, parentFrame));
     nonColumnSpanWrapper->AddStateBits(NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR |
                                        NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
 
@@ -10858,6 +10858,9 @@ nsFrameItems nsCSSFrameConstructor::CreateColumnSpanSiblings(
         aState.ReparentAbsoluteItems(nonColumnSpanWrapper);
       }
     }
+
+    nonColumnSpanWrapper->SetProperty(nsIFrame::ColumnSpanSplitPrevSibling(),
+                                      columnSpanWrapper);
 
     siblings.AddChild(nonColumnSpanWrapper);
 

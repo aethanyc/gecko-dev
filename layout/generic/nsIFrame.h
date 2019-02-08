@@ -1254,6 +1254,8 @@ class nsIFrame : public nsQueryFrame {
   // this bit set is removed, we need to reframe the multi-column container
   NS_DECLARE_FRAME_PROPERTY_SMALL_VALUE(HasColumnSpanSiblings, bool)
 
+  NS_DECLARE_FRAME_PROPERTY_WITHOUT_DTOR(ColumnSpanSplitPrevSibling, nsContainerFrame)
+
   mozilla::FrameBidiData GetBidiData() const {
     bool exists;
     mozilla::FrameBidiData bidiData = GetProperty(BidiDataProperty(), &exists);

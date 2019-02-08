@@ -2517,6 +2517,15 @@ void nsBlockFrame::ReflowDirtyLines(BlockReflowInput& aState) {
   bool heightConstrained =
       aState.mReflowInput.AvailableBSize() != NS_UNCONSTRAINEDSIZE;
   bool skipPull = willReflowAgain && heightConstrained;
+  skipPull |=
+      (aState.mNextInFlow &&
+       aState.mNextInFlow->HasProperty(nsIFrame::ColumnSpanSplitPrevSibling()));
+
+  if (aState.mNextInFlow) {
+    printf("nsBlockFrame %s, mNextInFlow %s\n", ListTag().get(),
+           aState.mNextInFlow->ListTag().get());
+  }
+
   if (!skipPull && heightConstrained && aState.mNextInFlow &&
       (aState.mReflowInput.mFlags.mNextInFlowUntouched && !lastLineMovedUp &&
        !(GetStateBits() & NS_FRAME_IS_DIRTY) && !reflowedFloat)) {
