@@ -8,6 +8,7 @@
 #define mozilla_PseudoStyleType_h
 
 #include <cstdint>
+#include <iosfwd>
 
 namespace mozilla {
 
@@ -74,6 +75,8 @@ enum class PseudoStyleType : uint8_t {
   NotPseudo,
   MAX
 };
+
+std::ostream& operator<<(std::ostream& aStream, PseudoStyleType aType);
 
 class PseudoStyle final {
 public:
