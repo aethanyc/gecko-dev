@@ -7424,7 +7424,24 @@ nscoord nsBlockFrame::ComputeFinalBSize(const ReflowInput& aReflowInput,
     }
   }
 
-  if (aStatus.IsIncomplete()) {
+  if (FirstInFlow()->GetProperty(nsIFrame::HasColumnSpanSiblings())) {
+    MOZ_ASSERT(LastInFlow()->GetNextContinuation(),
+               "Frame constructor should've created column-span siblings!");
+
+    // If a block is split by any column-spanners, we calculate the final
+    // block-size by shrinkwrapping our children's block-size for all the
+    // fragments except for those after the final column-spanner, but we should
+    // take no more than our leftover block-size. If there's any leftover
+    // block-size, our next continuations will take up rest.
+    finalBSize = std::min(finalBSize, aBEndEdgeOfChildren);
+
+    // If our children is complete, reset our reflow status, because we don't
+    // need to create any next-in-flows either for our children or our own
+    // leftover block-size.
+    if (statusFromChildren.IsComplete()) {
+      aStatus.Reset();
+    }
+  } else if (aStatus.IsIncomplete()) {
     MOZ_ASSERT(finalBSize > availBSize,
                "We should be overflow-incomplete and should've returned "
                "in early if-branch!");
