@@ -10787,6 +10787,9 @@ void nsCSSFrameConstructor::FinishBuildingColumns(
 
   nsFrameList finalList;
   while (aColumnContentSiblings.NotEmpty()) {
+    // Tag every ColumnSet except the last one.
+    prevColumnSet->SetProperty(nsIFrame::HasColumnSpanSiblings(), true);
+
     nsIFrame* f = aColumnContentSiblings.RemoveFirstChild();
     if (f->IsColumnSpan()) {
       // Do nothing for column-span wrappers. Just move it to the final
