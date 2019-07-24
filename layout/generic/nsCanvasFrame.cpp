@@ -674,6 +674,7 @@ void nsCanvasFrame::Reflow(nsPresContext* aPresContext,
 
   nsCanvasFrame* prevCanvasFrame = static_cast<nsCanvasFrame*>(GetPrevInFlow());
   if (prevCanvasFrame) {
+    MOZ_ASSERT_UNREACHABLE("Does somebody correctly call into this?");
     AutoFrameListPtr overflow(aPresContext,
                               prevCanvasFrame->StealOverflowFrames());
     if (overflow) {
