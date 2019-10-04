@@ -3566,10 +3566,14 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowInput& aState,
       // input for ColumnSet so that ColumnSet can use it to compute its max
       // column block size.
       if (frame->IsColumnSetFrame()) {
-        if (availSize.BSize(wm) != NS_UNCONSTRAINEDSIZE) {
-          // If the available size is constrained, we need to subtract
-          // ColumnSetWrapper's block-end border and padding.
-          availSize.BSize(wm) -= aState.BorderPadding().BEnd(wm);
+        if (availSize.BSize(wm) != NS_UNCONSTRAINEDSIZE &&
+            MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
+                         StyleBoxDecorationBreak::Clone)) {
+          // If we have "box-decoration-break: clone" and the available size is
+          // constrained, we need to subtract the ColumnSetWrapper's block-end
+          // border and padding because it needs to applied to every fragments.
+          availSize.BSize(wm) = std::max(
+              0, availSize.BSize(wm) - aState.BorderPadding().BEnd(wm));
         }
 
         nscoord contentBSize = aState.mReflowInput.ComputedBSize();
