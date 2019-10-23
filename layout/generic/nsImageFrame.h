@@ -71,6 +71,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
 
   NS_DECL_FRAMEARENA_HELPERS(nsImageFrame)
   NS_DECL_QUERYFRAME
+  MOZ_DECL_CREATE_CONTINUATION(nsImageFrame)
 
   virtual void DestroyFrom(nsIFrame* aDestructRoot,
                            PostDestroyData& aPostDestroyData) override;

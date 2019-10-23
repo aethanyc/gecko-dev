@@ -6710,6 +6710,11 @@ nsresult nsFrame::AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
 
 // Flow member functions
 
+nsFrame* nsFrame::CreateContinuation(mozilla::PresShell* aPresShell,
+                                     mozilla::ComputedStyle* aStyle) const {
+  MOZ_ASSERT_UNREACHABLE("not splittable");
+}
+
 nsIFrame* nsFrame::GetPrevContinuation() const { return nullptr; }
 
 void nsFrame::SetPrevContinuation(nsIFrame* aPrevContinuation) {

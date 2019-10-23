@@ -4430,8 +4430,9 @@ class nsContinuingTextFrame final : public nsTextFrame {
  public:
   NS_DECL_FRAMEARENA_HELPERS(nsContinuingTextFrame)
 
-  friend nsIFrame* NS_NewContinuingTextFrame(mozilla::PresShell* aPresShell,
-                                             ComputedStyle* aStyle);
+  MOZ_DECL_AND_IMPL_CREATE_CONTINUATION(nsContinuingTextFrame)
+  friend nsTextFrame* nsTextFrame::CreateContinuation(
+      mozilla::PresShell*, mozilla::ComputedStyle*) const;
 
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
             nsIFrame* aPrevInFlow) final;
@@ -4648,8 +4649,8 @@ nsIFrame* NS_NewTextFrame(PresShell* aPresShell, ComputedStyle* aStyle) {
 
 NS_IMPL_FRAMEARENA_HELPERS(nsTextFrame)
 
-nsIFrame* NS_NewContinuingTextFrame(PresShell* aPresShell,
-                                    ComputedStyle* aStyle) {
+nsTextFrame* nsTextFrame::CreateContinuation(mozilla::PresShell* aPresShell,
+                                             ComputedStyle* aStyle) const {
   return new (aPresShell)
       nsContinuingTextFrame(aStyle, aPresShell->GetPresContext());
 }

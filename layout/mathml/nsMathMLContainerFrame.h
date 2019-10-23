@@ -447,6 +447,7 @@ class nsMathMLmathInlineFrame final : public nsInlineFrame,
  public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(nsMathMLmathInlineFrame)
+  MOZ_DECL_AND_IMPL_CREATE_CONTINUATION(nsMathMLmathInlineFrame)
 
   friend nsContainerFrame* NS_NewMathMLmathInlineFrame(
       mozilla::PresShell* aPresShell, ComputedStyle* aStyle);

@@ -28,6 +28,7 @@ class nsInlineFrame : public nsContainerFrame {
  public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(nsInlineFrame)
+  MOZ_DECL_AND_IMPL_CREATE_CONTINUATION(nsInlineFrame)
 
   friend nsInlineFrame* NS_NewInlineFrame(mozilla::PresShell* aPresShell,
                                           ComputedStyle* aStyle);

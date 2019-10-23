@@ -8160,10 +8160,10 @@ nsIFrame* nsCSSFrameConstructor::CreateContinuingFrame(
   nsIContent* content = aFrame->GetContent();
 
   if (LayoutFrameType::Text == frameType) {
-    newFrame = NS_NewContinuingTextFrame(presShell, computedStyle);
+    newFrame = aFrame->CreateContinuation(presShell, computedStyle);
     newFrame->Init(content, aParentFrame, aFrame);
   } else if (LayoutFrameType::Inline == frameType) {
-    newFrame = NS_NewInlineFrame(presShell, computedStyle);
+    newFrame = aFrame->CreateContinuation(presShell, computedStyle);
     newFrame->Init(content, aParentFrame, aFrame);
   } else if (LayoutFrameType::Block == frameType) {
     MOZ_ASSERT(!aFrame->IsTableCaption(),
@@ -8253,8 +8253,7 @@ nsIFrame* nsCSSFrameConstructor::CreateContinuingFrame(
     newFrame = NS_NewFirstLetterFrame(presShell, computedStyle);
     newFrame->Init(content, aParentFrame, aFrame);
   } else if (LayoutFrameType::Image == frameType) {
-    auto* imageFrame = static_cast<nsImageFrame*>(aFrame);
-    newFrame = imageFrame->CreateContinuingFrame(presShell, computedStyle);
+    newFrame = aFrame->CreateContinuation(presShell, computedStyle);
     newFrame->Init(content, aParentFrame, aFrame);
   } else if (LayoutFrameType::ImageControl == frameType) {
     newFrame = NS_NewImageControlFrame(presShell, computedStyle);

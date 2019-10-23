@@ -113,6 +113,18 @@ class PresShell;
   void* operator new(size_t, mozilla::PresShell*) MOZ_MUST_OVERRIDE = delete; \
   nsQueryFrame::FrameIID GetFrameId() const override MOZ_MUST_OVERRIDE = 0;
 
+#define MOZ_DECL_CREATE_CONTINUATION(class)                 \
+  class* CreateContinuation(mozilla::PresShell* aPresShell, \
+                            mozilla::ComputedStyle* aStyle) \
+      const override MOZ_MUST_OVERRIDE;
+
+#define MOZ_DECL_AND_IMPL_CREATE_CONTINUATION(class)                     \
+  class* CreateContinuation(mozilla::PresShell* aPresShell,              \
+                            mozilla::ComputedStyle* aStyle)              \
+      const override MOZ_MUST_OVERRIDE {                                 \
+    return new (aPresShell) class(aStyle, aPresShell->GetPresContext()); \
+  }
+
 //----------------------------------------------------------------------
 
 struct nsBoxLayoutMetrics;
@@ -196,6 +208,8 @@ class nsFrame : public nsBox {
   nsresult CharacterDataChanged(const CharacterDataChangeInfo& aInfo) override;
   nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                             int32_t aModType) override;
+
+  MOZ_DECL_CREATE_CONTINUATION(nsFrame)
   nsIFrame* GetPrevContinuation() const override;
   void SetPrevContinuation(nsIFrame*) override;
   nsIFrame* GetNextContinuation() const override;

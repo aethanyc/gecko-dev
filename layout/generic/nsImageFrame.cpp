@@ -193,8 +193,8 @@ bool nsImageFrame::ShouldShowBrokenImageIcon() const {
   return loader->GetImageBlockingStatus() != nsIContentPolicy::ACCEPT;
 }
 
-nsImageFrame* nsImageFrame::CreateContinuingFrame(
-    mozilla::PresShell* aPresShell, ComputedStyle* aStyle) const {
+nsImageFrame* nsImageFrame::CreateContinuation(mozilla::PresShell* aPresShell,
+                                               ComputedStyle* aStyle) const {
   return new (aPresShell)
       nsImageFrame(aStyle, aPresShell->GetPresContext(), mKind);
 }
