@@ -609,6 +609,8 @@ class nsIFrame : public nsQueryFrame {
     mozilla::PodZero(&mOverflow);
   }
 
+  ClassID Class() const { return mClass; }
+
   nsPresContext* PresContext() const { return mPresContext; }
 
   mozilla::PresShell* PresShell() const { return PresContext()->PresShell(); }
@@ -2115,6 +2117,7 @@ class nsIFrame : public nsQueryFrame {
   /**
    * Continuation member functions
    */
+  virtual nsIFrame* CreateContinuation() const = 0;
   virtual nsIFrame* GetPrevContinuation() const = 0;
   virtual void SetPrevContinuation(nsIFrame*) = 0;
   virtual nsIFrame* GetNextContinuation() const = 0;

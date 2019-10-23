@@ -71,6 +71,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
 
   NS_DECL_FRAMEARENA_HELPERS(nsImageFrame)
   NS_DECL_QUERYFRAME
+  MOZ_DECL_CREATE_CONTINUATION(nsImageFrame)
 
   virtual void DestroyFrom(nsIFrame* aDestructRoot,
                            PostDestroyData& aPostDestroyData) override;
@@ -191,10 +192,6 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
     // for the content property.
     ContentPropertyAtIndex,
   };
-
-  // Creates a suitable continuing frame for this frame.
-  nsImageFrame* CreateContinuingFrame(mozilla::PresShell*,
-                                      ComputedStyle*) const;
 
  private:
   friend nsIFrame* NS_NewImageFrame(mozilla::PresShell*, ComputedStyle*);

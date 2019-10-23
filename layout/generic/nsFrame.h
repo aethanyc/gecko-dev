@@ -112,6 +112,23 @@ class PresShell;
 #define NS_DECL_ABSTRACT_FRAME(class)                                         \
   void* operator new(size_t, mozilla::PresShell*) MOZ_MUST_OVERRIDE = delete; \
   nsQueryFrame::FrameIID GetFrameId() const override MOZ_MUST_OVERRIDE = 0;
+   // TODO: class* CreateContinuation() const override MOZ_MUST_OVERRIDE = 0;
+
+// TODO: Add MOZ_MUST_OVERRIDE after auditing every frame classes so that the
+// derive frames is force add one of the following CONTINUATION macro.
+#define MOZ_DECL_CREATE_CONTINUATION(classname) \
+  classname* CreateContinuation() const override /* MOZ_MUST_OVERRIDE */;
+
+#define MOZ_DECL_AND_IMPL_CREATE_CONTINUATION(classname)                   \
+  classname* CreateContinuation() const override /* MOZ_MUST_OVERRIDE */ { \
+    return new (PresShell()) classname(Style(), PresContext());            \
+  }
+
+#define MOZ_DECL_FORBID_CONTINUATION(classname)                            \
+  classname* CreateContinuation() const override /* MOZ_MUST_OVERRIDE */ { \
+    MOZ_ASSERT_UNREACHABLE("Not splittable!");                             \
+    return nullptr;                                                        \
+  }
 
 //----------------------------------------------------------------------
 
@@ -196,6 +213,8 @@ class nsFrame : public nsBox {
   nsresult CharacterDataChanged(const CharacterDataChangeInfo& aInfo) override;
   nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                             int32_t aModType) override;
+
+  MOZ_DECL_FORBID_CONTINUATION(nsFrame)
   nsIFrame* GetPrevContinuation() const override;
   void SetPrevContinuation(nsIFrame*) override;
   nsIFrame* GetNextContinuation() const override;

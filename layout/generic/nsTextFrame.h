@@ -58,6 +58,7 @@ class nsTextFrame : public nsFrame {
         mAscent(0) {}
 
   NS_DECL_FRAMEARENA_HELPERS(nsTextFrame)
+  MOZ_DECL_CREATE_CONTINUATION(nsTextFrame)
 
   friend class nsContinuingTextFrame;
 
