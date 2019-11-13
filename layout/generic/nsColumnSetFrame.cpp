@@ -1339,8 +1339,19 @@ void nsColumnSetFrame::Reflow(nsPresContext* aPresContext,
   // the columns to expand in the inline direction. (This typically
   // happens in orthogonal flows where the inline direction is the
   // container's block direction).
-  ReflowConfig config = ChooseColumnStrategy(
-      aReflowInput, aReflowInput.ComputedISize() == NS_UNCONSTRAINEDSIZE);
+  // const bool isColumnContainerInOrthogonalFlow =
+  //     (StaticPrefs::layout_css_column_span_enabled()
+  //          ? aReflowInput.AvailableISize()
+  //          : aReflowInput.ComputedISize()) == NS_UNCONSTRAINEDSIZE;
+  const bool isColumnContainerInOrthogonalFlow =
+      aReflowInput.ComputedISize() == NS_UNCONSTRAINEDSIZE;
+
+  COLUMN_SET_LOG(
+      "aReflowInput.AvailableISize() %d isColumnContainerInOrthogonalFlow %d",
+      aReflowInput.AvailableISize(), isColumnContainerInOrthogonalFlow);
+
+  ReflowConfig config =
+      ChooseColumnStrategy(aReflowInput, isColumnContainerInOrthogonalFlow);
 
   // If balancing, then we allow the last column to grow to unbounded
   // block-size during the first reflow. This gives us a way to estimate

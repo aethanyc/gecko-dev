@@ -412,12 +412,25 @@ void ReflowInput::Init(nsPresContext* aPresContext,
     // boundary. Normally this is the block-size, but for column sets
     // with auto-height it's the inline-size, so that they can add
     // columns in the container's block direction
-    if (type == LayoutFrameType::ColumnSet &&
-        mStylePosition->ISize(mWritingMode).IsAuto()) {
+    if (type == LayoutFrameType::ColumnSetWrapper) {
+    } else if (type == LayoutFrameType::ColumnSet &&
+               mStylePosition->ISize(mWritingMode).IsAuto()) {
       ComputedISize() = NS_UNCONSTRAINEDSIZE;
     } else {
       AvailableBSize() = NS_UNCONSTRAINEDSIZE;
     }
+  }
+
+  if (type == LayoutFrameType::ColumnSet && mCBReflowInput &&
+      mCBReflowInput->mParentReflowInput &&
+      mCBReflowInput->mParentReflowInput->GetWritingMode().IsOrthogonalTo(
+          mCBReflowInput->GetWritingMode())) {
+    printf("mFrame %s\n", mFrame->ListTag().get());
+    printf(
+        "AvailableISize %d, AvailableBSize() %d, ComputedISize() %d, "
+        "ComputedBSize() %d\n",
+        AvailableISize(), AvailableBSize(), ComputedISize(), ComputedBSize());
+    ComputedISize() = NS_UNCONSTRAINEDSIZE;
   }
 
   if (mStyleDisplay->IsContainSize()) {
