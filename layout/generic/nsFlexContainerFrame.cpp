@@ -1796,6 +1796,9 @@ nsFlexContainerFrame::MeasureAscentAndBSizeForFlexItem(
   FinishReflowChild(aItem.Frame(), aPresContext, childDesiredSize,
                     &aChildReflowInput, 0, 0, flags);
 
+  FLEX_LOG("%s: desiredBSize %d", aItem.Frame()->ListTag().get(),
+           childDesiredSize.BSize(aChildReflowInput.GetWritingMode()));
+
   auto result =
       new CachedMeasuringReflowResult(aChildReflowInput, childDesiredSize);
 
@@ -4621,6 +4624,8 @@ void nsFlexContainerFrame::DoFlexLayout(
   aContentBoxMainSize = ResolveFlexContainerMainSize(
       aReflowInput, aAxisTracker, aContentBoxMainSize,
       aAvailableBSizeForContent, lines.getFirst(), aStatus);
+
+  FLEX_LOG("content box main size: %d", aContentBoxMainSize);
 
   uint32_t lineIndex = 0;
   for (FlexLine* line = lines.getFirst(); line;
