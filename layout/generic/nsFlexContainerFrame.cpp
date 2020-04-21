@@ -415,6 +415,15 @@ class nsFlexContainerFrame::FlexItem final {
   FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize, WritingMode aContainerWM,
            const FlexboxAxisTracker& aAxisTracker);
 
+  // Clone existing flex item for its underlying frame's continuation.
+  FlexItem CloneFor(nsIFrame* const aItemNextInFlow) const {
+    MOZ_ASSERT(Frame() == aItemNextInFlow->FirstInFlow(),
+               "aItemNextInFlow should be in aItem's continuation chain!");
+    FlexItem item(*this);
+    item.mFrame = aItemNextInFlow;
+    return item;
+  }
+
   // Accessors
   nsIFrame* Frame() const { return mFrame; }
   nscoord FlexBaseSize() const { return mFlexBaseSize; }
@@ -800,9 +809,12 @@ class nsFlexContainerFrame::FlexItem final {
 
   // Indicates whether we think this flex item needs a "final" reflow
   // (after its final flexed size & final position have been determined).
-  // Retuns true if such a reflow is needed, or false if we believe it can
+  //
+  // @param aAvailableBSizeForItem the available block-size for this item (in
+  //                               flex container's writing-mode)
+  // @return true if such a reflow is needed, or false if we believe it can
   // simply be moved to its final position and skip the reflow.
-  bool NeedsFinalReflow() const;
+  bool NeedsFinalReflow(const nscoord aAvailableBSizeForItem) const;
 
   // Gets the block frame that contains the flex item's content.  This is
   // Frame() itself or one of its descendants.
@@ -2205,7 +2217,18 @@ static bool FrameHasRelativeBSizeDependency(nsIFrame* aFrame) {
   return false;
 }
 
-bool FlexItem::NeedsFinalReflow() const {
+bool FlexItem::NeedsFinalReflow(const nscoord aAvailableBSizeForItem) const {
+  MOZ_ASSERT(aAvailableBSizeForItem > 0,
+             "We can only handle positive available block-size.");
+
+  if (mFrame->GetPrevInFlow()) {
+    // This is an item for continuation. Reflow it.
+    FLEX_LOG(
+        "[frag] Flex item %p needed a final reflow due to being a continuation",
+        mFrame);
+    return true;
+  }
+
   // Flex item's final content-box size (in terms of its own writing-mode):
   const LogicalSize finalSize = mIsInlineAxisMainAxis
                                     ? LogicalSize(mWM, mMainSize, mCrossSize)
@@ -2219,8 +2242,9 @@ bool FlexItem::NeedsFinalReflow() const {
       // The measuring reflow left the item with a different size than its
       // final flexed size. So, we need to reflow to give it the correct size.
       FLEX_LOG(
-          "[perf] Flex item needed both a measuring reflow and a final "
-          "reflow due to measured size disagreeing with final size");
+          "[perf] Flex item %p needed both a measuring reflow and a final "
+          "reflow due to measured size disagreeing with final size",
+          mFrame);
       return true;
     }
 
@@ -2229,13 +2253,24 @@ bool FlexItem::NeedsFinalReflow() const {
       // size may now be considered "definite" in the final reflow (whereas it
       // was indefinite during the measuring reflow).
       FLEX_LOG(
-          "[perf] Flex item needed both a measuring reflow and a final "
-          "reflow due to BSize potentially becoming definite");
+          "[perf] Flex item %p needed both a measuring reflow and a final "
+          "reflow due to BSize potentially becoming definite",
+          mFrame);
       return true;
     }
-    // If we get here, then this flex item had a measuring reflow, and it left
-    // us with the correct size, and none of our descendants care that our
-    // BSize may now be considered definite. So we don't need a final reflow.
+
+    if (finalSize.ConvertTo(mCBWM, mWM).BSize(mCBWM) > aAvailableBSizeForItem) {
+      FLEX_LOG(
+          "[frag] Flex item %p needed both a measuring reflow and a final "
+          "reflow due to BSize overflowing available BSize",
+          mFrame);
+      return true;
+    }
+
+    // If we get here, then this flex item had a measuring reflow, it left us
+    // with the correct size, none of our descendants care that our BSize may
+    // now be considered definite, and we can fit the available block-size. So
+    // we don't need a final reflow.
     return false;
   }
 
@@ -4207,6 +4242,13 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
     return;
   }
 
+  NormalizeChildLists();
+
+#ifdef DEBUG
+  mDidPushItemsBitMayLie = false;
+  SanityCheckChildListsBeforeReflow();
+#endif  // DEBUG
+
   // We (and our children) can only depend on our ancestor's bsize if we have
   // a percent-bsize, or if we're positioned and we have "block-start" and
   // "block-end" set and have block-size:auto.  (There are actually other cases,
@@ -4309,8 +4351,22 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
     // size.
     lines.AppendElement(FlexLine(0));
 
-    // After we support flex item fragmentation, we'll create flex items here by
-    // using the precomputed SharedFlexData.
+    CSSOrderAwareFrameIterator iter(
+        this, kPrincipalList, CSSOrderAwareFrameIterator::eSkipPlaceholders,
+        CSSOrderAwareFrameIterator::eUnknownOrder,
+        OrderingPropertyForIter(this));
+
+    for (; !iter.AtEnd(); iter.Next()) {
+      nsIFrame* const child = *iter;
+      nsIFrame* const childFirstInFlow = child->FirstInFlow();
+      for (const FlexLine& line : data->mLines) {
+        for (const FlexItem& item : line.Items()) {
+          if (item.Frame() == childFirstInFlow) {
+            lines[0].Items().AppendElement(item.CloneFor(child));
+          }
+        }
+      }
+    }
 
     contentBoxMainSize = data->mContentBoxMainSize;
     contentBoxCrossSize = data->mContentBoxCrossSize;
@@ -4352,15 +4408,43 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
     }
   }
 
-  const auto [maxBlockEndEdgeOfChildren, areChildrenComplete] = ReflowChildren(
-      aReflowInput, contentBoxMainSize, contentBoxCrossSize,
-      availableSizeForItems, borderPadding, consumedBSize, flexContainerAscent,
-      lines, placeholders, axisTracker, hasLineClampEllipsis);
+  const auto* prevInFlow = static_cast<nsFlexContainerFrame*>(GetPrevInFlow());
+  nsOverflowAreas ocBounds;
+  nsReflowStatus ocStatus;
+  if (prevInFlow) {
+    ReflowOverflowContainerChildren(aPresContext, aReflowInput, ocBounds,
+                                    ReflowChildFlags::Default, ocStatus,
+                                    MergeSortedFrameListsFor);
+    mSumOfFragmentainersContentBEnd =
+        prevInFlow->mSumOfFragmentainersContentBEnd;
+  }
+
+  const auto [maxBlockEndEdgeOfChildren, areChildrenComplete] =
+      ReflowChildren(aReflowInput, contentBoxMainSize, contentBoxCrossSize,
+                     availableSizeForItems, borderPadding,
+                     mSumOfFragmentainersContentBEnd, flexContainerAscent,
+                     lines, placeholders, axisTracker, hasLineClampEllipsis);
+
+  if (availableSizeForItems.BSize(wm) != NS_UNCONSTRAINEDSIZE) {
+    // maxBlockEndEdgeOfChildren is relative to border-box, so we need to
+    // subtract block-start border and padding to make it relative to our
+    // content-box. Note that the maximum value of the children's block-end edge
+    // might not grow all the way to the block-end edge of available space. One
+    // such case is when there's a row-gap. In that case, we want to record the
+    // available block-size as the content block-end.
+    mSumOfFragmentainersContentBEnd +=
+        std::max(maxBlockEndEdgeOfChildren - borderPadding.BStart(wm),
+                 availableSizeForItems.BSize(wm));
+  }
 
   PopulateReflowOutput(aReflowOutput, aReflowInput, aStatus, contentBoxSize,
                        borderPadding, consumedBSize, mayNeedNextInFlow,
                        maxBlockEndEdgeOfChildren, areChildrenComplete,
                        flexContainerAscent, lines, axisTracker);
+
+  // Merge overflow container bounds and status.
+  aReflowOutput.mOverflowAreas.UnionWith(ocBounds);
+  aStatus.MergeCompletionStatusFrom(ocStatus);
 
   FinishReflowWithAbsoluteFrames(PresContext(), aReflowOutput, aReflowInput,
                                  aStatus);
@@ -4934,10 +5018,10 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
     const ReflowInput& aReflowInput, const nscoord aContentBoxMainSize,
     const nscoord aContentBoxCrossSize,
     const LogicalSize& aAvailableSizeForItems,
-    const LogicalMargin& aBorderPadding, const nscoord aConsumedBSize,
-    nscoord& aFlexContainerAscent, nsTArray<FlexLine>& aLines,
-    nsTArray<nsIFrame*>& aPlaceholders, const FlexboxAxisTracker& aAxisTracker,
-    bool aHasLineClampEllipsis) {
+    const LogicalMargin& aBorderPadding,
+    const nscoord aSumOfPrevInFlowsContentBEnd, nscoord& aFlexContainerAscent,
+    nsTArray<FlexLine>& aLines, nsTArray<nsIFrame*>& aPlaceholders,
+    const FlexboxAxisTracker& aAxisTracker, bool aHasLineClampEllipsis) {
   // Before giving each child a final reflow, calculate the origin of the
   // flex container's content box (with respect to its border-box), so that
   // we can compute our flex item's final positions.
@@ -4963,6 +5047,10 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
   // The block-end of children is relative to the flex container's border-box.
   nscoord maxBlockEndEdgeOfChildren = containerContentBoxOrigin.B(flexWM);
 
+  FrameHashtable pushedItems;
+  FrameHashtable incompleteItems;
+  FrameHashtable overflowIncompleteItems;
+
   // FINAL REFLOW: Give each child frame another chance to reflow, now that
   // we know its final size and position.
   for (const FlexLine& line : aLines) {
@@ -4970,48 +5058,64 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
       LogicalPoint framePos = aAxisTracker.LogicalPointFromFlexRelativePoint(
           item.MainPosition(), item.CrossPosition(), aContentBoxMainSize,
           aContentBoxCrossSize);
+
+      if (item.Frame()->GetPrevInFlow()) {
+        // The item is a continuation. Lay it out at the beginning of the
+        // available space.
+        framePos.B(flexWM) = 0;
+      } else {
+        // We haven't lay the item out. Subtract its block-direction position by
+        // the sum of our prev-in-flows' content block-end.
+        framePos.B(flexWM) -= aSumOfPrevInFlowsContentBEnd;
+      }
+
+      // Adjust available block-size for the item. (We compute it here because
+      // framePos is still relative to the container's content-box.)
+      //
+      // Note: The available block-size can become negative if item's
+      // block-direction position is below available space's block-end.
+      const nscoord availableBSizeForItem =
+          aAvailableSizeForItems.BSize(flexWM) == NS_UNCONSTRAINEDSIZE
+              ? NS_UNCONSTRAINEDSIZE
+              : aAvailableSizeForItems.BSize(flexWM) - framePos.B(flexWM);
+
       // Adjust framePos to be relative to the container's border-box
       // (i.e. its frame rect), instead of the container's content-box:
       framePos += containerContentBoxOrigin;
-
-      // XXX: We need to subtract aConsumedBSize from framePos.B(flewm) after we
-      // support flex item fragmentation.
 
       // (Intentionally snapshotting this before ApplyRelativePositioning, to
       // maybe use for setting the flex container's baseline.)
       const nscoord itemNormalBPos = framePos.B(flexWM);
 
-      // Check if we actually need to reflow the item -- if we already reflowed
-      // it with the right content-box size, and there is no need to do a reflow
-      // to clear out a -webkit-line-clamp ellipsis, we can just reposition it
-      // as-needed.
-      if (item.NeedsFinalReflow()) {
+      // Check if we actually need to reflow the item -- if the item's position
+      // is below the available space's block-end, push it to our next-in-flow;
+      // if it does need a reflow, and we already reflowed it with the right
+      // content-box size, and there is no need to do a reflow to clear out a
+      // -webkit-line-clamp ellipsis, we can just reposition it as-needed.
+      const bool childBPosExceedAvailableSpaceBEnd = availableBSizeForItem <= 0;
+      if (childBPosExceedAvailableSpaceBEnd) {
+        FLEX_LOG(
+            "[frag] Flex item %p needed to be pushed to container's "
+            "next-in-flow due to position below available space's block-end",
+            item.Frame());
+        pushedItems.PutEntry(item.Frame());
+      } else if (item.NeedsFinalReflow(availableBSizeForItem)) {
         // The available size must be in item's writing-mode.
-        // XXX: The correct available block-size is from the position where the
-        // flex item is placed to the end of the available block-size.
         const WritingMode itemWM = item.GetWritingMode();
-        LogicalSize availableSize =
-            aAvailableSizeForItems.ConvertTo(itemWM, flexWM);
-
-        // XXX: Unconditionally give our children unconstrained block-size until
-        // we support flex item fragmentation.
-        availableSize.BSize(itemWM) = NS_UNCONSTRAINEDSIZE;
+        const auto availableSize =
+            LogicalSize(flexWM, aAvailableSizeForItems.ISize(flexWM),
+                        availableBSizeForItem)
+                .ConvertTo(itemWM, flexWM);
 
         const nsReflowStatus childReflowStatus =
             ReflowFlexItem(aAxisTracker, aReflowInput, item, framePos,
                            availableSize, containerSize, aHasLineClampEllipsis);
 
-        // XXX: Silence the unused childReflowStatus warning in opt build for
-        // now.
-        Unused << childReflowStatus;
-
-        // XXXdholbert Once we do pagination / splitting, we'll need to actually
-        // handle incomplete childReflowStatuses. But for now, we give our kids
-        // unconstrained available height, which means they should always
-        // complete.
-        MOZ_ASSERT(childReflowStatus.IsComplete(),
-                   "We gave flex item unconstrained available height, so it "
-                   "should be complete");
+        if (childReflowStatus.IsIncomplete()) {
+          incompleteItems.PutEntry(item.Frame());
+        } else if (childReflowStatus.IsOverflowIncomplete()) {
+          overflowIncompleteItems.PutEntry(item.Frame());
+        }
       } else {
         MoveFlexItemToFinalPosition(aReflowInput, item, framePos,
                                     containerSize);
@@ -5028,9 +5132,14 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
         }
       }
 
-      maxBlockEndEdgeOfChildren =
-          std::max(maxBlockEndEdgeOfChildren,
-                   itemNormalBPos + item.Frame()->BSize(flexWM));
+      if (!childBPosExceedAvailableSpaceBEnd) {
+        // The item is either being reflowed or being moved to its final
+        // position. Update the max block-end edge with the item's block-end
+        // edge.
+        maxBlockEndEdgeOfChildren =
+            std::max(maxBlockEndEdgeOfChildren,
+                     itemNormalBPos + item.Frame()->BSize(flexWM));
+      }
 
       // If the item has auto margins, and we were tracking the UsedMargin
       // property, set the property to the computed margin values.
@@ -5057,8 +5166,14 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
                        containerSize);
   }
 
-  // XXX: Children are always complete for now.
-  return {maxBlockEndEdgeOfChildren, false};
+  const bool anyChildIncomplete = PushIncompleteChildren(
+      pushedItems, incompleteItems, overflowIncompleteItems);
+
+  if (!pushedItems.IsEmpty()) {
+    AddStateBits(NS_STATE_FLEX_DID_PUSH_ITEMS);
+  }
+
+  return {maxBlockEndEdgeOfChildren, anyChildIncomplete};
 }
 
 void nsFlexContainerFrame::PopulateReflowOutput(

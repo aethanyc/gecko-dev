@@ -113,6 +113,13 @@ class nsFlexContainerFrame final : public nsContainerFrame {
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
             nsIFrame* aPrevInFlow) override;
 
+  bool IsFrameOfType(uint32_t aFlags) const override {
+    if (aFlags & eCanContainOverflowContainers) {
+      return true;
+    }
+    return nsContainerFrame::IsFrameOfType(aFlags);
+  }
+
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         const nsDisplayListSet& aLists) override;
 
@@ -519,8 +526,9 @@ class nsFlexContainerFrame final : public nsContainerFrame {
    * @param aBorderPadding the border and padding for this frame (possibly with
    *                       some sides skipped as-appropriate, if we're in a
    *                       continuation chain).
-   * @param aConsumedBSize the sum of our content block-size consumed by our
-   *                       prev-in-flows.
+   * @param aSumOfPrevInFlowsContentBEnd the sum of all our prev-in-flows'
+   *                                     content block-end, used to offset flex
+   *                                     item's position in this fragment.
    * @param aFlexContainerAscent [in/out] initially, the "tentative" flex
    *                             container ascent computed in DoFlexLayout; or,
    *                             nscoord_MIN if the ascent hasn't been
@@ -537,7 +545,7 @@ class nsFlexContainerFrame final : public nsContainerFrame {
       const nscoord aContentBoxCrossSize,
       const mozilla::LogicalSize& aAvailableSizeForItems,
       const mozilla::LogicalMargin& aBorderPadding,
-      const nscoord aConsumedBSize, nscoord& aFlexContainerAscent,
+      const nscoord aSumOfPrevInFlowsContentBEnd, nscoord& aFlexContainerAscent,
       nsTArray<FlexLine>& aLines, nsTArray<nsIFrame*>& aPlaceholders,
       const FlexboxAxisTracker& aAxisTracker, bool aHasLineClampEllipsis);
 
@@ -624,6 +632,11 @@ class nsFlexContainerFrame final : public nsContainerFrame {
   nscoord mBaselineFromLastReflow = NS_INTRINSIC_ISIZE_UNKNOWN;
   // Note: the last baseline is a distance from our border-box end edge.
   nscoord mLastBaselineFromLastReflow = NS_INTRINSIC_ISIZE_UNKNOWN;
+
+  // This stores the sum of this fragment and all its prev-in-flows' content
+  // block-end, intended to be used as an argument for our next-in-flow's
+  // ReflowChildren().
+  nscoord mSumOfFragmentainersContentBEnd = 0;
 };
 
 #endif /* nsFlexContainerFrame_h___ */
