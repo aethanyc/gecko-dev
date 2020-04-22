@@ -338,9 +338,12 @@ FRAME_STATE_GROUP(FlexContainer, nsFlexContainerFrame)
 FRAME_STATE_BIT(FlexContainer, 20,
                 NS_STATE_FLEX_NORMAL_FLOW_CHILDREN_IN_CSS_ORDER)
 
-// Set for a flex container that is emulating a legacy
-// 'display:-webkit-{inline-}box' or 'display:-moz-{inline-}box' container.
-FRAME_STATE_BIT(FlexContainer, 21, NS_STATE_FLEX_IS_EMULATING_LEGACY_BOX)
+// True iff some first-in-flow in-flow children were pushed.
+// Note that those child frames may have been removed without this bit
+// being updated for performance reasons, so code shouldn't depend on
+// actually finding any pushed items when this bit is set.
+// Note: Keep the value of this bit the same as NS_STATE_GRID_DID_PUSH_ITEMS.
+FRAME_STATE_BIT(FlexContainer, 21, NS_STATE_FLEX_DID_PUSH_ITEMS)
 
 // True iff computed flex values should be generated on the next reflow
 FRAME_STATE_BIT(FlexContainer, 22, NS_STATE_FLEX_GENERATE_COMPUTED_VALUES)
@@ -351,6 +354,14 @@ FRAME_STATE_BIT(FlexContainer, 23, NS_STATE_FLEX_SYNTHESIZE_BASELINE)
 // True if any flex item in the container has a line with a
 // -webkit-line-ellipsis marker.
 FRAME_STATE_BIT(FlexContainer, 24, NS_STATE_FLEX_HAS_LINE_CLAMP_ELLIPSIS)
+
+// Set for a flex container that is emulating a legacy
+// 'display:-webkit-{inline-}box' or 'display:-moz-{inline-}box' container.
+FRAME_STATE_BIT(FlexContainer, 25, NS_STATE_FLEX_IS_EMULATING_LEGACY_BOX)
+
+// We've merged some OverflowList children since last reflow.
+// Note: Keep the value of this bit the same as NS_STATE_GRID_HAS_CHILD_NIFS.
+FRAME_STATE_BIT(FlexContainer, 28, NS_STATE_FLEX_HAS_CHILD_NIFS)
 
 // == Frame state bits that apply to grid container frames ====================
 
@@ -365,6 +376,7 @@ FRAME_STATE_BIT(GridContainer, 20,
 // Note that those child frames may have been removed without this bit
 // being updated for performance reasons, so code shouldn't depend on
 // actually finding any pushed items when this bit is set.
+// Note: Keep the value of this bit the same as NS_STATE_FLEX_DID_PUSH_ITEMS.
 FRAME_STATE_BIT(GridContainer, 21, NS_STATE_GRID_DID_PUSH_ITEMS)
 
 // True iff computed grid values should be generated on the next reflow.
@@ -387,6 +399,7 @@ FRAME_STATE_BIT(GridContainer, 26, NS_STATE_GRID_HAS_COL_SUBGRID_ITEM)
 FRAME_STATE_BIT(GridContainer, 27, NS_STATE_GRID_HAS_ROW_SUBGRID_ITEM)
 
 // We've merged some OverflowList children since last reflow.
+// Note: Keep the value of this bit the same as NS_STATE_FLEX_HAS_CHILD_NIFS.
 FRAME_STATE_BIT(GridContainer, 28, NS_STATE_GRID_HAS_CHILD_NIFS)
 
 // == Frame state bits that apply to SVG frames ===============================
