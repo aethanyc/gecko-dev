@@ -158,6 +158,8 @@ class nsFlexContainerFrame final : public nsContainerFrame {
   uint32_t GetLineClampValue() const;
 
   // nsContainerFrame overrides
+  bool DrainSelfOverflowList() override;
+
   mozilla::StyleAlignFlags CSSAlignmentForAbsPosChild(
       const ReflowInput& aChildRI,
       mozilla::LogicalAxis aLogicalAxis) const override;

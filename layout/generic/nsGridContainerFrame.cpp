@@ -7760,8 +7760,9 @@ bool nsGridContainerFrame::DrainSelfOverflowList() {
   AutoFrameListPtr overflowFrames(PresContext(), StealOverflowFrames());
   if (overflowFrames) {
     MergeSortedFrameLists(mFrames, *overflowFrames, GetContent());
-    // We set a frame bit to push them again in Reflow() to avoid creating
-    // multiple grid items per grid container fragment for the same content.
+    // We set a frame bit to push them again in NormalizeChildLists() to avoid
+    // creating multiple grid items per grid container fragment for the same
+    // content.
     AddStateBits(NS_STATE_GRID_HAS_CHILD_NIFS);
     return true;
   }

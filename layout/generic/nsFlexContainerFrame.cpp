@@ -1160,6 +1160,23 @@ static mozilla::StyleAlignFlags SimplifyAlignOrJustifyContentForOneItem(
   return specified;
 }
 
+bool nsFlexContainerFrame::DrainSelfOverflowList() {
+  // Unlike nsContainerFrame::DrainSelfOverflowList we need to merge these lists
+  // so that the resulting mFrames is in document content order.
+  // NOTE: nsContainerFrame::AppendFrames/InsertFrames calls this method and
+  // there are also direct calls from the fctor (FindAppendPrevSibling).
+  AutoFrameListPtr overflowFrames(PresContext(), StealOverflowFrames());
+  if (overflowFrames) {
+    MergeSortedFrameLists(mFrames, *overflowFrames, GetContent());
+    // We set a frame bit to push them again in NormalizeChildLists() to avoid
+    // creating multiple flex items per flex container fragment for the same
+    // content.
+    AddStateBits(NS_STATE_FLEX_HAS_CHILD_NIFS);
+    return true;
+  }
+  return false;
+}
+
 StyleAlignFlags nsFlexContainerFrame::CSSAlignmentForAbsPosChild(
     const ReflowInput& aChildRI, LogicalAxis aLogicalAxis) const {
   WritingMode wm = GetWritingMode();
