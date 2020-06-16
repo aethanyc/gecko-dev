@@ -1034,8 +1034,10 @@ class nsIFrame : public nsQueryFrame {
     const auto size = GetLogicalSize(aWritingMode);
     return mozilla::LogicalSize(
         aWritingMode,
-        std::max(0, size.ISize(aWritingMode) - bp.IStartEnd(aWritingMode)),
-        std::max(0, size.BSize(aWritingMode) - bp.BStartEnd(aWritingMode)));
+        std::max(nscoord(0),
+                 size.ISize(aWritingMode) - bp.IStartEnd(aWritingMode)),
+        std::max(nscoord(0),
+                 size.BSize(aWritingMode) - bp.BStartEnd(aWritingMode)));
   }
 
   /**

@@ -270,7 +270,7 @@ class nsBidiPresUtils {
         aText, aLength, aBaseLevel, aPresContext, aRenderingContext,
         aRenderingContext.GetDrawTarget(), aFontMetrics, MODE_MEASURE, 0, 0,
         nullptr, 0, &length);
-    return NS_SUCCEEDED(rv) ? length : 0;
+    return NS_SUCCEEDED(rv) ? length : nscoord(0);
   }
 
   /**

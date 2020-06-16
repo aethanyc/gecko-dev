@@ -518,7 +518,7 @@ struct GeckoFontMetrics {
 
 GeckoFontMetrics Gecko_GetFontMetrics(const nsPresContext*, bool is_vertical,
                                       const nsStyleFont* font,
-                                      nscoord font_size,
+                                      int32_t font_size,
                                       bool use_user_font_set);
 
 mozilla::StyleSheet* Gecko_StyleSheet_Clone(
@@ -612,7 +612,7 @@ mozilla::StyleDisplayMode Gecko_MediaFeatures_GetDisplayMode(
 uint32_t Gecko_MediaFeatures_GetColorDepth(const mozilla::dom::Document*);
 
 void Gecko_MediaFeatures_GetDeviceSize(const mozilla::dom::Document*,
-                                       nscoord* width, nscoord* height);
+                                       int32_t* width, int32_t* height);
 
 float Gecko_MediaFeatures_GetResolution(const mozilla::dom::Document*);
 bool Gecko_MediaFeatures_PrefersReducedMotion(const mozilla::dom::Document*);

@@ -922,7 +922,7 @@ nsRect nsRegion::GetLargestRectangle(const nsRect& aContainingRect) const {
       nscoord height = yaxis.StopSize(y);
       for (int32_t x = xstart; x < xend; x++) {
         nscoord width = xaxis.StopSize(x);
-        int64_t size = width * int64_t(height);
+        int64_t size = int64_t(width) * int64_t(height);
         if (rect.Intersects(aContainingRect)) {
           areas[y * matrixWidth + x].mSizeContainingRect = size;
         }

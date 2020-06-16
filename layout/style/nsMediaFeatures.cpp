@@ -103,7 +103,7 @@ static nsDeviceContext* GetDeviceContextFor(const Document* aDocument) {
 }
 
 void Gecko_MediaFeatures_GetDeviceSize(const Document* aDocument,
-                                       nscoord* aWidth, nscoord* aHeight) {
+                                       int32_t* aWidth, int32_t* aHeight) {
   nsSize size = GetDeviceSize(aDocument);
   *aWidth = size.width;
   *aHeight = size.height;

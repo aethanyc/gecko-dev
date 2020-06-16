@@ -983,9 +983,9 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
             )
         };
         FontMetrics {
-            x_height: Some(Au(gecko_metrics.mXSize).into()),
-            zero_advance_measure: if gecko_metrics.mChSize >= 0 {
-                Some(Au(gecko_metrics.mChSize).into())
+            x_height: Some(Au(gecko_metrics.mXSize.value).into()),
+            zero_advance_measure: if gecko_metrics.mChSize.value >= 0 {
+                Some(Au(gecko_metrics.mChSize.value).into())
             } else {
                 None
             },

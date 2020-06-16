@@ -470,8 +470,8 @@ struct Band {
     }
   }
 
-  int32_t top;
-  int32_t bottom;
+  nscoord top;
+  nscoord bottom;
   StripArray mStrips;
 };
 }  // namespace regiondetails
@@ -2462,7 +2462,8 @@ class BaseIntRegion {
     return nsRect(aRect.X(), aRect.Y(), aRect.Width(), aRect.Height());
   }
   static Rect FromRect(const nsRect& aRect) {
-    return Rect(aRect.X(), aRect.Y(), aRect.Width(), aRect.Height());
+    return Rect(int32_t(aRect.X()), int32_t(aRect.Y()), int32_t(aRect.Width()),
+                int32_t(aRect.Height()));
   }
 
   Derived& This() { return *static_cast<Derived*>(this); }

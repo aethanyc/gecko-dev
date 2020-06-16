@@ -278,7 +278,8 @@ namespace widget {
  * Values are in device pixels.
  */
 struct SizeConstraints {
-  SizeConstraints() : mMaxSize(NS_MAXSIZE, NS_MAXSIZE) {}
+  const mozilla::LayoutDeviceIntSize kMax{(1 << 30) - 1, (1 << 30) - 1};
+  SizeConstraints() : mMaxSize(kMax) {}
 
   SizeConstraints(mozilla::LayoutDeviceIntSize aMinSize,
                   mozilla::LayoutDeviceIntSize aMaxSize)

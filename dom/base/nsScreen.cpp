@@ -295,9 +295,9 @@ nsresult nsScreen::GetWindowInnerRect(nsRect& aRect) {
   if (!win) {
     return NS_ERROR_FAILURE;
   }
-  nsresult rv = win->GetInnerWidth(&aRect.width);
+  nsresult rv = win->GetInnerWidth(&aRect.width.value);
   NS_ENSURE_SUCCESS(rv, rv);
-  return win->GetInnerHeight(&aRect.height);
+  return win->GetInnerHeight(&aRect.height.value);
 }
 
 bool nsScreen::ShouldResistFingerprinting() const {

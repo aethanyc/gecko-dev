@@ -246,7 +246,7 @@ class ReflowOutput {
 
   void SetBlockStartAscent(nscoord aAscent) { mBlockStartAscent = aAscent; }
 
-  enum { ASK_FOR_BASELINE = nscoord_MAX };
+  static constexpr nscoord ASK_FOR_BASELINE = nscoord_MAX;
 
   // Metrics that _exactly_ enclose the text to allow precise MathML placements.
   nsBoundingMetrics mBoundingMetrics;  // [OUT]

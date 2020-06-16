@@ -433,7 +433,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePadding {
 
     for (const auto side : mozilla::AllPhysicalSides()) {
       // Clamp negative calc() to 0.
-      aPadding.Side(side) = std::max(mPadding.Get(side).ToLength(), 0);
+      aPadding.Side(side) = std::max(mPadding.Get(side).ToLength(), nscoord(0));
     }
     return true;
   }
@@ -442,8 +442,12 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePadding {
 // Border widths are rounded to the nearest-below integer number of pixels,
 // but values between zero and one device pixels are always rounded up to
 // one device pixel.
-#define NS_ROUND_BORDER_TO_PIXELS(l, tpp) \
-  ((l) == 0) ? 0 : std::max((tpp), (l) / (tpp) * (tpp))
+nscoord RoundBorderWidthToPixels(nscoord aWidth, int32_t aAppUnitsPerDevPixel) {
+  return aWidth == 0
+             ? nscoord(0)
+             : std::max(nscoord(aAppUnitsPerDevPixel),
+                        aWidth / aAppUnitsPerDevPixel * aAppUnitsPerDevPixel);
+}
 
 // Returns if the given border style type is visible or not
 static bool IsVisibleBorderStyle(mozilla::StyleBorderStyle aStyle) {
@@ -476,7 +480,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleBorder {
   // aBorderWidth is in twips
   void SetBorderWidth(mozilla::Side aSide, nscoord aBorderWidth) {
     nscoord roundedWidth =
-        NS_ROUND_BORDER_TO_PIXELS(aBorderWidth, mTwipsPerPixel);
+        RoundBorderWidthToPixels(aBorderWidth, mTwipsPerPixel);
     mBorder.Side(aSide) = roundedWidth;
     if (HasVisibleStyle(aSide)) {
       mComputedBorder.Side(aSide) = roundedWidth;
@@ -496,7 +500,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleBorder {
   // Get the actual border width for a particular side, in appunits.  Note that
   // this is zero if and only if there is no border to be painted for this
   // side.  That is, this value takes into account the border style and the
-  // value is rounded to the nearest device pixel by NS_ROUND_BORDER_TO_PIXELS.
+  // value is rounded to the nearest device pixel by RoundBorderWidthToPixels.
   nscoord GetComputedBorderWidth(mozilla::Side aSide) const {
     return GetComputedBorder().Side(aSide);
   }
@@ -510,7 +514,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleBorder {
     NS_ASSERTION(aSide <= mozilla::eSideLeft, "bad side");
     mBorderStyle[aSide] = aStyle;
     mComputedBorder.Side(aSide) =
-        (HasVisibleStyle(aSide) ? mBorder.Side(aSide) : 0);
+        (HasVisibleStyle(aSide) ? mBorder.Side(aSide) : nscoord(0));
   }
 
   inline bool IsBorderImageSizeAvailable() const {
@@ -614,7 +618,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleBorder {
   nsMargin mBorder;
 
  private:
-  nscoord mTwipsPerPixel;
+  int32_t mTwipsPerPixel;
 
   nsStyleBorder& operator=(const nsStyleBorder& aOther) = delete;
 };
@@ -1737,7 +1741,8 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleColumn {
   mozilla::StyleColumnSpan mColumnSpan = mozilla::StyleColumnSpan::None;
 
   nscoord GetComputedColumnRuleWidth() const {
-    return (IsVisibleBorderStyle(mColumnRuleStyle) ? mColumnRuleWidth : 0);
+    return (IsVisibleBorderStyle(mColumnRuleStyle) ? mColumnRuleWidth
+                                                   : nscoord(0));
   }
 
   bool IsColumnContainerStyle() const {
@@ -1915,7 +1920,19 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleEffects {
  *
  * If something in this types or the assertions below needs to change, ask
  * bholley, heycam or emilio before!
- *
+ */
+
+/**
+ * <div rustbindgen="true" replaces="nscoord">
+ */
+struct nscoord_Simple {
+  int32_t value;
+};
+
+STATIC_ASSERT_TYPE_LAYOUTS_MATCH(nscoord, nscoord_Simple);
+STATIC_ASSERT_FIELD_OFFSET_MATCHES(nscoord, nscoord_Simple, value);
+
+/**
  * <div rustbindgen="true" replaces="nsPoint">
  */
 struct nsPoint_Simple {

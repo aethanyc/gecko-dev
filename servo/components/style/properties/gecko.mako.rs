@@ -663,7 +663,7 @@ fn static_assert() {
                   skip_longhands="${skip_border_longhands} border-image-repeat">
     % for side in SIDES:
     pub fn set_border_${side.ident}_style(&mut self, v: BorderStyle) {
-        self.gecko.mBorderStyle[${side.index}] = v;
+        self.gecko.mBorderStyle[${side.index}].value = v;
 
         // This is needed because the initial mComputedBorder value is set to
         // zero.
@@ -719,7 +719,7 @@ fn static_assert() {
                                 round_to_pixels=True) %>
 
     pub fn border_${side.ident}_has_nonzero_width(&self) -> bool {
-        self.gecko.mComputedBorder.${side.ident} != 0
+        self.gecko.mComputedBorder.${side.ident}.value != 0
     }
     % endfor
 

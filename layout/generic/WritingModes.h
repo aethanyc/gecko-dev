@@ -1846,8 +1846,8 @@ class LogicalRect {
 #endif
     mIStart += aD;
     mBStart += aD;
-    mISize = std::max(0, mISize - 2 * aD);
-    mBSize = std::max(0, mBSize - 2 * aD);
+    mISize = std::max<nscoord>(0, mISize - 2 * aD);
+    mBSize = std::max(nscoord(0), mBSize - 2 * aD);
     MOZ_ASSERT(
         rectDebug.IsEqualEdges(nsRect(mIStart, mBStart, mISize, mBSize)));
   }
@@ -1859,8 +1859,8 @@ class LogicalRect {
 #endif
     mIStart += aDI;
     mBStart += aDB;
-    mISize = std::max(0, mISize - 2 * aDI);
-    mBSize = std::max(0, mBSize - 2 * aDB);
+    mISize = std::max(nscoord(0), mISize - 2 * aDI);
+    mBSize = std::max(nscoord(0), mBSize - 2 * aDB);
     MOZ_ASSERT(
         rectDebug.IsEqualEdges(nsRect(mIStart, mBStart, mISize, mBSize)));
   }
@@ -1874,8 +1874,8 @@ class LogicalRect {
 #endif
     mIStart += aMargin.mMargin.left;
     mBStart += aMargin.mMargin.top;
-    mISize = std::max(0, mISize - aMargin.mMargin.LeftRight());
-    mBSize = std::max(0, mBSize - aMargin.mMargin.TopBottom());
+    mISize = std::max(nscoord(0), mISize - aMargin.mMargin.LeftRight());
+    mBSize = std::max(nscoord(0), mBSize - aMargin.mMargin.TopBottom());
     MOZ_ASSERT(
         rectDebug.IsEqualEdges(nsRect(mIStart, mBStart, mISize, mBSize)));
   }

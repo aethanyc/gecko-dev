@@ -229,7 +229,7 @@ impl Device {
             None => return Size2D::new(Au(0), Au(0)),
         };
         let area = &pc.mVisibleArea;
-        Size2D::new(Au(area.width), Au(area.height))
+        Size2D::new(Au(area.width.value), Au(area.height.value))
     }
 
     /// Returns the current viewport size in app units, recording that it's been
@@ -242,7 +242,7 @@ impl Device {
             None => return Size2D::new(Au(0), Au(0)),
         };
         let size = &pc.mSizeForViewportUnits;
-        Size2D::new(Au(size.width), Au(size.height))
+        Size2D::new(Au(size.width.value), Au(size.height.value))
     }
 
     /// Returns whether we ever looked up the viewport size of the Device.

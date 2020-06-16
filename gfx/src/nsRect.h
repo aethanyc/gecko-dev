@@ -71,28 +71,30 @@ struct nsRect : public mozilla::gfx::BaseRect<nscoord, nsRect, nsPoint, nsSize,
     return UnionEdges(aRect);
 #else
     nscoord resultX = std::min(aRect.X(), x);
-    int64_t w =
-        std::max(int64_t(aRect.X()) + aRect.Width(), int64_t(x) + width) -
-        resultX;
+    int64_t w = std::max(int64_t(aRect.X()) + int64_t(aRect.Width()),
+                         int64_t(x) + int64_t(width)) -
+                int64_t(resultX);
     if (MOZ_UNLIKELY(w > nscoord_MAX)) {
       // Clamp huge negative x to nscoord_MIN / 2 and try again.
       resultX = std::max(resultX, nscoord_MIN / 2);
-      w = std::max(int64_t(aRect.X()) + aRect.Width(), int64_t(x) + width) -
-          resultX;
+      w = std::max(int64_t(aRect.X()) + int64_t(aRect.Width()),
+                   int64_t(x) + int64_t(width)) -
+          int64_t(resultX);
       if (MOZ_UNLIKELY(w > nscoord_MAX)) {
         w = nscoord_MAX;
       }
     }
 
     nscoord resultY = std::min(aRect.y, y);
-    int64_t h =
-        std::max(int64_t(aRect.Y()) + aRect.Height(), int64_t(y) + height) -
-        resultY;
+    int64_t h = std::max(int64_t(aRect.Y()) + int64_t(aRect.Height()),
+                         int64_t(y) + int64_t(height)) -
+                int64_t(resultY);
     if (MOZ_UNLIKELY(h > nscoord_MAX)) {
       // Clamp huge negative y to nscoord_MIN / 2 and try again.
       resultY = std::max(resultY, nscoord_MIN / 2);
-      h = std::max(int64_t(aRect.Y()) + aRect.Height(), int64_t(y) + height) -
-          resultY;
+      h = std::max(int64_t(aRect.Y()) + int64_t(aRect.Height()),
+                   int64_t(y) + int64_t(height)) -
+          int64_t(resultY);
       if (MOZ_UNLIKELY(h > nscoord_MAX)) {
         h = nscoord_MAX;
       }

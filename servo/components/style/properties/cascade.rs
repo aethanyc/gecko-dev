@@ -862,7 +862,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 None => return,
             };
 
-            if font.gecko().mScriptUnconstrainedSize == Au::from(new_size.size()).0 {
+            if font.gecko().mScriptUnconstrainedSize.value == Au::from(new_size.size()).0 {
                 return;
             }
 
@@ -895,7 +895,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 )
             };
 
-            if font.mFont.size >= min_font_size {
+            if font.mFont.size.value >= min_font_size.value {
                 return;
             }
 
@@ -967,14 +967,14 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 return;
             }
 
-            let mut min = Au(parent_font.mScriptMinSize);
+            let mut min = Au(parent_font.mScriptMinSize.value);
             if font.mAllowZoomAndMinSize {
                 min = builder.device.zoom_text(min);
             }
 
             let scale = (parent_font.mScriptSizeMultiplier as f32).powi(delta as i32);
-            let parent_size = Au(parent_font.mSize);
-            let parent_unconstrained_size = Au(parent_font.mScriptUnconstrainedSize);
+            let parent_size = Au(parent_font.mSize.value);
+            let parent_unconstrained_size = Au(parent_font.mScriptUnconstrainedSize.value);
             let new_size = parent_size.scale_by(scale);
             let new_unconstrained_size = parent_unconstrained_size.scale_by(scale);
 
@@ -1001,9 +1001,9 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             }
         };
         let font = builder.mutate_font().gecko_mut();
-        font.mFont.size = new_size.0;
-        font.mSize = new_size.0;
-        font.mScriptUnconstrainedSize = new_unconstrained_size.0;
+        font.mFont.size.value = new_size.0;
+        font.mSize.value = new_size.0;
+        font.mScriptUnconstrainedSize.value = new_unconstrained_size.0;
     }
 
     /// Various properties affect how font-size and font-family are computed.

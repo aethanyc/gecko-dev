@@ -29,7 +29,7 @@ class TestLargestRegion {
     const int nTests = 19;
     struct {
       nsRect rect;
-      int64_t expectedArea;
+      nscoord expectedArea;
     } tests[nTests] = {// Remove a 20x10 chunk from the square
                        {nsRect(0, 0, 20, 10), 600},
                        {nsRect(10, 0, 20, 10), 600},
@@ -75,7 +75,7 @@ class TestLargestRegion {
     const int nTests = 4;
     struct {
       nsRect rect1, rect2;
-      int64_t expectedArea;
+      nscoord expectedArea;
     } tests[nTests] = {
         {nsRect(0, 0, 75, 40), nsRect(0, 60, 75, 40), 2500},
         {nsRect(25, 0, 75, 40), nsRect(25, 60, 75, 40), 2500},

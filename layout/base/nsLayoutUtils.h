@@ -1620,7 +1620,7 @@ class nsLayoutUtils {
 
     nscoord result = aCoord.Resolve(aContainingBlockBSize);
     // Clamp calc(), and the subtraction for box-sizing.
-    return std::max(0, result - aContentEdgeToBoxSizingBoxEdge);
+    return std::max(nscoord(0), result - aContentEdgeToBoxSizingBoxEdge);
   }
 
   /**
@@ -1642,11 +1642,13 @@ class nsLayoutUtils {
 
   static bool IsPaddingZero(const LengthPercentage& aLength) {
     // clamp negative calc() to 0
-    return aLength.Resolve(nscoord_MAX) <= 0 && aLength.Resolve(0) <= 0;
+    return aLength.Resolve(nscoord_MAX) <= 0 &&
+           aLength.Resolve(nscoord(0)) <= 0;
   }
 
   static bool IsMarginZero(const LengthPercentage& aLength) {
-    return aLength.Resolve(nscoord_MAX) == 0 && aLength.Resolve(0) == 0;
+    return aLength.Resolve(nscoord_MAX) == 0 &&
+           aLength.Resolve(nscoord(0)) == 0;
   }
 
   static void MarkDescendantsDirty(nsIFrame* aSubtreeRoot);
@@ -3061,9 +3063,9 @@ class nsLayoutUtils {
   static nscoord ResolveToLength(const LengthPercentage& aLengthPercentage,
                                  nscoord aPercentageBasis) {
     nscoord value = (aPercentageBasis == NS_UNCONSTRAINEDSIZE)
-                        ? aLengthPercentage.Resolve(0)
+                        ? aLengthPercentage.Resolve(nscoord(0))
                         : aLengthPercentage.Resolve(aPercentageBasis);
-    return clampNegativeResultToZero ? std::max(0, value) : value;
+    return clampNegativeResultToZero ? std::max(nscoord(0), value) : value;
   }
 
   /**

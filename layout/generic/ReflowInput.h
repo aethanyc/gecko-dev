@@ -611,10 +611,10 @@ struct ReflowInput : public SizeComputationInput {
     const nscoord wd = ComputedWidth();
     const nscoord ht = ComputedHeight();
     return nsSize(wd == NS_UNCONSTRAINEDSIZE
-                      ? 0
+                      ? nscoord(0)
                       : wd + ComputedPhysicalBorderPadding().LeftRight(),
                   ht == NS_UNCONSTRAINEDSIZE
-                      ? 0
+                      ? nscoord(0)
                       : ht + ComputedPhysicalBorderPadding().TopBottom());
   }
 

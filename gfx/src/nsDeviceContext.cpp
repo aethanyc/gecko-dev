@@ -401,7 +401,8 @@ already_AddRefed<gfxContext> nsDeviceContext::CreateRenderingContextCommon(
     // This will be null if e10s is disabled or print.print_via_parent=false.
     RefPtr<DrawEventRecorder> recorder;
     mDeviceContextSpec->GetDrawEventRecorder(getter_AddRefs(recorder));
-    dt = mPrintTarget->MakeDrawTarget(gfx::IntSize(mWidth, mHeight), recorder);
+    dt = mPrintTarget->MakeDrawTarget(gfx::IntSize(mWidth.value, mHeight.value),
+                                      recorder);
   }
 
   if (!dt || !dt->IsValid()) {

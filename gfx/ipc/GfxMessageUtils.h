@@ -448,6 +448,20 @@ struct ParamTraits<mozilla::gfx::IntCoordTyped<T>> {
   }
 };
 
+template <>
+struct ParamTraits<nscoord> {
+  typedef nscoord paramType;
+
+  static void Write(Message* msg, const paramType& param) {
+    WriteParam(msg, param.value);
+  }
+
+  static bool Read(const Message* msg, PickleIterator* iter,
+                   paramType* result) {
+    return (ReadParam(msg, iter, &result->value));
+  }
+};
+
 template <class T, class U>
 struct ParamTraits<mozilla::gfx::ScaleFactor<T, U>> {
   typedef mozilla::gfx::ScaleFactor<T, U> paramType;

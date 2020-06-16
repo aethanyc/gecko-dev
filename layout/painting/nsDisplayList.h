@@ -7310,7 +7310,7 @@ class nsDisplayText final : public nsPaintedDisplayItem {
     void Intersect(nscoord* aVisIStart, nscoord* aVisISize) const {
       nscoord end = *aVisIStart + *aVisISize;
       *aVisIStart = std::max(*aVisIStart, mVisIStart);
-      *aVisISize = std::max(std::min(end, mVisIEnd) - *aVisIStart, 0);
+      *aVisISize = std::max(std::min(end, mVisIEnd) - *aVisIStart, nscoord(0));
     }
 
     nscoord mVisIStart;

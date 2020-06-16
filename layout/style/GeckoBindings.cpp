@@ -1431,7 +1431,7 @@ void AssertIsMainThreadOrServoFontMetricsLocked() {
 GeckoFontMetrics Gecko_GetFontMetrics(const nsPresContext* aPresContext,
                                       bool aIsVertical,
                                       const nsStyleFont* aFont,
-                                      nscoord aFontSize, bool aUseUserFontSet) {
+                                      int32_t aFontSize, bool aUseUserFontSet) {
   AutoWriteLock guard(*sServoFFILock);
   GeckoFontMetrics ret;
 

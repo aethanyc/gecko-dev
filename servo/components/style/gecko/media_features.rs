@@ -23,7 +23,7 @@ fn viewport_size(device: &Device) -> Size2D<Au> {
             // We want the page size, including unprintable areas and margins.
             // FIXME(emilio, bug 1414600): Not quite!
             let area = &pc.mPageSize;
-            return Size2D::new(Au(area.width), Au(area.height));
+            return Size2D::new(Au(area.width.value), Au(area.height.value));
         }
     }
     device.au_viewport_size()

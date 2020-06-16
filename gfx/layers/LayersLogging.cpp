@@ -56,15 +56,15 @@ void AppendToString(std::stringstream& aStream, const DeviceColor& c,
 void AppendToString(std::stringstream& aStream, const nsPoint& p,
                     const char* pfx, const char* sfx) {
   aStream << pfx;
-  aStream << nsPrintfCString("(x=%d, y=%d)", p.x, p.y).get();
+  aStream << nsPrintfCString("(x=%d, y=%d)", p.x.value, p.y.value).get();
   aStream << sfx;
 }
 
 void AppendToString(std::stringstream& aStream, const nsRect& r,
                     const char* pfx, const char* sfx) {
   aStream << pfx;
-  aStream << nsPrintfCString("(x=%d, y=%d, w=%d, h=%d)", r.X(), r.Y(),
-                             r.Width(), r.Height())
+  aStream << nsPrintfCString("(x=%d, y=%d, w=%d, h=%d)", r.X().value,
+                             r.Y().value, r.Width().value, r.Height().value)
                  .get();
   aStream << sfx;
 }
@@ -72,8 +72,8 @@ void AppendToString(std::stringstream& aStream, const nsRect& r,
 void AppendToString(std::stringstream& aStream, const nsRectAbsolute& r,
                     const char* pfx, const char* sfx) {
   aStream << pfx;
-  aStream << nsPrintfCString("(l=%d, t=%d, r=%d, b=%d)", r.Left(), r.Top(),
-                             r.Right(), r.Bottom())
+  aStream << nsPrintfCString("(l=%d, t=%d, r=%d, b=%d)", r.Left().value,
+                             r.Top().value, r.Right().value, r.Bottom().value)
                  .get();
   aStream << sfx;
 }

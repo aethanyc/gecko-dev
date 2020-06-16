@@ -1444,8 +1444,8 @@ nsresult ContentEventHandler::OnQueryTextContent(
 void ContentEventHandler::EnsureNonEmptyRect(nsRect& aRect) const {
   // See the comment in ContentEventHandler.h why this doesn't set them to
   // one device pixel.
-  aRect.height = std::max(1, aRect.height);
-  aRect.width = std::max(1, aRect.width);
+  aRect.height = std::max<nscoord>(1, aRect.height);
+  aRect.width = std::max<nscoord>(1, aRect.width);
 }
 
 void ContentEventHandler::EnsureNonEmptyRect(LayoutDeviceIntRect& aRect) const {
@@ -1759,9 +1759,9 @@ ContentEventHandler::GuessFirstCaretRectIn(nsIFrame* aFrame) {
   // is 16px.
   RefPtr<nsFontMetrics> fontMetrics =
       nsLayoutUtils::GetInflatedFontMetricsForFrame(aFrame);
-  const nscoord kMaxHeight = fontMetrics
-                                 ? fontMetrics->MaxHeight()
-                                 : 16 * presContext->AppUnitsPerDevPixel();
+  const nscoord kMaxHeight =
+      fontMetrics ? fontMetrics->MaxHeight()
+                  : nscoord(16 * presContext->AppUnitsPerDevPixel());
 
   nsRect caretRect;
   const nsRect kContentRect = aFrame->GetContentRect() - aFrame->GetPosition();
