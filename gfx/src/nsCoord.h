@@ -8,6 +8,8 @@
 #define NSCOORD_H
 
 #include "mozilla/FloatingPoint.h"
+#include "mozilla/gfx/BaseCoord.h"
+#include "mozilla/gfx/Coord.h"
 
 #include "nsAlgorithm.h"
 #include "nscore.h"
@@ -35,12 +37,40 @@
 #ifdef NS_COORD_IS_FLOAT
 typedef float nscoord;
 #  define nscoord_MAX (mozilla::PositiveInfinity<float>())
+#  define nscoord_MIN (-nscoord_MAX)
 #else
-typedef int32_t nscoord;
-#  define nscoord_MAX nscoord((1 << 30) - 1)
-#endif
+struct nscoord;
 
-#define nscoord_MIN (-nscoord_MAX)
+namespace mozilla {
+namespace gfx {
+template <class primitive>
+struct CommonType<nscoord, primitive> {
+  typedef decltype(int32_t() + primitive()) type;
+};
+}  // namespace gfx
+}  // namespace mozilla
+
+struct nscoord
+    : public mozilla::gfx::BaseCoord<int32_t, nscoord>,
+      public mozilla::gfx::CoordOperatorsHelper<true, nscoord, float>,
+      public mozilla::gfx::CoordOperatorsHelper<true, nscoord, double> {
+  using Super = BaseCoord<int32_t, nscoord>;
+
+  constexpr nscoord() : Super() {}
+  constexpr MOZ_IMPLICIT nscoord(int32_t aValue) : Super(aValue) {}
+
+  // To support BaseRect::Area() and BaseRectAbsolute::Area().
+  friend nscoord operator*(nscoord aCoordA, nscoord aCoordB) {
+    return aCoordA.value * aCoordB.value;
+  }
+
+  static constexpr int32_t Max{(1 << 30) - 1};
+  static constexpr int32_t Min{-Max};
+};
+
+constexpr nscoord nscoord_MAX(nscoord::Max);
+constexpr nscoord nscoord_MIN(nscoord::Min);
+#endif
 
 inline void VERIFY_COORD(nscoord aCoord) {
 #ifdef NS_COORD_IS_FLOAT
