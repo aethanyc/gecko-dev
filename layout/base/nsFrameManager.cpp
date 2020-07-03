@@ -74,12 +74,13 @@ void nsFrameManager::InsertFrames(nsContainerFrame* aParentFrame,
                                   ChildListID aListID, nsIFrame* aPrevFrame,
                                   nsFrameList& aFrameList) {
   MOZ_ASSERT(
-      !aPrevFrame ||
+      aParentFrame->IsFlexContainerFrame() || !aPrevFrame ||
           (!aPrevFrame->GetNextContinuation() ||
            (aPrevFrame->GetNextContinuation()->HasAnyStateBits(
                 NS_FRAME_IS_OVERFLOW_CONTAINER) &&
             !aPrevFrame->HasAnyStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER))),
-      "aPrevFrame must be the last continuation in its chain!");
+      "If aParentFrame is not a flex container, aPrevFrame must be the last "
+      "continuation of non-overflow container in its chain!");
 
   if (aParentFrame->IsAbsoluteContainer() &&
       aListID == aParentFrame->GetAbsoluteListID()) {
