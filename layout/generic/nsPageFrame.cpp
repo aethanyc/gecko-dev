@@ -91,6 +91,7 @@ void nsPageFrame::Reflow(nsPresContext* aPresContext,
                                LogicalSize(frame->GetWritingMode(), maxSize));
     kidReflowInput.mFlags.mIsTopOfPage = true;
     kidReflowInput.mFlags.mTableIsSplittable = true;
+    kidReflowInput.mFlags.mMustReflowPlaceholders = true;
 
     // Use the margins given in the @page rule.
     // If a margin is 'auto', use the margin from the print settings for that
