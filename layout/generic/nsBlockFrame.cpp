@@ -3619,11 +3619,11 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowInput& aState,
                                   replacedBlock != nullptr, availSpace);
 
     // The check for
-    //   (!aState.mReflowInput.mFlags.mIsTopOfPage || clearedFloats)
+    //   (!aState.IsAdjacentWithTop() || clearedFloats)
     // is to some degree out of paranoia:  if we reliably eat up block-start
     // margins at the top of the page as we ought to, it wouldn't be
     // needed.
-    if ((!aState.mReflowInput.mFlags.mIsTopOfPage || clearedFloats) &&
+    if ((!aState.IsAdjacentWithTop() || clearedFloats) &&
         (availSpace.BSize(wm) < 0 || clearedPushedOrSplitFloat)) {
       // We know already that this child block won't fit on this
       // page/column due to the block-start margin or the clearance.  So we
