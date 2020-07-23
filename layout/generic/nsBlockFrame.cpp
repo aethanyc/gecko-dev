@@ -3498,7 +3498,6 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowInput& aState,
     clearance = 0;
     nscoord bStartMargin = 0;
     bool mayNeedRetry = false;
-    bool clearedFloats = false;
     bool clearedPushedOrSplitFloat = false;
     if (applyBStartMargin) {
       // Precompute the blocks block-start margin value so that we can get the
@@ -3583,7 +3582,6 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowInput& aState,
             aState.ClearFloats(aState.mBCoord, breakType, replacedBlock);
         aState.mBCoord = clearBCoord;
 
-        clearedFloats = result != ClearFloatsResult::BCoordNoChange;
         clearedPushedOrSplitFloat =
             result == ClearFloatsResult::FloatsPushedOrSplit;
 
@@ -3618,12 +3616,7 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowInput& aState,
     aState.ComputeBlockAvailSpace(frame, floatAvailableSpace,
                                   replacedBlock != nullptr, availSpace);
 
-    // The check for
-    //   (!aState.mReflowInput.mFlags.mIsTopOfPage || clearedFloats)
-    // is to some degree out of paranoia:  if we reliably eat up block-start
-    // margins at the top of the page as we ought to, it wouldn't be
-    // needed.
-    if ((!aState.mReflowInput.mFlags.mIsTopOfPage || clearedFloats) &&
+    if ((!aState.IsAdjacentWithTop() && aLine != mLines.front()) &&
         (availSpace.BSize(wm) < 0 || clearedPushedOrSplitFloat)) {
       // We know already that this child block won't fit on this
       // page/column due to the block-start margin or the clearance.  So we
@@ -3642,6 +3635,9 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowInput& aState,
       }
       return;
     }
+
+    NS_ASSERTION(availSpace.BSize(wm) > 0,
+                 "We should have positive available block-size!");
 
     // Now put the block-dir coordinate back to the start of the
     // block-start-margin + clearance.
