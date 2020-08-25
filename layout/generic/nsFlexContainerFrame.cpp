@@ -5432,12 +5432,16 @@ nsReflowStatus nsFlexContainerFrame::ReflowFlexItem(
   aItem.SetAscent(childReflowOutput.BlockStartAscent());
 
   // Update our cached flex item info:
-  if (auto* cached = aItem.Frame()->GetProperty(CachedFlexItemData::Prop())) {
+  bool found;
+  auto* cached = aItem.Frame()->GetPropertyOrInsertWith(
+      CachedFlexItemData::Prop(),
+      [&]() {
+        return new CachedFlexItemData(childReflowInput, childReflowOutput,
+                                      FlexItemReflowType::Final);
+      },
+      &found);
+  if (found) {
     cached->UpdateFinalReflowSize(childReflowInput, childReflowOutput);
-  } else {
-    cached = new CachedFlexItemData(childReflowInput, childReflowOutput,
-                                    FlexItemReflowType::Final);
-    aItem.Frame()->SetProperty(CachedFlexItemData::Prop(), cached);
   }
 
   return childReflowStatus;

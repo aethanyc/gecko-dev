@@ -4105,6 +4105,29 @@ class nsIFrame : public nsQueryFrame {
     return mProperties.Get(aProperty, aFoundResult);
   }
 
+  /**
+   * Inserts a value computed from aFunction if aProperty is not present;
+   *
+   * @aFunction a function that returns FrameProperties::PropertyType<T>.
+   * @return the value of the aProperty.
+   */
+  template <typename T, typename Function>
+  FrameProperties::PropertyType<T> GetPropertyOrInsertWith(
+      FrameProperties::Descriptor<T> aProperty, Function&& aFunction,
+      bool* aFoundResult = nullptr) const {
+    bool foundResult;
+    auto value = GetProperty(aProperty, foundResult);
+    if (aFoundResult) {
+      *aFoundResult = foundResult;
+    }
+    if (foundResult) {
+      return value;
+    }
+    value = aFunction();
+    AddProperty(aProperty, value);
+    return value;
+  }
+
   template <typename T>
   bool HasProperty(FrameProperties::Descriptor<T> aProperty) const {
     return mProperties.Has(aProperty);

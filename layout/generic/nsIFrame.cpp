@@ -222,11 +222,9 @@ static void SetOrUpdateRectValuedProperty(
     nsIFrame* aFrame, FrameProperties::Descriptor<T> aProperty,
     const nsRect& aNewValue) {
   bool found;
-  nsRect* rectStorage = aFrame->GetProperty(aProperty, &found);
-  if (!found) {
-    rectStorage = new nsRect(aNewValue);
-    aFrame->AddProperty(aProperty, rectStorage);
-  } else {
+  nsRect* rectStorage = aFrame->GetPropertyOrInsertWith(
+      aProperty, [aNewValue]() { return new nsRect(aNewValue); }, &found);
+  if (found) {
     *rectStorage = aNewValue;
   }
 }
@@ -5122,9 +5120,10 @@ NS_IMETHODIMP nsIFrame::HandleRelease(nsPresContext* aPresContext,
     frameSelection->SetDragState(false);
     frameSelection->StopAutoScrollTimer();
     if (wf.IsAlive()) {
-      nsIScrollableFrame* scrollFrame = nsLayoutUtils::GetNearestScrollableFrame(
-          this, nsLayoutUtils::SCROLLABLE_SAME_DOC |
-                    nsLayoutUtils::SCROLLABLE_INCLUDE_HIDDEN);
+      nsIScrollableFrame* scrollFrame =
+          nsLayoutUtils::GetNearestScrollableFrame(
+              this, nsLayoutUtils::SCROLLABLE_SAME_DOC |
+                        nsLayoutUtils::SCROLLABLE_INCLUDE_HIDDEN);
       if (scrollFrame) {
         // Perform any additional scrolling needed to maintain CSS snap point
         // requirements when autoscrolling is over.
