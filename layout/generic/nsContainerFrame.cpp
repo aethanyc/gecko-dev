@@ -1339,6 +1339,9 @@ void nsContainerFrame::ReflowOverflowContainerChildren(
           "overflow container frame must have overflow container bit set");
       WritingMode wm = frame->GetWritingMode();
       nsSize containerSize = aReflowInput.AvailableSize(wm).GetPhysicalSize(wm);
+      if (containerSize.width == NS_UNCONSTRAINEDSIZE) {
+        containerSize.width = 0;
+      }
       LogicalRect prevRect = prevInFlow->GetLogicalRect(wm, containerSize);
 
       // Initialize reflow params
