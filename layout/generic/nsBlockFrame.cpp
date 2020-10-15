@@ -1516,6 +1516,8 @@ void nsBlockFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
     }
   }
 
+  blockEndEdgeOfChildren += aReflowInput.ComputedLogicalPadding().BEnd(wm);
+
   nsRect areaBounds = nsRect(0, 0, aMetrics.Width(), aMetrics.Height());
   ComputeOverflowAreas(areaBounds, reflowInput->mStyleDisplay,
                        blockEndEdgeOfChildren, aMetrics.mOverflowAreas);
