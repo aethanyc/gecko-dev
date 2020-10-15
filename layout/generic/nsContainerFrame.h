@@ -362,12 +362,15 @@ class nsContainerFrame : public nsSplittableFrame {
    *
    * @param aFlags is passed through to ReflowChild
    * @param aMergeFunc is passed to DrainExcessOverflowContainersList
+   * @param aContainerSize Use only for converting logical coordinate to
+   *        physical.
    */
   void ReflowOverflowContainerChildren(
       nsPresContext* aPresContext, const ReflowInput& aReflowInput,
       nsOverflowAreas& aOverflowRects, ReflowChildFlags aFlags,
       nsReflowStatus& aStatus,
-      ChildFrameMerger aMergeFunc = DefaultChildFrameMerge);
+      ChildFrameMerger aMergeFunc = DefaultChildFrameMerge,
+      Maybe<nsSize> aContainerSize = Nothing());
 
   /**
    * Move any frames on our overflow list to the end of our principal list.
