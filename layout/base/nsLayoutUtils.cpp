@@ -4675,7 +4675,7 @@ static nscoord AddIntrinsicSizeOffset(
   result = NSCoordSaturatingAdd(result, coordOutsideSize);
 
   nscoord size;
-  if (aType == nsLayoutUtils::MIN_ISIZE &&
+  if (aType == IntrinsicISizeType::MinISize &&
       ::IsReplacedBoxResolvedAgainstZero(aFrame, aStyleSize, aStyleMaxSize)) {
     // XXX bug 1463700: this doesn't handle calc() according to spec
     result = 0;  // let |min| handle padding/border/margin
@@ -4742,7 +4742,6 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   MOZ_ASSERT(aFrame, "null frame");
   MOZ_ASSERT(aFrame->GetParent(),
              "IntrinsicForAxis called on frame not in tree");
-  MOZ_ASSERT(aType == MIN_ISIZE || aType == PREF_ISIZE, "bad type");
   MOZ_ASSERT(aFrame->GetParent()->Type() != LayoutFrameType::GridContainer ||
                  aPercentageBasis.isSome(),
              "grid layout should always pass a percentage basis");
@@ -4873,8 +4872,9 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         result = aFrame->BSize();
       }
     } else {
-      result = aType == MIN_ISIZE ? aFrame->GetMinISize(aRenderingContext)
-                                  : aFrame->GetPrefISize(aRenderingContext);
+      result = aType == IntrinsicISizeType::MinISize
+                   ? aFrame->GetMinISize(aRenderingContext)
+                   : aFrame->GetPrefISize(aRenderingContext);
     }
 #ifdef DEBUG_INTRINSIC_WIDTH
     --gNoiseIndent;

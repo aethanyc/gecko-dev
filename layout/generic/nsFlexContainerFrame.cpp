@@ -5563,7 +5563,7 @@ nscoord nsFlexContainerFrame::IntrinsicISize(gfxContext* aRenderingContext,
       // pref isize is former (sum), and its min isize is the latter (max).
       bool isSingleLine = (StyleFlexWrap::Nowrap == stylePos->mFlexWrap);
       if (axisTracker.IsRowOriented() &&
-          (isSingleLine || aType == nsLayoutUtils::PREF_ISIZE)) {
+          (isSingleLine || aType == IntrinsicISizeType::PrefISize)) {
         containerISize += childISize;
         if (!onFirstChild) {
           containerISize += mainGapSize;
@@ -5586,7 +5586,7 @@ nscoord nsFlexContainerFrame::GetMinISize(gfxContext* aRenderingContext) {
     mCachedMinISize =
         StyleDisplay()->IsContainSize()
             ? 0
-            : IntrinsicISize(aRenderingContext, nsLayoutUtils::MIN_ISIZE);
+            : IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
   }
 
   return mCachedMinISize;
@@ -5599,7 +5599,7 @@ nscoord nsFlexContainerFrame::GetPrefISize(gfxContext* aRenderingContext) {
     mCachedPrefISize =
         StyleDisplay()->IsContainSize()
             ? 0
-            : IntrinsicISize(aRenderingContext, nsLayoutUtils::PREF_ISIZE);
+            : IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
   }
 
   return mCachedPrefISize;
