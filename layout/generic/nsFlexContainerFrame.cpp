@@ -1616,8 +1616,9 @@ void nsFlexContainerFrame::ResolveAutoFlexBasisAndMinSize(
 
     if (aFlexItem.IsInlineAxisMainAxis()) {
       if (minSizeNeedsToMeasureContent) {
-        contentSizeSuggestion =
-            aFlexItem.Frame()->GetMinISize(aItemReflowInput.mRenderingContext);
+        contentSizeSuggestion = nsLayoutUtils::IntrinsicForContainer(
+            aItemReflowInput.mRenderingContext, aFlexItem.Frame(),
+            IntrinsicISizeType::MinISize);
       }
       NS_ASSERTION(!flexBasisNeedsToMeasureContent,
                    "flex-basis:auto should have been resolved in the "
