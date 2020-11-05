@@ -6041,6 +6041,16 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
     const LogicalSize& aBorderPadding, ComputeSizeFlags aFlags) {
+  if (GetAspectRatio()) {
+    nsContainerFrame* f = do_QueryFrame(this);
+    if (f) {
+      return {f->ComputeSizeWithIntrinsicDimensions(
+                  aRenderingContext, aWM, GetIntrinsicSize(), GetAspectRatio(),
+                  aCBSize, aMargin, aBorderPadding, aFlags),
+              AspectRatioUsage::None};
+    }
+  }
+
   MOZ_ASSERT(!GetIntrinsicRatio(),
              "Please override this method and call "
              "nsContainerFrame::ComputeSizeWithIntrinsicDimensions instead.");

@@ -61,6 +61,20 @@ class nsContainerFrame : public nsSplittableFrame {
       PeekOffsetCharacterOptions aOptions =
           PeekOffsetCharacterOptions()) override;
 
+  /**
+   * Calculate the used values for 'width' and 'height' for a replaced element.
+   *   http://www.w3.org/TR/CSS21/visudet.html#min-max-widths
+   *
+   * @param aIntrinsicRatio the aspect ratio calculated by GetAspectRatio().
+   */
+  mozilla::LogicalSize ComputeSizeWithIntrinsicDimensions(
+      gfxContext* aRenderingContext, mozilla::WritingMode aWM,
+      const mozilla::IntrinsicSize& aIntrinsicSize,
+      const mozilla::AspectRatio& aIntrinsicRatio,
+      const mozilla::LogicalSize& aCBSize, const mozilla::LogicalSize& aMargin,
+      const mozilla::LogicalSize& aBorderPadding,
+      mozilla::ComputeSizeFlags aFlags);
+
 #ifdef DEBUG_FRAME_DUMP
   void List(FILE* out = stderr, const char* aPrefix = "",
             ListFlags aFlags = ListFlags()) const override;
@@ -833,20 +847,6 @@ class nsContainerFrame : public nsSplittableFrame {
   // Helper used by Progress and Meter frames. Returns true if the bar should
   // be rendered vertically, based on writing-mode and -moz-orient properties.
   bool ResolvedOrientationIsVertical();
-
-  /**
-   * Calculate the used values for 'width' and 'height' for a replaced element.
-   *   http://www.w3.org/TR/CSS21/visudet.html#min-max-widths
-   *
-   * @param aIntrinsicRatio the aspect ratio calculated by GetAspectRatio().
-   */
-  mozilla::LogicalSize ComputeSizeWithIntrinsicDimensions(
-      gfxContext* aRenderingContext, mozilla::WritingMode aWM,
-      const mozilla::IntrinsicSize& aIntrinsicSize,
-      const mozilla::AspectRatio& aIntrinsicRatio,
-      const mozilla::LogicalSize& aCBSize, const mozilla::LogicalSize& aMargin,
-      const mozilla::LogicalSize& aBorderPadding,
-      mozilla::ComputeSizeFlags aFlags);
 
   // Compute tight bounds assuming this frame honours its border, background
   // and outline, its children's tight bounds, and nothing else.
