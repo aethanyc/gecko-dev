@@ -735,6 +735,9 @@ void nsAbsoluteContainingBlock::ReflowAbsoluteFrame(
   bool constrainBSize =
       (aReflowInput.AvailableBSize() != NS_UNCONSTRAINEDSIZE) &&
 
+      // Don't split frame with size containment since it is monolithic.
+      !kidReflowInput.mStyleDisplay->IsContainSize() &&
+
       // Don't split if told not to (e.g. for fixed frames)
       (aFlags & AbsPosReflowFlags::ConstrainHeight) &&
 
