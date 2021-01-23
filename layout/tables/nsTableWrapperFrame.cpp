@@ -714,6 +714,7 @@ void nsTableWrapperFrame::OuterBeginReflowChild(nsPresContext* aPresContext,
       LogicalMargin margin(wm);
       GetChildMargin(aPresContext, aOuterRI, aChildFrame, outerSize.ISize(wm),
                      margin);
+      MOZ_ASSERT(margin.IsAllZero());
 
       NS_ASSERTION(NS_UNCONSTRAINEDSIZE != margin.BStart(wm),
                    "No unconstrainedsize arithmetic, please");
