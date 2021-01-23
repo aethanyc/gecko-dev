@@ -238,21 +238,13 @@ void nsTableWrapperFrame::InitChildReflowInput(nsPresContext& aPresContext,
       collapseBorder.emplace(InnerTableFrame()->GetIncludedOuterBCBorder(wm));
       collapsePadding.emplace(wm);
     }
-    // Propagate our stored CB size if present, minus any margins.
-    //
-    // Note that inner table computed margins are always zero, they're inherited
-    // by the table wrapper, so we need to get our margin from aOuterRI.
-    if (!HasAnyStateBits(NS_FRAME_OUT_OF_FLOW)) {
-      if (LogicalSize* cb = GetProperty(GridItemCBSizeProperty())) {
-        cbSize.emplace(*cb);
-        *cbSize -= aOuterRI.ComputedLogicalMargin(wm).Size(wm);
-      }
-    }
-    if (!cbSize) {
-      // For inner table frames, the containing block is the same as for
-      // the outer table frame.
-      cbSize.emplace(aOuterRI.mContainingBlockSize);
-    }
+
+    // For inner table frames, the containing block is the same as for the outer
+    // table frame with the computed margins subtracted. Note that an inner
+    // table frame's computed margins are always zero, they're inherited by the
+    // table wrapper, so we need to get our margin from aOuterRI.
+    cbSize.emplace(aOuterRI.mContainingBlockSize -
+                   aOuterRI.ComputedLogicalMargin(wm).Size(wm));
   }
   aReflowInput.Init(&aPresContext, cbSize, collapseBorder, collapsePadding);
 }
