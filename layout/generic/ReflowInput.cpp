@@ -407,19 +407,37 @@ void ReflowInput::Init(nsPresContext* aPresContext,
     }
   }
 
-  if (mParentReflowInput &&
-      mParentReflowInput->GetWritingMode().IsOrthogonalTo(mWritingMode)) {
-    // Orthogonal frames are always reflowed with an unconstrained
-    // dimension to avoid incomplete reflow across an orthogonal
-    // boundary. Normally this is the block-size, but for column sets
-    // with auto-height it's the inline-size, so that they can add
-    // columns in the container's block direction
-    if (type == LayoutFrameType::ColumnSet &&
-        mStylePosition->ISize(mWritingMode).IsAuto()) {
+  auto IsOrthogonalToParent = [](const ReflowInput* aParentRI,
+                                 const WritingMode aOurWM) {
+    return aParentRI && aParentRI->GetWritingMode().IsOrthogonalTo(aOurWM);
+  };
+
+  // Orthogonal frames are always reflowed with an unconstrained dimension
+  // to avoid incomplete reflow across an orthogonal boundary.
+  if (type == LayoutFrameType::ColumnSetWrapper) {
+    // Don't adjust anything even if ColumnSetWrapperFrame is orthogonal to its
+    // parent. The bounded available block-size (via the parent's inline-size)
+    // will be transferred to ColumnSetFrame in
+    // nsBlockFrame::ReflowBlockFrame().
+  } else if (type == LayoutFrameType::ColumnSet) {
+    // ColumnSetWrapperFrame and ColumnSetFrame have the same writing-mode, so
+    // we need to check whether ColumnSetWrapperFrame is in an orthogonal flow.
+    const ReflowInput& columnWrapperRI = *mParentReflowInput;
+    MOZ_ASSERT(columnWrapperRI.mFrame->IsColumnSetWrapperFrame(),
+               "Multi-column layout's frame hierarchy is wrong!");
+
+    const auto columnWrapperWM = columnWrapperRI.GetWritingMode();
+    if (IsOrthogonalToParent(columnWrapperRI.mParentReflowInput,
+                             columnWrapperWM) &&
+        columnWrapperRI.mStylePosition->ISize(columnWrapperWM).IsAuto()) {
+      // -moz-column-content boxes are added in ColumnSetFrame's inline
+      // direction, which is the block direction of ColumnSetWrapperFrame's
+      // containing block.
       ComputedISize() = NS_UNCONSTRAINEDSIZE;
-    } else {
-      AvailableBSize() = NS_UNCONSTRAINEDSIZE;
     }
+  } else if (IsOrthogonalToParent(mParentReflowInput, mWritingMode)) {
+    // Normally, the content grows in the block direction.
+    AvailableBSize() = NS_UNCONSTRAINEDSIZE;
   }
 
   if (mStyleDisplay->IsContainSize()) {
