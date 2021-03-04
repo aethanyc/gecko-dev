@@ -772,15 +772,6 @@ void nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowInput* aState,
       LogicalPoint(wm), dummyContainerSize,
       ReflowChildFlags::NoMoveFrame | ReflowChildFlags::NoSizeView);
 
-  // XXX Some frames (e.g. nsFrameFrame, nsTextFrame) don't
-  // bother setting their mOverflowArea. This is wrong because every frame
-  // should always set mOverflowArea. In fact nsFrameFrame doesn't
-  // support the 'outline' property because of this. Rather than fix the
-  // world right now, just fix up the overflow area if necessary. Note that we
-  // don't check HasOverflowRect() because it could be set even though the
-  // overflow area doesn't include the frame bounds.
-  aMetrics->UnionOverflowAreasWithDesiredBounds();
-
   auto* disp = StyleDisplay();
   if (MOZ_UNLIKELY(
           disp->mOverflowClipBoxBlock == StyleOverflowClipBox::ContentBox ||
