@@ -2109,6 +2109,13 @@ void nsBlockFrame::ComputeOverflowAreas(OverflowAreas& aOverflowAreas,
   // XXX_perf: This can be done incrementally.  It is currently one of
   // the things that makes incremental reflow O(N^2).
   if (ShouldApplyOverflowClipping(aDisplay) != PhysicalAxes::Both) {
+    const auto wm = GetWritingMode();
+    const bool isScrolledcontent =
+        Style()->GetPseudoType() == PseudoStyleType::scrolledContent;
+    const nsMargin inlinePadding =
+        GetLogicalUsedPadding(wm)
+            .ApplySkipSides(LogicalSides(wm, eLogicalSideBitsBBoth))
+            .GetPhysicalMargin(wm);
     for (const auto& line : Lines()) {
       if (aDisplay->IsContainLayout()) {
         // If we have layout containment, we should only consider our child's
@@ -2122,6 +2129,19 @@ void nsBlockFrame::ComputeOverflowAreas(OverflowAreas& aOverflowAreas,
             OverflowAreas(childVisualRect, nsRect());
         aOverflowAreas.UnionWith(childVisualArea);
       } else {
+        // Per spec, the scrollable overflow area is the union of the our own
+        // content and padding areas [1]. However, for webcompat reason, we only
+        // add our inline padding to the bounds [2] of our inline lines, not our
+        // block lines.
+        //
+        // [1] https://drafts.csswg.org/css-overflow-3/#scrollable
+        // [2] The line may have overflow areas. It's wrong to add our inline
+        //     padding to it.
+        if (isScrolledcontent && line.IsInline()) {
+          nsRect lineBounds = line.GetPhysicalBounds();
+          lineBounds.Inflate(inlinePadding);
+          aOverflowAreas.UnionAllWith(lineBounds);
+        }
         aOverflowAreas.UnionWith(line.GetOverflowAreas());
       }
     }

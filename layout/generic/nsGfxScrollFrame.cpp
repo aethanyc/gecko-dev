@@ -781,30 +781,6 @@ void nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowInput* aState,
   // overflow area doesn't include the frame bounds.
   aMetrics->UnionOverflowAreasWithDesiredBounds();
 
-  auto* disp = StyleDisplay();
-  if (MOZ_UNLIKELY(
-          disp->mOverflowClipBoxBlock == StyleOverflowClipBox::ContentBox ||
-          disp->mOverflowClipBoxInline == StyleOverflowClipBox::ContentBox)) {
-    OverflowAreas childOverflow;
-    nsLayoutUtils::UnionChildOverflow(mHelper.mScrolledFrame, childOverflow);
-    nsRect childScrollableOverflow = childOverflow.ScrollableOverflow();
-    if (disp->mOverflowClipBoxBlock == StyleOverflowClipBox::PaddingBox) {
-      padding.BStart(wm) = nscoord(0);
-      padding.BEnd(wm) = nscoord(0);
-    }
-    if (disp->mOverflowClipBoxInline == StyleOverflowClipBox::PaddingBox) {
-      padding.IStart(wm) = nscoord(0);
-      padding.IEnd(wm) = nscoord(0);
-    }
-    childScrollableOverflow.Inflate(padding.GetPhysicalMargin(wm));
-    nsRect contentArea = wm.IsVertical()
-                             ? nsRect(0, 0, computedBSize, availISize)
-                             : nsRect(0, 0, availISize, computedBSize);
-    if (!contentArea.Contains(childScrollableOverflow)) {
-      aMetrics->mOverflowAreas.ScrollableOverflow() = childScrollableOverflow;
-    }
-  }
-
   aState->mContentsOverflowAreas = aMetrics->mOverflowAreas;
   aState->mReflowedContentsWithHScrollbar = aAssumeHScroll;
   aState->mReflowedContentsWithVScrollbar = aAssumeVScroll;
