@@ -3765,8 +3765,9 @@ void ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                 : disp->mOverflowClipBoxBlock) ==
                StyleOverflowClipBox::ContentBox;
     // We only clip if there is *scrollable* overflow, to avoid clipping
-    // *visual* overflow unnecessarily.
-    nsRect clipRect = effectiveScrollPort + aBuilder->ToReferenceFrame(mOuter);
+    // *ink* overflow unnecessarily.
+    nsRect clipRect = mOuter->GetPaddingRectRelativeToSelf() +
+                      aBuilder->ToReferenceFrame(mOuter);
     nsRect so = mScrolledFrame->ScrollableOverflowRect();
     if ((cbH && (clipRect.width != so.width || so.x < 0)) ||
         (cbV && (clipRect.height != so.height || so.y < 0))) {
