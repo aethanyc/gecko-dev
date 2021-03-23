@@ -1555,8 +1555,6 @@ static nscoord PartiallyResolveAutoMinSize(
   const auto cbWM = aAxisTracker.GetWritingMode();
   const auto& mainStyleSize =
       aItemReflowInput.mStylePosition->Size(aAxisTracker.MainAxis(), cbWM);
-  const auto& maxMainStyleSize =
-      aItemReflowInput.mStylePosition->MaxSize(aAxisTracker.MainAxis(), cbWM);
   const auto boxSizingAdjust =
       aItemReflowInput.mStylePosition->mBoxSizing == StyleBoxSizing::Border
           ? aFlexItem.BorderPadding().Size(cbWM)
@@ -1567,9 +1565,15 @@ static nscoord PartiallyResolveAutoMinSize(
   // the preferred main size property against zero, yielding a definite
   // specified size suggestion. Here we can use a zero percentage basis to
   // fulfill this requirement.
+  //
+  // Note: We only apply this rule to form control elements, but not to replaced
+  // elements to be compatible with Chromium's behavior.
+  //
+  // Note: Depending on https://github.com/w3c/csswg-drafts/issues/6348, we may
+  // need to check percentage max main size to decide whether to apply the rule.
   const auto percentBasis =
-      aFlexItem.Frame()->IsPercentageResolvedAgainstZero(mainStyleSize,
-                                                         maxMainStyleSize)
+      mainStyleSize.HasPercent() &&
+              aFlexItem.Frame()->FormControlShrinksForPercentSize()
           ? LogicalSize(cbWM, 0, 0)
           : aItemReflowInput.mContainingBlockSize.ConvertTo(cbWM, itemWM);
 

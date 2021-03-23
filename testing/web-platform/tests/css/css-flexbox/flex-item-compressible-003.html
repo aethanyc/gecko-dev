@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Flexbox Test: Testing automatic minimum size in a row flex container</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#min-size-auto">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-3/#replaced-percentage-min-contribution">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-3/#min-content-zero">
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5665">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+  .flexbox {
+    display: inline-flex;
+    width: 220px;
+    border: 1px solid black;
+    margin-top: 10px;
+  }
+  .spacer {
+    /* Just to occupy some space, so that the flex algorithm will try to shrink
+       the other element below its percentage specified width. */
+    flex: 0 0 200px;
+    block-size: 20px;
+    background: lightgray;
+  }
+  .percentWidth {
+    width: 100%;
+  }
+  </style>
+
+  <script>
+  const testCases = [
+    // [ element_to_test, is_compressible]
+    //
+    // is_compressible means: the element may have an min-content size
+    // greater than 20px, *and* its specified size suggestion is expected to
+    // resolve to zero when the preferred size has a percentage, regardless of
+    // whether the percentage is cyclic or not.
+    //
+    // The 'true' or 'false' is based my understanding of Chromium's
+    // IsContentMinimumInlineSizeZero() implementation.
+    // https://source.chromium.org/chromium/chromium/src/+/master:third_party/blink/renderer/core/layout/ng/ng_block_node.cc;drc=dae60082cd2b983c227ca41e5d20c01fd5a99276;l=340
+    //
+    // <input>
+    // https://html.spec.whatwg.org/multipage/input.html#attr-input-type
+    ["<input type=hidden>", false], // hidden <input> has display:none
+    ["<input type=text>", true], // text control
+    ["<input type=search>", true], // text control
+    ["<input type=tel>", true], // text control
+    ["<input type=url>", true], // text control
+    ["<input type=email>", true], // text control
+    ["<input type=password>", true], // text control
+    ["<input type=date>", false],
+    ["<input type=month>", false],
+    ["<input type=week>", false],
+    ["<input type=time>", false],
+    ["<input type=datetime-local>", false],
+    ["<input type=number>", true], // text control
+    ["<input type=range>", true], // Chromium compresses this
+    ["<input type=color>", false],
+    ["<input type=checkbox>", false],
+    ["<input type=radio>", false],
+    ["<input type=file>", true], // Chromium compresses this
+    ["<input type=submit value=XXXXXX>", false],
+    ["<input type=image value=XXXXXX>", false],
+    ["<input type=reset value=XXXXXX>", false],
+    ["<input type=button value=XXXXXX>", false],
+
+    // Other replaced elements
+    // https://html.spec.whatwg.org/multipage/rendering.html#replaced-elements
+    ["<audio controls></audio>", false],
+    ["<canvas></canvas>", false],
+    ["<embed src=''></embed>", false],
+    ["<iframe src=''></iframe>", false],
+    ["<img width=100 height=100>", false],
+    ["<object></object>", false],
+    ["<video controls></video>", false],
+
+    // Other compressible replaced elements
+    // https://drafts.csswg.org/css-sizing-3/#min-content-zero
+    ["<select><option>Choose an option</option></select>", true],
+    ["<textarea></textarea>", true], // text control
+    ["<progress></progress>", true],
+    ["<meter></meter>", true],
+    ["<marquee>This text will scroll from right to left</marquee>", true]
+  ]
+
+  function runTests() {
+    setup({ explicit_done: true });
+
+    let container = document.getElementById('container');
+
+    // Choose 20px because it is small enough so that all elements in this test
+    // have the min-content size greater than 20px, but is still large enough to
+    // accommodate compressed elements' default border and padding in the UA
+    // default style.
+    const remainingSpaceInFlexPx = 20;
+
+    for (testCase of testCases) {
+      const [elemStr, is_compressible] = testCase;
+
+      // Create a flex container with .spacer as the first item, and |elem| as
+      // the second item.
+      let flex = document.createElement("div");
+      flex.classList.add('flexbox');
+      flex.innerHTML = "<div class='spacer'></div>" + elemStr;
+      let elem = flex.childNodes[1];
+      container.append(flex);
+
+      // Flexbox cannot fit |elem| in the remaining 20px, i.e. |elem| has its
+      // min-content size greater than 20px with width:auto.
+      let hasIntrinsicWidth = elem.offsetWidth > remainingSpaceInFlexPx;
+
+      // Add a percentage width. If |elem| is compressible, flexbox can shrink
+      // it below its min-content size.
+      elem.classList.add('percentWidth');
+
+      // Add description so that the test cases are informative.
+      let description = document.createElement("div");
+      description.innerHTML =
+        `${elemStr.replace(/>/g, '&gt;').replace(/</g, '&lt;')}
+         has intrinsic width > ${remainingSpaceInFlexPx}px? <b>${hasIntrinsicWidth}</b>,
+         expect min width resolves to 0? <b>${is_compressible}</b>`;
+      container.append(description);
+      container.append(document.createElement("hr"));
+
+      test(() => {
+        if (hasIntrinsicWidth && !is_compressible) {
+          // Flexbox cannot compress the item to be smaller than its min-content
+          // size.
+          assert_true(elem.offsetWidth > remainingSpaceInFlexPx);
+        } else {
+          assert_true(elem.offsetWidth <= remainingSpaceInFlexPx);
+        }
+      }, `Test ${elemStr}`);
+    }
+
+    done();
+  }
+  </script>
+
+  <body onload="runTests();">
+    <div id="container"></div>
+  </body>
+</html>
