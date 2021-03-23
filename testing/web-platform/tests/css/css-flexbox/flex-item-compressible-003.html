@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Flexbox Test: Testing automatic minimum size in a row flex container</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#min-size-auto">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-3/#replaced-percentage-min-contribution">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-3/#min-content-zero">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+  .flexbox {
+    display: inline-flex;
+    width: 220px;
+    border: 1px solid black;
+    margin-top: 10px;
+  }
+  .flexbox > * {
+    /* Get rid of UA styles. */
+    border: 0;
+    padding: 0;
+    margin: 0;
+    background: lightblue;
+  }
+  .spacer {
+    /* Just to occupy some space, so that the flex algorithm will try to shrink
+       the other element below its percentage specified width. */
+    flex: 0 0 200px;
+    block-size: 20px;
+    background: lightgray;
+  }
+  .percentWidth {
+    width: 100%;
+  }
+  </style>
+
+  <script>
+  const testCases = [
+    // [ element_to_test,
+    //   has_special_behavior_for_webcompat?]
+    //
+    // has_special_behavior_for_webcompat means: the element has intrinsic size
+    // > 0 , *and* its specified size suggestion is expected to be zero when the
+    // preferred size has percentage, even if it is not a cyclic percentage.
+    //
+    // 'true' or 'false is based my understanding of Chromium's
+    // IsContentMinimumInlineSizeZero()
+    // https://source.chromium.org/chromium/chromium/src/+/master:third_party/blink/renderer/core/layout/ng/ng_block_node.cc;drc=dae60082cd2b983c227ca41e5d20c01fd5a99276;l=340
+    //)
+
+    // <input>
+    // https://html.spec.whatwg.org/multipage/input.html#attr-input-type
+    ["<input type=hidden>", false],
+    ["<input type=text>", true], // text control
+    ["<input type=search>", true], // text control
+    ["<input type=tel>", true], // text control
+    ["<input type=url>", true], // text control
+    ["<input type=email>", true], // text control
+    ["<input type=password>", true], // text control
+    ["<input type=date>", false],
+    ["<input type=month>", false],
+    ["<input type=week>", false],
+    ["<input type=time>", false],
+    ["<input type=datetime-local>", false],
+    ["<input type=number>", true], // text control
+    ["<input type=range>", true],
+    ["<input type=color>", false],
+    ["<input type=checkbox>", false],
+    ["<input type=radio>", false],
+    ["<input type=file>", true],
+    ["<input type=submit value=XXXXXX>", false],
+    ["<input type=image value=XXXXXX>", false],
+    ["<input type=reset value=XXXXXX>", false],
+    ["<input type=button value=XXXXXX>", false],
+
+    // Other replaced elements
+    // https://html.spec.whatwg.org/multipage/rendering.html#replaced-elements
+    ["<audio controls></audio>", false],
+    ["<canvas></canvas>", false],
+    ["<embed src=''></embed>", false],
+    ["<iframe src=''></iframe>", false],
+    ["<img width=100 height=100>", false],
+    ["<object></object>", false],
+    ["<video controls></video>", false],
+
+    ["<textarea></textarea>", true], // text control
+    ["<select><option>Choose an option</option></select>", true],
+  ]
+
+  function runTests() {
+    setup({ explicit_done: true });
+
+    let container = document.getElementById('container');
+    const remainingSpaceInFlex = 20;
+
+    for (testCase of testCases) {
+      const [elemStr, hasSpecialBehavior] = testCase;
+
+      let flex = document.createElement("div");
+      flex.classList.add('flexbox');
+      flex.innerHTML = "<div class='spacer'></div>" + elemStr;
+
+      let elem = flex.childNodes[1];
+      container.append(flex);
+
+      let hasMinWidth = elem.offsetWidth > remainingSpaceInFlex;
+      let description = document.createElement("div");
+      description.innerHTML =
+        `${elemStr.replace(/>/g, '&gt;').replace(/</g, '&lt;')},
+         has intrinsic width > ${remainingSpaceInFlex}px? <b>${hasMinWidth}</b>,
+         expect min width resolves to 0? <b>${hasSpecialBehavior}</b>`;
+
+      elem.classList.add('percentWidth');
+
+      container.append(description);
+      container.append(document.createElement("hr"));
+
+      test(() => {
+        if (hasMinWidth) {
+          if (hasSpecialBehavior) {
+            assert_true(elem.offsetWidth == remainingSpaceInFlex);
+          } else {
+            assert_true(elem.offsetWidth > remainingSpaceInFlex);
+          }
+        } else {
+          assert_true(elem.offsetWidth == remainingSpaceInFlex);
+        }
+      }, `Test ${elemStr}`);
+    }
+
+    done();
+  }
+  </script>
+
+  <body onload="runTests();">
+    <div id="container"></div>
+  </body>
+</html>
