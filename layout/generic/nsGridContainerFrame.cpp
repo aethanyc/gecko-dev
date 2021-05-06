@@ -3429,6 +3429,19 @@ static Subgrid* SubgridComputeMarginBorderPadding(
       sz.ComputedLogicalMargin(cbWM) + sz.ComputedLogicalBorderPadding(cbWM);
 
   if (aGridItem.mFrame != subgridFrame) {
+    if (aGridItem.mFrame->IsScrollFrame()) {
+      MOZ_ASSERT(sz.ComputedLogicalMargin(cbWM) == LogicalMargin(cbWM) &&
+                     sz.ComputedLogicalBorder(cbWM) == LogicalMargin(cbWM),
+                 "A scrolled inner frame doesn't have any margin or border!");
+
+      // Add the margin and border on the (outer) scroll frame.
+      SizeComputationInput szScrollFrame(aGridItem.mFrame, nullptr, cbWM,
+                                         pmPercentageBasis);
+      subgrid->mMarginBorderPadding +=
+          szScrollFrame.ComputedLogicalMargin(cbWM) +
+          szScrollFrame.ComputedLogicalBorder(cbWM);
+    }
+
     nsIScrollableFrame* scrollFrame = aGridItem.mFrame->GetScrollTargetFrame();
     if (scrollFrame) {
       nsMargin ssz = scrollFrame->GetActualScrollbarSizes();
