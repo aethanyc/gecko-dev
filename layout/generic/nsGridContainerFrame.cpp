@@ -3442,9 +3442,6 @@ static Subgrid* SubgridComputeMarginBorderPadding(
       subgrid->mMarginBorderPadding +=
           szScrollFrame.ComputedLogicalMargin(cbWM) +
           szScrollFrame.ComputedLogicalBorder(cbWM);
-
-      nsMargin ssz = scrollFrame->GetActualScrollbarSizes();
-      subgrid->mMarginBorderPadding += LogicalMargin(cbWM, ssz);
     }
 
     if (aGridItem.mFrame->IsFieldSetFrame()) {
