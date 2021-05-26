@@ -4676,15 +4676,26 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
     // are placed relative to our content-box origin. The inflated bounds won't
     // go beyond our padding-box edges on the start sides.
     //
+    // Also, note that the union of the margin boxes we add the padding to is
+    // the flex items' normal position margin boxes. However, their relative
+    // positioned margin boxes can affect the container's overflow areas, so
+    // they must be included, too.
+    //
     // [1] https://drafts.csswg.org/css-overflow-3/#scrollable.
+    nsRect flexItemNormalPosMarginBoxBounds;
     nsRect flexItemMarginBoxBounds;
     for (const FlexLine& line : lines) {
       for (const FlexItem& item : line.Items()) {
+        const auto margin = item.Frame()->GetMarginRectRelativeToSelf();
+        flexItemNormalPosMarginBoxBounds =
+            flexItemNormalPosMarginBoxBounds.Union(
+                margin + item.Frame()->GetNormalPosition());
         flexItemMarginBoxBounds =
-            flexItemMarginBoxBounds.Union(item.Frame()->GetMarginRect());
+            flexItemMarginBoxBounds.Union(margin + item.Frame()->GetPosition());
       }
     }
-    flexItemMarginBoxBounds.Inflate(padding.GetPhysicalMargin(wm));
+    flexItemNormalPosMarginBoxBounds.Inflate(padding.GetPhysicalMargin(wm));
+    aReflowOutput.mOverflowAreas.UnionAllWith(flexItemNormalPosMarginBoxBounds);
     aReflowOutput.mOverflowAreas.UnionAllWith(flexItemMarginBoxBounds);
   }
 
