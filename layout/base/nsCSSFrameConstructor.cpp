@@ -3752,10 +3752,9 @@ void nsCSSFrameConstructor::ConstructFrameFromItemInternal(
 
       // Now figure out whether newFrame or outerFrame should be the
       // absolute container.
-      auto outerDisplay = outerStyle->StyleDisplay();
-      if (outerDisplay->IsAbsPosContainingBlock(outerFrame)) {
+      if (newFrame->IsAbsPosContainingBlock()) {
         maybeAbsoluteContainingBlock = outerFrame;
-        maybeAbsoluteContainingBlockStyleFrame = outerFrame;
+        maybeAbsoluteContainingBlockStyleFrame = newFrame;
         innerFrame->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
       }
 
