@@ -7709,21 +7709,13 @@ void nsIFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas) {
   }
 }
 
-// Return true if this form control element's preferred size property (but not
-// percentage max size property) contains a percentage value that should be
-// resolved against zero when calculating its min-content contribution in the
-// corresponding axis.
-//
-// For proper replaced elements, the percentage value in both their max size
-// property or preferred size property should be resolved against zero. This is
-// handled in IsPercentageResolvedAgainstZero().
-inline static bool FormControlShrinksForPercentSize(const nsIFrame* aFrame) {
-  if (!aFrame->IsFrameOfType(nsIFrame::eReplaced)) {
+bool nsIFrame::FormControlShrinksForPercentSize() const {
+  if (!IsFrameOfType(nsIFrame::eReplaced)) {
     // Quick test to reject most frames.
     return false;
   }
 
-  LayoutFrameType fType = aFrame->Type();
+  LayoutFrameType fType = Type();
   if (fType == LayoutFrameType::Meter || fType == LayoutFrameType::Progress ||
       fType == LayoutFrameType::Range) {
     // progress, meter and range do have this shrinking behavior
@@ -7731,7 +7723,7 @@ inline static bool FormControlShrinksForPercentSize(const nsIFrame* aFrame) {
     return true;
   }
 
-  if (!static_cast<nsIFormControlFrame*>(do_QueryFrame(aFrame))) {
+  if (!static_cast<nsIFormControlFrame*>(do_QueryFrame(this))) {
     // Not a form control.  This includes fieldsets, which do not
     // shrink.
     return false;
@@ -7753,7 +7745,7 @@ bool nsIFrame::IsPercentageResolvedAgainstZero(
   const bool sizeHasPercent = aStyleSize.HasPercent();
   return ((sizeHasPercent || aStyleMaxSize.HasPercent()) &&
           IsFrameOfType(nsIFrame::eReplacedSizing)) ||
-         (sizeHasPercent && FormControlShrinksForPercentSize(this));
+         (sizeHasPercent && FormControlShrinksForPercentSize());
 }
 
 // Summary of the Cyclic-Percentage Intrinsic Size Contribution Rules:
@@ -7780,7 +7772,7 @@ bool nsIFrame::IsPercentageResolvedAgainstZero(const LengthPercentage& aSize,
 
   MOZ_ASSERT(aProperty == SizeProperty::Size);
   return hasPercentOnReplaced ||
-         (aSize.HasPercent() && FormControlShrinksForPercentSize(this));
+         (aSize.HasPercent() && FormControlShrinksForPercentSize());
 }
 
 bool nsIFrame::IsBlockWrapper() const {

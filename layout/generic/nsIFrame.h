@@ -3373,6 +3373,18 @@ class nsIFrame : public nsQueryFrame {
                                        SizeProperty aProperty) const;
 
   /**
+   * Return true if this form control element's preferred size property (but not
+   * percentage max size property) contains a percentage value that should be
+   * resolved against zero when calculating its min-content contribution in the
+   * corresponding axis.
+   *
+   * For proper replaced elements, the percentage value in both their max size
+   * property or preferred size property should be resolved against zero. This
+   * is handled in IsPercentageResolvedAgainstZero().
+   */
+  bool FormControlShrinksForPercentSize() const;
+
+  /**
    * Returns true if the frame is a block wrapper.
    */
   bool IsBlockWrapper() const;
