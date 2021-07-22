@@ -822,6 +822,10 @@ struct ReflowInput : public SizeComputationInput {
     ComputedBSize() = aComputedBSize;
   }
 
+  void SetComputedLineHeight(nscoord aLineHeight) {
+    mComputedLineHeight = aLineHeight;
+  }
+
   void SetTruncated(const ReflowOutput& aMetrics,
                     nsReflowStatus* aStatus) const;
 
@@ -1007,6 +1011,9 @@ struct ReflowInput : public SizeComputationInput {
   // Computed value for 'max-inline-size'/'max-block-size'.
   mozilla::LogicalSize mComputedMaxSize{mWritingMode, NS_UNCONSTRAINEDSIZE,
                                         NS_UNCONSTRAINEDSIZE};
+
+  // Cache of the computed line height in CalcLineHeight().
+  mutable nscoord mComputedLineHeight = NS_UNCONSTRAINEDSIZE;
 };
 
 }  // namespace mozilla

@@ -2707,14 +2707,18 @@ static inline nscoord ComputeLineHeight(ComputedStyle* aComputedStyle,
 }
 
 nscoord ReflowInput::CalcLineHeight() const {
+  if (mComputedLineHeight != NS_UNCONSTRAINEDSIZE) {
+    return mComputedLineHeight;
+  }
+
   nscoord blockBSize = nsLayoutUtils::IsNonWrapperBlock(mFrame)
                            ? ComputedBSize()
                            : (mCBReflowInput ? mCBReflowInput->ComputedBSize()
                                              : NS_UNCONSTRAINEDSIZE);
-
-  return CalcLineHeight(mFrame->GetContent(), mFrame->Style(),
-                        mFrame->PresContext(), blockBSize,
-                        nsLayoutUtils::FontSizeInflationFor(mFrame));
+  mComputedLineHeight = CalcLineHeight(
+      mFrame->GetContent(), mFrame->Style(), mFrame->PresContext(), blockBSize,
+      nsLayoutUtils::FontSizeInflationFor(mFrame));
+  return mComputedLineHeight;
 }
 
 /* static */
