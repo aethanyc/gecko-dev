@@ -1260,7 +1260,7 @@ void nsComboboxDisplayFrame::Reflow(nsPresContext* aPresContext,
     nscoord lh = ReflowInput::CalcLineHeight(mComboBox->GetContent(),
                                              mComboBox->Style(), aPresContext,
                                              NS_UNCONSTRAINEDSIZE, inflation);
-    state.SetComputedBSize(lh);
+    state.SetComputedLineHeight(lh);
   }
   const WritingMode wm = aReflowInput.GetWritingMode();
   const LogicalMargin bp = state.ComputedLogicalBorderPadding(wm);
