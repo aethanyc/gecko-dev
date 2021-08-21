@@ -5564,19 +5564,6 @@ nsReflowStatus nsFlexContainerFrame::ReflowFlexItem(
     childReflowInput.mFlags.mTreatBSizeAsIndefinite = true;
   }
 
-  if (aItem.IsStretched() && aItem.IsBlockAxisCrossAxis()) {
-    // This item is stretched (in the cross axis), and that axis is its block
-    // axis.  That stretching effectively gives it a relative BSize.
-    // XXXdholbert This flag only makes a difference if we use the flex items'
-    // frame-state when deciding whether to reflow them -- and we don't, as of
-    // the changes in bug 851607. So this has no effect right now, but it might
-    // make a difference if we optimize to use dirty bits in the
-    // future. (Reftests flexbox-resizeviewport-1.xhtml and -2.xhtml are
-    // intended to catch any regressions here, if we end up relying on this bit
-    // & neglecting to set it.)
-    aItem.Frame()->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
-  }
-
   // NOTE: Be very careful about doing anything else with childReflowInput
   // after this point, because some of its methods (e.g. SetComputedWidth)
   // internally call InitResizeFlags and stomp on mVResize & mHResize.
