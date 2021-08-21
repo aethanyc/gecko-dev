@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#definite-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-stretch">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1711823">
+<link rel="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This tests verifies that the canvas element's used cross size should transfer to its main size once the inner flex container's cross size becomes definite.">
+
+<style>
+.flexContainer {
+  display: flex;
+}
+span.text {
+  padding-top: 80px;
+  font: 20px/1 Ahem;
+  color: green;
+  background-color: green;
+}
+canvas {
+  background-color: green;
+  height: 100%;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="flexContainer">
+  <div class="flexContainer">
+    <canvas height="50" width="20"></canvas>
+    <span class="text">XXX</span>
+  </div>
+</div>
