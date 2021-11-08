@@ -709,7 +709,8 @@ nsBoxFrame::DoXULLayout(nsBoxLayoutState& aState) {
     WritingMode wm = GetWritingMode();
     ReflowInput reflowInput(
         aState.PresContext(), this, aState.GetRenderingContext(),
-        LogicalSize(wm, GetLogicalSize().ISize(wm), NS_UNCONSTRAINEDSIZE));
+        LogicalSize(wm, GetLogicalSize().ISize(wm), NS_UNCONSTRAINEDSIZE),
+        ReflowInput::InitFlag::DummyParentReflowInput);
 
     // Set up a |desiredSize| to pass into ReflowAbsoluteFrames
     ReflowOutput desiredSize(reflowInput);

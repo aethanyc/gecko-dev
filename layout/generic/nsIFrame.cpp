@@ -7777,8 +7777,7 @@ nsIFrame* nsIFrame::GetContainingBlock(
     f = GetNearestBlockContainer(GetParent());
   }
 
-  if (aFlags & SKIP_SCROLLED_FRAME && f &&
-      f->Style()->GetPseudoType() == PseudoStyleType::scrolledContent) {
+  if (f && f->Style()->GetPseudoType() == PseudoStyleType::scrolledContent) {
     f = f->GetParent();
   }
   return f;
