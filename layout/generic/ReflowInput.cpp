@@ -448,7 +448,8 @@ void ReflowInput::InitCBReflowInput() {
   }
 
   if (mParentReflowInput->mFrame ==
-      mFrame->GetContainingBlock(0, mStyleDisplay)) {
+      mFrame->GetContainingBlock(nsIFrame::SKIP_SCROLLED_FRAME,
+                                 mStyleDisplay)) {
     // Inner table frames need to use the containing block of the outer
     // table frame.
     if (mFrame->IsTableFrame()) {
