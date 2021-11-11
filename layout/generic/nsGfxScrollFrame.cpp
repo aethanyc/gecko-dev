@@ -786,7 +786,10 @@ void nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowInput* aState,
   // world right now, just fix up the overflow area if necessary. Note that we
   // don't check HasOverflowRect() because it could be set even though the
   // overflow area doesn't include the frame bounds.
+  DebugOnly<OverflowAreas> oldOverflowAreas = aMetrics->mOverflowAreas;
   aMetrics->UnionOverflowAreasWithDesiredBounds();
+  MOZ_ASSERT(oldOverflowAreas.inspect() == aMetrics->mOverflowAreas,
+             "UnionOverflowAreasWithDesiredBounds is necessary!");
 
   auto* disp = StyleDisplay();
   if (MOZ_UNLIKELY(disp->mOverflowClipBoxInline ==
