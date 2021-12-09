@@ -3397,6 +3397,7 @@ void ScrollFrameHelper::AppendScrollPartsTo(nsDisplayListBuilder* aBuilder,
   }
 
   for (uint32_t i = 0; i < scrollParts.Length(); ++i) {
+    MOZ_ASSERT(scrollParts[i]);
     Maybe<ScrollDirection> scrollDirection;
     uint32_t appendToTopFlags = 0;
     if (scrollParts[i] == mVScrollbarBox) {
@@ -3407,9 +3408,6 @@ void ScrollFrameHelper::AppendScrollPartsTo(nsDisplayListBuilder* aBuilder,
       MOZ_ASSERT(!scrollDirection.isSome());
       scrollDirection.emplace(ScrollDirection::eHorizontal);
       appendToTopFlags |= APPEND_SCROLLBAR_CONTAINER;
-    }
-    if (scrollParts[i] == mResizerBox && !HasResizer()) {
-      continue;
     }
 
     // The display port doesn't necessarily include the scrollbars, so just
@@ -6752,7 +6750,6 @@ void ScrollFrameHelper::LayoutScrollbars(nsBoxLayoutState& aState,
                                          const nsRect& aOldScrollPort) {
   NS_ASSERTION(!mSuppressScrollbarUpdate, "This should have been suppressed");
 
-  bool hasResizer = HasResizer();
   bool scrollbarOnLeft = !IsScrollbarOnRight();
   const bool overlayScrollbars = UsesOverlayScrollbars();
   const bool overlayScrollBarsOnRoot = overlayScrollbars && mIsRoot;
@@ -6876,7 +6873,7 @@ void ScrollFrameHelper::LayoutScrollbars(nsBoxLayoutState& aState,
       nsBoxFrame::LayoutChildAt(aState, mScrollCornerBox, r);
     }
 
-    if (hasResizer) {
+    if (mResizerBox) {
       // If a resizer is present, get its size.
       //
       // TODO(emilio): Should this really account for scrollbar-width?
@@ -6903,9 +6900,6 @@ void ScrollFrameHelper::LayoutScrollbars(nsBoxLayoutState& aState,
       }
 
       nsBoxFrame::LayoutChildAt(aState, mResizerBox, r);
-    } else if (mResizerBox) {
-      // otherwise lay out the resizer with an empty rectangle
-      nsBoxFrame::LayoutChildAt(aState, mResizerBox, nsRect());
     }
   }
 
@@ -6913,11 +6907,11 @@ void ScrollFrameHelper::LayoutScrollbars(nsBoxLayoutState& aState,
   // resizer has been laid out immediately above this because it gets the rect
   // of the resizer frame.
   if (mVScrollbarBox) {
-    AdjustScrollbarRectForResizer(mOuter, presContext, vRect, hasResizer,
+    AdjustScrollbarRectForResizer(mOuter, presContext, vRect, mResizerBox,
                                   ScrollDirection::eVertical);
   }
   if (mHScrollbarBox) {
-    AdjustScrollbarRectForResizer(mOuter, presContext, hRect, hasResizer,
+    AdjustScrollbarRectForResizer(mOuter, presContext, hRect, mResizerBox,
                                   ScrollDirection::eHorizontal);
   }
 
