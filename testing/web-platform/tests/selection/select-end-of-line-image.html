@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Basic User Interface Test: Block children of a inline parent with "user-select:text" should be selectable even with a user-select: none ancestor</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-ui/#propdef-user-select">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1743074">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src='/resources/testdriver-vendor.js'></script>
+
+  <style>
+  img {
+    inline-size: 100px;
+    block-size: 20px;
+    background: orange;
+  }
+  </style>
+
+  <p>
+    Select image at the end of line
+    <img id="target" alt="orange" src='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" />'
+  </>
+
+  <script>
+  promise_test(async function() {
+    let target = document.getElementById("target");
+    let actions = new test_driver.Actions();
+
+    // From the left edge of the image, move the pointer to the right for about
+    // 3/4 width of the image. This should be sufficient to select the image.
+    await actions.pointerMove(0, 10, {origin: target})
+                 .pointerDown()
+                 .pointerMove(75, 10, {origin: target})
+                 .pointerUp()
+                 .send();
+    assert_equals(window.getSelection().toString(), "orange",
+                  "The image at the end fo line can be selected without having to move the pointer across the entire width of the image.")
+  }, "Select the image at the end of a line");
+  </script>
+</html>
