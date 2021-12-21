@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Overflow: Test scrollbar-gutter reflow counts</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1746098">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+  #target, #reference {
+    width: 200px;
+    height: 100px;
+    background: lightgray;
+    overflow: auto;
+  }
+
+  #target {
+    scrollbar-gutter: stable;
+  }
+
+  #targetChild, #referenceChild {
+    width: 100%;
+    height: 100%;
+    background: orange;
+  }
+  </style>
+
+  <p>Here is a scroll contaier for testing:</p>
+  <div id="target">
+    <div id="targetChild"></div>
+  </div>
+
+  <div id="reference">
+    <div id="referenceChild"></div>
+  </div>
+
+  <script>
+  let gUtils = SpecialPowers.getDOMWindowUtils(window);
+  let gTarget = document.getElementById("target");
+  let gTargetChild = document.getElementById("targetChild");
+  let gReference = document.getElementById("reference");
+  let gReferenceChild = document.getElementById("referenceChild");
+
+  function getReflowCount()
+  {
+    document.documentElement.offsetHeight; // flush layout
+    return gUtils.framesReflowed;
+  }
+
+  function cleanUp() {
+    gTarget.style.writingMode = "";
+    gTargetChild.style.blockSize = "";
+    gReferenceChild.style.blockSize = "";
+  }
+
+  // This function adds some text inside of gInnerBlock, and returns the number
+  // of frames that need to be reflowed as a result.
+  function tweakStyleAndCountReflows(aTweakFunc)
+  {
+    let beforeCount = getReflowCount();
+    aTweakFunc();
+    let afterCount = getReflowCount();
+    cleanUp();
+
+    let numReflows = afterCount - beforeCount;
+    assert_greater_than(numReflows, 0, "We should've reflowed *something* after changing styles:");
+    return numReflows;
+  }
+
+  let gTestCases = [
+    {
+      name : "Enlarge the child's block-size to 200%",
+      addTestStyle : function () {
+        gTargetChild.style.blockSize = "200%";
+      },
+      addReferenceStyle : function () {
+        gReferenceChild.style.blockSize = "200%";
+      },
+    },
+    {
+      name : "Enlarge the child's block-size to 300px",
+      addTestStyle : function () {
+        gTargetChild.style.blockSize = "300px";
+      },
+      addReferenceStyle : function () {
+        gReferenceChild.style.blockSize = "300px";
+      },
+    },
+    {
+      name : "Enlarge the child's block-size to 200% in a vertical-lr scroll container",
+      addTestStyle : function () {
+        gTarget.style.writingMode = "vertical-lr";
+        gTargetChild.style.blockSize = "200%";
+      },
+      addReferenceStyle : function () {
+        gTarget.style.writingMode = "vertical-lr";
+        gReferenceChild.style.blockSize = "200%";
+      },
+    },
+    {
+      name : "Enlarge the child's block-size to 300px in a vertical-lr scroll container",
+      addTestStyle : function () {
+        gTarget.style.writingMode = "vertical-lr";
+        gTargetChild.style.blockSize = "300px";
+      },
+      addReferenceStyle : function () {
+        gReference.style.writingMode = "vertical-lr";
+        gReferenceChild.style.blockSize = "300px";
+      },
+    },
+    {
+      name : "Enlarge the child's block-size to 200% in a vertical-rl scroll container",
+      addTestStyle : function () {
+        gTarget.style.writingMode = "vertical-rl";
+        gTargetChild.style.blockSize = "200%";
+      },
+      addReferenceStyle : function () {
+        gTarget.style.writingMode = "vertical-rl";
+        gReferenceChild.style.blockSize = "200%";
+      },
+    },
+    {
+      name : "Enlarge the child's block-size to 300px in a vertical-rl scroll container",
+      addTestStyle : function () {
+        gTarget.style.writingMode = "vertical-rl";
+        gTargetChild.style.blockSize = "300px";
+      },
+      addReferenceStyle : function () {
+        gReference.style.writingMode = "vertical-rl";
+        gReferenceChild.style.blockSize = "300px";
+      },
+    },
+  ];
+
+  for (let testcase of gTestCases) {
+    test(function () {
+      let numTestReflows = tweakStyleAndCountReflows(testcase.addTestStyle);
+      let numReferenceReflows = tweakStyleAndCountReflows(testcase.addReferenceStyle);
+
+      assert_less_than(numTestReflows, numReferenceReflows,
+                       "A scroll container with 'scrollbar-gutter:stable' should have less reflow counts:");
+    }, testcase.name)
+  }
+  </script>
+</html>
