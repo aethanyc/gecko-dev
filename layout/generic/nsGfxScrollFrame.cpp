@@ -1012,39 +1012,51 @@ void nsHTMLScrollFrame::ReflowContents(ScrollReflowInput& aState,
         kidDesiredSize.PhysicalSize());
   }
 
-  // Try vertical scrollbar settings that leave the vertical scrollbar
-  // unchanged. Do this first because changing the vertical scrollbar setting is
-  // expensive, forcing a reflow always.
+  bool showHScrollbar = aState.mReflowedContentsWithHScrollbar;
+  bool showVScrollbar = aState.mReflowedContentsWithVScrollbar;
 
-  // Try leaving the horizontal scrollbar unchanged first. This will be more
-  // efficient.
-  ROOT_SCROLLBAR_LOG("Trying layout1 with %d, %d\n",
-                     aState.mReflowedContentsWithHScrollbar,
-                     aState.mReflowedContentsWithVScrollbar);
-  if (TryLayout(aState, &kidDesiredSize, aState.mReflowedContentsWithHScrollbar,
-                aState.mReflowedContentsWithVScrollbar, false)) {
-    return;
-  }
-  ROOT_SCROLLBAR_LOG("Trying layout2 with %d, %d\n",
-                     !aState.mReflowedContentsWithHScrollbar,
-                     aState.mReflowedContentsWithVScrollbar);
-  if (TryLayout(aState, &kidDesiredSize,
-                !aState.mReflowedContentsWithHScrollbar,
-                aState.mReflowedContentsWithVScrollbar, false)) {
+  // Layout1: Try the status-quo visibility of the scrollbars.
+  ROOT_SCROLLBAR_LOG("Trying layout1 with %d, %d\n", showHScrollbar,
+                     showVScrollbar);
+  if (TryLayout(aState, &kidDesiredSize, showHScrollbar, showVScrollbar,
+                false)) {
     return;
   }
 
-  // OK, now try toggling the vertical scrollbar. The performance advantage
-  // of trying the status-quo horizontal scrollbar state
-  // does not exist here (we'll have to reflow due to the vertical scrollbar
-  // change), so always try no horizontal scrollbar first.
-  bool newVScrollbarState = !aState.mReflowedContentsWithVScrollbar;
-  ROOT_SCROLLBAR_LOG("Trying layout3 with %d, %d\n", false, newVScrollbarState);
-  if (TryLayout(aState, &kidDesiredSize, false, newVScrollbarState, false)) {
+  const bool isVertical = GetWritingMode().IsVertical();
+  bool& showInlineEndScrollbar = isVertical ? showHScrollbar : showVScrollbar;
+  bool& showBlockEndScrollbar = isVertical ? showVScrollbar : showHScrollbar;
+
+  // Layout2: try toggling the visibility of the block-end scrollbar because its
+  // more efficient. Toggling the inline-end scrollbar presence results a reflow
+  // unless there is a stable scrollbar-gutter.
+  showBlockEndScrollbar = !showBlockEndScrollbar;
+  ROOT_SCROLLBAR_LOG("Trying layout2 with %d, %d\n", showHScrollbar,
+                     showVScrollbar);
+  if (TryLayout(aState, &kidDesiredSize, showHScrollbar, showVScrollbar,
+                false)) {
     return;
   }
-  ROOT_SCROLLBAR_LOG("Trying layout4 with %d, %d\n", true, newVScrollbarState);
-  if (TryLayout(aState, &kidDesiredSize, true, newVScrollbarState, false)) {
+
+  // Layout3: Now try toggling the visibility of the inline-end scrollbar. The
+  // performance advantage of trying the status-quo visibility of the block-end
+  // scrollbar does not exist here (we'll have to reflow due to the inline-end
+  // scrollbar change), so always try no block-end scrollbar first.
+  showInlineEndScrollbar = !showInlineEndScrollbar;
+  showBlockEndScrollbar = false;
+  ROOT_SCROLLBAR_LOG("Trying layout3 with %d, %d\n", showHScrollbar,
+                     showVScrollbar);
+  if (TryLayout(aState, &kidDesiredSize, showHScrollbar, showVScrollbar,
+                false)) {
+    return;
+  }
+
+  // Layout4: Try showing the block-end scrollbar .
+  showBlockEndScrollbar = true;
+  ROOT_SCROLLBAR_LOG("Trying layout4 with %d, %d\n", showHScrollbar,
+                     showVScrollbar);
+  if (TryLayout(aState, &kidDesiredSize, showHScrollbar, showVScrollbar,
+                false)) {
     return;
   }
 
