@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS Flexbox Test: Flex item as table with fixed max-width</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#layout-algorithm" title="9. Flex Layout Algorithm">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="This test verifies that table flex item's width doesn't grow beyond its max-width.">
+
+<p>Test passes if there is a filled green square.</p>
+<div style="display:flex; width:200px; height:100px;">
+  <div style="display:table; flex:1 0 50px; max-width:50px; background:green;"></div>
+  <div style="flex:0 0 50px; background:green"></div>
+</div>

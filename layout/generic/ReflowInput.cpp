@@ -2891,10 +2891,12 @@ bool SizeComputationInput::ComputePadding(WritingMode aCBWM,
 void ReflowInput::ComputeMinMaxValues(const LogicalSize& aCBSize) {
   WritingMode wm = GetWritingMode();
 
-  const auto& minISize = mStylePosition->MinISize(wm);
-  const auto& maxISize = mStylePosition->MaxISize(wm);
-  const auto& minBSize = mStylePosition->MinBSize(wm);
-  const auto& maxBSize = mStylePosition->MaxBSize(wm);
+  const auto* stylePos = nsLayoutUtils::GetStyleFrame(mFrame)->StylePosition();
+
+  const auto& minISize = stylePos->MinISize(wm);
+  const auto& maxISize = stylePos->MaxISize(wm);
+  const auto& minBSize = stylePos->MinBSize(wm);
+  const auto& maxBSize = stylePos->MaxBSize(wm);
 
   // NOTE: min-width:auto resolves to 0, except on a flex item. (But
   // even there, it's supposed to be ignored (i.e. treated as 0) until
@@ -2903,7 +2905,7 @@ void ReflowInput::ComputeMinMaxValues(const LogicalSize& aCBSize) {
     ComputedMinISize() = 0;
   } else {
     ComputedMinISize() =
-        ComputeISizeValue(aCBSize, mStylePosition->mBoxSizing, minISize);
+        ComputeISizeValue(aCBSize, stylePos->mBoxSizing, minISize);
   }
 
   if (maxISize.IsNone()) {
@@ -2911,7 +2913,7 @@ void ReflowInput::ComputeMinMaxValues(const LogicalSize& aCBSize) {
     ComputedMaxISize() = NS_UNCONSTRAINEDSIZE;  // no limit
   } else {
     ComputedMaxISize() =
-        ComputeISizeValue(aCBSize, mStylePosition->mBoxSizing, maxISize);
+        ComputeISizeValue(aCBSize, stylePos->mBoxSizing, maxISize);
   }
 
   // If the computed value of 'min-width' is greater than the value of
@@ -2942,18 +2944,16 @@ void ReflowInput::ComputeMinMaxValues(const LogicalSize& aCBSize) {
   if (BSizeBehavesAsInitialValue(minBSize)) {
     ComputedMinBSize() = 0;
   } else {
-    ComputedMinBSize() =
-        ComputeBSizeValue(bPercentageBasis, mStylePosition->mBoxSizing,
-                          minBSize.AsLengthPercentage());
+    ComputedMinBSize() = ComputeBSizeValue(
+        bPercentageBasis, stylePos->mBoxSizing, minBSize.AsLengthPercentage());
   }
 
   if (BSizeBehavesAsInitialValue(maxBSize)) {
     // Specified value of 'none'
     ComputedMaxBSize() = NS_UNCONSTRAINEDSIZE;  // no limit
   } else {
-    ComputedMaxBSize() =
-        ComputeBSizeValue(bPercentageBasis, mStylePosition->mBoxSizing,
-                          maxBSize.AsLengthPercentage());
+    ComputedMaxBSize() = ComputeBSizeValue(
+        bPercentageBasis, stylePos->mBoxSizing, maxBSize.AsLengthPercentage());
   }
 
   // If the computed value of 'min-height' is greater than the value of
