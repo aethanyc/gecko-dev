@@ -1262,17 +1262,17 @@ void nsImageFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
     currentRequest->GetImageStatus(&loadStatus);
   }
 
-  if (aPresContext->IsPaginated() &&
-      ((loadStatus & imgIRequest::STATUS_SIZE_AVAILABLE) ||
-       (mState & IMAGE_SIZECONSTRAINED)) &&
-      NS_UNCONSTRAINEDSIZE != aReflowInput.AvailableHeight() &&
-      aMetrics.Height() > aReflowInput.AvailableHeight()) {
-    // our desired height was greater than 0, so to avoid infinite
-    // splitting, use 1 pixel as the min
-    aMetrics.Height() = std::max(nsPresContext::CSSPixelsToAppUnits(1),
-                                 aReflowInput.AvailableHeight());
-    aStatus.SetIncomplete();
-  }
+  // if (aPresContext->IsPaginated() &&
+  //     ((loadStatus & imgIRequest::STATUS_SIZE_AVAILABLE) ||
+  //      (mState & IMAGE_SIZECONSTRAINED)) &&
+  //     NS_UNCONSTRAINEDSIZE != aReflowInput.AvailableHeight() &&
+  //     aMetrics.Height() > aReflowInput.AvailableHeight()) {
+  //   // our desired height was greater than 0, so to avoid infinite
+  //   // splitting, use 1 pixel as the min
+  //   aMetrics.Height() = std::max(nsPresContext::CSSPixelsToAppUnits(1),
+  //                                aReflowInput.AvailableHeight());
+  //   aStatus.SetIncomplete();
+  // }
 
   aMetrics.SetOverflowAreasToDesiredBounds();
   bool imageOK =
