@@ -12,6 +12,7 @@
 #include "mozilla/intl/BidiEmbeddingLevel.h"
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/EnumeratedRange.h"
+#include "mozilla/EnumSet.h"
 
 #include "nsRect.h"
 #include "nsBidiUtils.h"
@@ -49,6 +50,7 @@ enum LogicalAxis : uint8_t {
   eLogicalAxisBlock = 0x0,
   eLogicalAxisInline = 0x1
 };
+using LogicalAxes = EnumSet<LogicalAxis>;
 enum LogicalEdge { eLogicalEdgeStart = 0x0, eLogicalEdgeEnd = 0x1 };
 enum LogicalSide : uint8_t {
   eLogicalSideBStart = (eLogicalAxisBlock << 1) | eLogicalEdgeStart,   // 0x0

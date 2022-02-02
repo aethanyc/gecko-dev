@@ -121,7 +121,7 @@ SizeComputationInput::SizeComputationInput(
     : SizeComputationInput(aFrame, aRenderingContext) {
   MOZ_ASSERT(!mFrame->IsTableColFrame());
   InitOffsets(aContainingBlockWritingMode, aContainingBlockISize,
-              mFrame->Type(), {}, aBorder, aPadding);
+              mFrame->Type(), aBorder, aPadding, {});
 }
 
 // Initialize a <b>root</b> reflow input with a rendering context to
@@ -2113,12 +2113,19 @@ void ReflowInput::InitConstraints(
   DISPLAY_INIT_CONSTRAINTS(mFrame, this, cbSize.ISize(wm), cbSize.BSize(wm),
                            aBorder, aPadding);
 
+  mozilla::LogicalAxes axesNeedBaselinePadding;
+  if (!mComputeSizeFlags.contains(ComputeSizeFlag::UseAutoBSize)) {
+    axesNeedBaselinePadding += eLogicalAxisBlock;
+  }
+  if (!mComputeSizeFlags.contains(ComputeSizeFlag::ShrinkWrap)) {
+    axesNeedBaselinePadding += eLogicalAxisInline;
+  }
+
   // If this is a reflow root, then set the computed width and
   // height equal to the available space
   if (nullptr == mParentReflowInput || mFlags.mDummyParentReflowInput) {
-    // XXXldb This doesn't mean what it used to!
-    InitOffsets(wm, cbSize.ISize(wm), aFrameType, mComputeSizeFlags, aBorder,
-                aPadding, mStyleDisplay);
+    InitOffsets(wm, cbSize.ISize(wm), aFrameType, aBorder, aPadding,
+                axesNeedBaselinePadding, mStyleDisplay);
     // Override mComputedMargin since reflow roots start from the
     // frame's boundary, which is inside the margin.
     SetComputedLogicalMargin(wm, LogicalMargin(wm));
@@ -2173,7 +2180,7 @@ void ReflowInput::InitConstraints(
     // padding, we use the writing mode of the containing block
     WritingMode cbwm = cbri->GetWritingMode();
     InitOffsets(cbwm, cbSize.ConvertTo(cbwm, wm).ISize(cbwm), aFrameType,
-                mComputeSizeFlags, aBorder, aPadding, mStyleDisplay);
+                aBorder, aPadding, axesNeedBaselinePadding, mStyleDisplay);
 
     // For calculating the size of this box, we use its own writing mode
     const auto& blockSize = mStylePosition->BSize(wm);
@@ -2415,9 +2422,9 @@ static void UpdateProp(nsIFrame* aFrame,
 
 void SizeComputationInput::InitOffsets(WritingMode aCBWM, nscoord aPercentBasis,
                                        LayoutFrameType aFrameType,
-                                       ComputeSizeFlags aFlags,
                                        const Maybe<LogicalMargin>& aBorder,
                                        const Maybe<LogicalMargin>& aPadding,
+                                       LogicalAxes aAxesNeedBaselinePadding,
                                        const nsStyleDisplay* aDisplay) {
   DISPLAY_INIT_OFFSETS(mFrame, this, aPercentBasis, aCBWM, aBorder, aPadding);
 
@@ -2489,10 +2496,10 @@ void SizeComputationInput::InitOffsets(WritingMode aCBWM, nscoord aPercentBasis,
       }
     }
   };
-  if (!aFlags.contains(ComputeSizeFlag::UseAutoBSize)) {
+  if (aAxesNeedBaselinePadding.contains(eLogicalAxisBlock)) {
     ApplyBaselinePadding(eLogicalAxisBlock, nsIFrame::BBaselinePadProperty());
   }
-  if (!aFlags.contains(ComputeSizeFlag::ShrinkWrap)) {
+  if (aAxesNeedBaselinePadding.contains(eLogicalAxisInline)) {
     ApplyBaselinePadding(eLogicalAxisInline, nsIFrame::IBaselinePadProperty());
   }
 
