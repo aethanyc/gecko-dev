@@ -2115,6 +2115,9 @@ nscoord nsFlexContainerFrame::MeasureFlexItemContentBSize(
       childRIForMeasuringBSize.mFlags.mInsideLineClamp || aHasLineClampEllipsis;
   childRIForMeasuringBSize.Init(PresContext());
 
+  // We override this item's block-size as 'auto' above.
+  childRIForMeasuringBSize.mFlags.mTreatBSizeAsIndefinite = true;
+
   // When measuring flex item's content block-size, disregard the item's
   // min-block-size and max-block-size by resetting both to to their
   // unconstraining (extreme) values. The flexbox layout algorithm does still
