@@ -2114,7 +2114,8 @@ void ReflowInput::InitConstraints(
                            aBorder, aPadding);
 
   mozilla::LogicalAxes axesNeedBaselinePadding;
-  if (!mComputeSizeFlags.contains(ComputeSizeFlag::UseAutoBSize)) {
+  if (const auto& bSize = mStyleSizeOverrides.mStyleBSize;
+      !(bSize && bSize->BehavesLikeInitialValueOnBlockAxis())) {
     axesNeedBaselinePadding += eLogicalAxisBlock;
   }
   if (!mComputeSizeFlags.contains(ComputeSizeFlag::ShrinkWrap)) {

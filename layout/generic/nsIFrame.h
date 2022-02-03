@@ -4365,8 +4365,7 @@ class nsIFrame : public nsQueryFrame {
   Maybe<nscoord> ComputeInlineSizeFromAspectRatio(
       mozilla::WritingMode aWM, const mozilla::LogicalSize& aCBSize,
       const mozilla::LogicalSize& aContentEdgeToBoxSizing,
-      const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags) const;
+      const mozilla::StyleSizeOverrides& aSizeOverrides) const;
 
  public:
   /**

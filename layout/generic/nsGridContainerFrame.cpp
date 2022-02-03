@@ -4991,8 +4991,11 @@ static nscoord MeasuringReflow(nsIFrame* aChild,
   parent->SetProperty(nsContainerFrame::DebugReflowingWithInfiniteISize(),
                       true);
 #endif
+  StyleSizeOverrides sizeOverrides;
+  sizeOverrides.mStyleBSize.emplace(StyleSize::Auto());
+
   auto wm = aChild->GetWritingMode();
-  ComputeSizeFlags csFlags = ComputeSizeFlag::UseAutoBSize;
+  ComputeSizeFlags csFlags = ComputeSizeFlag::MeasuringGridItemBSize;
   if (aAvailableSize.ISize(wm) == INFINITE_ISIZE_COORD) {
     csFlags += ComputeSizeFlag::ShrinkWrap;
   }
@@ -5006,16 +5009,16 @@ static nscoord MeasuringReflow(nsIFrame* aChild,
   } else {
     aChild->RemoveProperty(nsIFrame::BClampMarginBoxMinSizeProperty());
   }
-  ReflowInput childRI(pc, *rs, aChild, aAvailableSize, Some(aCBSize), {}, {},
-                      csFlags);
+  ReflowInput childRI(pc, *rs, aChild, aAvailableSize, Some(aCBSize), {},
+                      sizeOverrides, csFlags);
 
-  // Because we pass ComputeSizeFlag::UseAutoBSize, and the
+  // Because we override style block-size with an 'auto' value, and the
   // previous reflow of the child might not have, set the child's
   // block-resize flag to true.
   // FIXME (perf): It would be faster to do this only if the previous
   // reflow of the child was not a measuring reflow, and only if the
-  // child does some of the things that are affected by
-  // ComputeSizeFlag::UseAutoBSize.
+  // child does some of the things that are affected by an 'auto' block-size
+  // override.
   childRI.SetBResize(true);
   // Not 100% sure this is needed, but be conservative for now:
   childRI.mFlags.mIsBResizeForPercentages = true;
@@ -7314,13 +7317,12 @@ void nsGridContainerFrame::ReflowInFlowChild(
   childRI.mFlags.mIsTopOfPage =
       aFragmentainer ? aFragmentainer->mIsTopOfPage : false;
 
-  // Because we pass ComputeSizeFlag::UseAutoBSize, and the
-  // previous reflow of the child might not have, set the child's
-  // block-resize flag to true.
+  // Because we used an 'auto' block-size override in the measuring reflow,
+  // set the child's block-resize flag to true.
   // FIXME (perf): It would be faster to do this only if the previous
   // reflow of the child was a measuring reflow, and only if the child
-  // does some of the things that are affected by
-  // ComputeSizeFlag::UseAutoBSize.
+  // does some of the things that are affected by an 'auto' block-size
+  // override
   childRI.SetBResize(true);
   childRI.mFlags.mIsBResizeForPercentages = true;
 

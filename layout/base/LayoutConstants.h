@@ -45,14 +45,6 @@ enum class ComputeSizeFlag : uint8_t {
   ShrinkWrap,
 
   /**
-   * Set if we'd like to compute our 'auto' bsize, regardless of our actual
-   * corresponding computed value. (e.g. to get an intrinsic bsize for flex
-   * items when resolving automatic minimum size in the main axis during flexbox
-   * layout.)
-   */
-  UseAutoBSize,
-
-  /**
    * Indicates that we should clamp the margin-box min-size to the given CB
    * size.  This is used for implementing the grid area clamping here:
    * https://drafts.csswg.org/css-grid/#min-size-auto
@@ -68,6 +60,13 @@ enum class ComputeSizeFlag : uint8_t {
    * https://drafts.csswg.org/css-align-3/#valdef-justify-self-stretch
    */
   IApplyAutoMinSize,  // only has an effect when eShrinkWrap is false
+
+  /**
+   * Set if we are measuring grid item's block-size, to skip the logic in
+   * nsIFrame::ComputeSize() that stretches the grid item's block-size to fit
+   * the containing block's block-size.
+   */
+  MeasuringGridItemBSize,
 };
 using ComputeSizeFlags = mozilla::EnumSet<ComputeSizeFlag>;
 

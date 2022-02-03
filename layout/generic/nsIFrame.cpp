@@ -6337,8 +6337,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   const bool isOrthogonal = aWM.IsOrthogonalTo(alignCB->GetWritingMode());
   const bool isAutoISize = styleISize.IsAuto();
   const bool isAutoBSize =
-      nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM)) ||
-      aFlags.contains(ComputeSizeFlag::UseAutoBSize);
+      nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM));
   // Compute inline-axis size
   if (!isAutoISize) {
     auto iSizeResult = ComputeISizeValue(
@@ -6490,12 +6489,11 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   }
   result.ISize(aWM) = std::max(minISize, result.ISize(aWM));
 
-  // Compute block-axis size
-  // (but not if we have auto bsize or if we received the "UseAutoBSize"
-  // flag -- then, we'll just stick with the bsize that we already calculated
-  // in the initial ComputeAutoSize() call. However, if we have a valid
-  // preferred aspect ratio, we still have to compute the block size because
-  // aspect ratio affects the intrinsic content size.)
+  // Compute block-axis size, but not if we have auto bsize -- then, we'll just
+  // stick with the bsize that we already calculated in the initial
+  // ComputeAutoSize() call. However, if we have a valid preferred aspect ratio,
+  // we still have to compute the block size because aspect ratio affects the
+  // intrinsic content size.
   if (!isAutoBSize) {
     result.BSize(aWM) = nsLayoutUtils::ComputeBSizeValue(
         aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
@@ -6503,7 +6501,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   } else if (MOZ_UNLIKELY(isGridItem) &&
              // FIXME: Any better way to refine the auto check here?
              styleBSize.IsAuto() &&
-             !aFlags.contains(ComputeSizeFlag::UseAutoBSize) &&
+             !aFlags.contains(ComputeSizeFlag::MeasuringGridItemBSize) &&
              !IsTrueOverflowContainer() &&
              !alignCB->IsMasonry(isOrthogonal ? eLogicalAxisInline
                                               : eLogicalAxisBlock)) {
@@ -6665,7 +6663,7 @@ nscoord nsIFrame::ShrinkWidthToFit(gfxContext* aRenderingContext,
 Maybe<nscoord> nsIFrame::ComputeInlineSizeFromAspectRatio(
     WritingMode aWM, const LogicalSize& aCBSize,
     const LogicalSize& aContentEdgeToBoxSizing,
-    const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags) const {
+    const StyleSizeOverrides& aSizeOverrides) const {
   // FIXME: Bug 1670151: Use GetAspectRatio() to cover replaced elements (and
   // then we can drop the check of eSupportsAspectRatio).
   const AspectRatio aspectRatio =
@@ -6679,8 +6677,7 @@ Maybe<nscoord> nsIFrame::ComputeInlineSizeFromAspectRatio(
   const StyleSize& styleBSize = aSizeOverrides.mStyleBSize
                                     ? *aSizeOverrides.mStyleBSize
                                     : StylePosition()->BSize(aWM);
-  if (aFlags.contains(ComputeSizeFlag::UseAutoBSize) ||
-      nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM))) {
+  if (nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM))) {
     return Nothing();
   }
 
@@ -6709,7 +6706,7 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
           ? Nothing()
           : ComputeInlineSizeFromAspectRatio(aWM, aContainingBlockSize,
                                              aContentEdgeToBoxSizing,
-                                             aSizeOverrides, aFlags);
+                                             aSizeOverrides);
   nscoord result;
   switch (aSize) {
     case ExtremumLength::MaxContent:
