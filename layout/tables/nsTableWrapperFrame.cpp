@@ -439,6 +439,9 @@ nsIFrame::SizeComputationResult nsTableWrapperFrame::ComputeSize(
       aRenderingContext, aWM, aCBSize, aAvailableISize, aMargin, aBorderPadding,
       aSizeOverrides, aFlags);
 
+  printf("In table wrapper frame compute size 1, result %s\n",
+         ToString(result.mLogicalSize).c_str());
+
   if (aSizeOverrides.mApplyOverridesVerbatim &&
       aSizeOverrides.HasAnyOverrides()) {
     // We are asked to apply the size overrides directly to the inner table, but
@@ -452,7 +455,7 @@ nsIFrame::SizeComputationResult nsTableWrapperFrame::ComputeSize(
     result.mLogicalSize = size;
   }
 
-  printf("In table wrapper frame compute size, result %s\n",
+  printf("In table wrapper frame compute size 2, result %s\n",
          ToString(result.mLogicalSize).c_str());
   return result;
 }
