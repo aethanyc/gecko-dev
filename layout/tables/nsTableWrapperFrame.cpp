@@ -336,10 +336,14 @@ LogicalSize nsTableWrapperFrame::InnerTableShrinkWrapSize(
           ->ComputeSize(aRenderingContext, aWM, aCBSize, aAvailableISize,
                         marginSize, bpSize, innerOverrides, aFlags)
           .mLogicalSize;
+
   size.ISize(aWM) += bpSize.ISize(aWM);
   if (size.BSize(aWM) != NS_UNCONSTRAINEDSIZE) {
     size.BSize(aWM) += bpSize.BSize(aWM);
   }
+
+  printf("inner table shrink warp bsize %d\n", size.BSize(aWM));
+
   return size;
 }
 
@@ -379,11 +383,18 @@ StyleSizeOverrides nsTableWrapperFrame::ComputeSizeOverridesForInnerTable(
     const StyleSizeOverrides& aWrapperSizeOverrides,
     const LogicalSize& aBorderPadding,
     const LogicalSize& aAreaOccupiedByCaption) const {
-  if (aWrapperSizeOverrides.mApplyOverridesVerbatim ||
-      !aWrapperSizeOverrides.HasAnyLengthOverrides()) {
-    // We are asked to apply the size overrides directly to the inner table, or
-    // there's no 'Length' size overrides. No need to tweak the size overrides.
+  if (aWrapperSizeOverrides.mApplyOverridesVerbatim) {
+    // We are asked to apply the size overrides directly to the inner table, so
+    // no need to tweak the size overrides.
     return aWrapperSizeOverrides;
+  }
+
+  // We are asked to apply the size overrides to the table wrapper.
+  StyleSizeOverrides innerSizeOverrides;
+  if (!aWrapperSizeOverrides.HasAnyLengthOverrides()) {
+    // There's no 'Length' size overrides, so no need to tweak the size
+    // overrides.
+    return innerSizeOverrides;
   }
 
   const auto wm = aTableFrame->GetWritingMode();
@@ -395,7 +406,6 @@ StyleSizeOverrides nsTableWrapperFrame::ComputeSizeOverridesForInnerTable(
     areaOccupied += aBorderPadding;
   }
 
-  StyleSizeOverrides innerSizeOverrides;
   const auto& wrapperISize = aWrapperSizeOverrides.mStyleISize;
   if (wrapperISize) {
     MOZ_ASSERT(!wrapperISize->HasPercent(),
@@ -442,6 +452,8 @@ nsIFrame::SizeComputationResult nsTableWrapperFrame::ComputeSize(
     result.mLogicalSize = size;
   }
 
+  printf("In table wrapper frame compute size, result %s\n",
+         ToString(result.mLogicalSize).c_str());
   return result;
 }
 
@@ -751,6 +763,9 @@ void nsTableWrapperFrame::CreateReflowInputForInnerTable(
   //
   // Note that inner table computed margins are always zero, they're inherited
   // by the table wrapper, so we need to get our margin from aOuterRI.
+
+  printf("(before) in create ri for inner, cbBSize %d\n", cbSize->BSize(wm));
+
   if (IsGridItem()) {
     const LogicalMargin margin = aOuterRI.ComputedLogicalMargin(wm);
     cbSize->ISize(wm) = std::max(0, cbSize->ISize(wm) - margin.IStartEnd(wm) -
@@ -760,6 +775,8 @@ void nsTableWrapperFrame::CreateReflowInputForInnerTable(
                                           areaOccupiedByCaption.BSize(wm));
     }
   }
+
+  printf("(after) in create ri for inner, cbBSize %d\n", cbSize->BSize(wm));
 
   if (!aTableFrame->IsBorderCollapse() &&
       !aOuterRI.mStyleSizeOverrides.HasAnyOverrides()) {
@@ -964,6 +981,8 @@ void nsTableWrapperFrame::Reflow(nsPresContext* aPresContext,
     areaOccupiedByCaption.emplace(GetAreaOccupiedByCaption(
         *captionSide, captionSize + captionMargin.Size(wm)));
 
+    printf("caption size %s\n", ToString(*areaOccupiedByCaption).c_str());
+
     if (!areaOccupiedByCaption->IsAllZero()) {
       // Reset the inner table's ReflowInput to reduce various sizes because of
       // the area occupied by caption.
@@ -979,6 +998,8 @@ void nsTableWrapperFrame::Reflow(nsPresContext* aPresContext,
   ReflowOutput innerMet(innerRI->GetWritingMode());
   ReflowChild(aPresContext, InnerTableFrame(), *innerRI, innerMet, aStatus);
   LogicalSize innerSize(wm, innerMet.ISize(wm), innerMet.BSize(wm));
+
+  printf("table wrapper inner bsize %d\n", innerMet.BSize(wm));
 
   LogicalSize containSize(wm, GetContainingBlockSize(aOuterRI));
 
@@ -1015,6 +1036,8 @@ void nsTableWrapperFrame::Reflow(nsPresContext* aPresContext,
   }
   // XXX If the bsize is constrained then we need to check whether
   // everything still fits...
+
+  printf("table wrapper desired size %s\n", ToString(desiredSize).c_str());
 
   LogicalPoint innerOrigin(wm);
   GetInnerOrigin(captionSide, containSize, captionSize, captionMargin,

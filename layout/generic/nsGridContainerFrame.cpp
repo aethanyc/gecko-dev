@@ -5045,10 +5045,13 @@ static nscoord MeasuringReflow(nsIFrame* aChild,
     }
   }
 
+  GRID_LOG("Before calling ReflowChild");
   parent->ReflowChild(aChild, pc, childSize, childRI, wm, LogicalPoint(wm),
                       nsSize(), flags, childStatus);
   nsContainerFrame::FinishReflowChild(aChild, pc, childSize, &childRI, wm,
                                       LogicalPoint(wm), nsSize(), flags);
+
+  GRID_LOG("childBSize %d", childSize.BSize(wm));
 #ifdef DEBUG
   parent->RemoveProperty(nsContainerFrame::DebugReflowingWithInfiniteISize());
 #endif

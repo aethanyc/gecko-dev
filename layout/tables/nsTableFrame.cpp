@@ -1449,6 +1449,9 @@ nsIFrame::SizeComputationResult nsTableFrame::ComputeSize(
     result.mLogicalSize.ISize(aWM) = minISize;
   }
 
+  printf("In table inner frame compute size, result %s\n",
+         ToString(result.mLogicalSize).c_str());
+
   return result;
 }
 
