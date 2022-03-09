@@ -5373,16 +5373,6 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
                      itemNormalBPos + item.Frame()->BSize(flexWM));
       }
 
-      // If the item has auto margins, and we were tracking the UsedMargin
-      // property, set the property to the computed margin values.
-      if (item.HasAnyAutoMargin()) {
-        nsMargin* propValue =
-            item.Frame()->GetProperty(nsIFrame::UsedMarginProperty());
-        if (propValue) {
-          *propValue = item.PhysicalMargin();
-        }
-      }
-
       // If this is our first item and we haven't established a baseline for
       // the container yet (i.e. if we don't have 'align-self: baseline' on any
       // children), then use this child's first baseline as the container's
