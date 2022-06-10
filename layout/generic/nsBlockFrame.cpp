@@ -4032,7 +4032,8 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowState& aState,
     if (frameReflowStatus.IsInlineBreakBefore()) {
       // None of the child block fits.
       *aKeepReflowGoing = false;
-      if (ShouldAvoidBreakInside(aState.mReflowInput)) {
+      if ((aLine == mLines.front() && !GetPrevInFlow()) ||
+          ShouldAvoidBreakInside(aState.mReflowInput)) {
         aState.mReflowStatus.SetInlineLineBreakBeforeAndReset();
         aLine->MarkDirty();
       } else {
