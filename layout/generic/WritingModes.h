@@ -1019,6 +1019,18 @@ class LogicalSize {
    * Various binary operators on LogicalSize. These are valid ONLY for operands
    * that share the same writing mode.
    */
+#ifdef DEBUG
+  LogicalSize& operator=(const LogicalSize& aOther) {
+    CHECK_WRITING_MODE(aOther.GetWritingMode());
+    if (this != &aOther) {
+      mSize = aOther.mSize;
+    }
+    return *this;
+  }
+#else
+  LogicalSize& operator=(const LogicalSize& aOther) = default;
+#endif
+
   bool operator==(const LogicalSize& aOther) const {
     CHECK_WRITING_MODE(aOther.GetWritingMode());
     return mSize == aOther.mSize;
