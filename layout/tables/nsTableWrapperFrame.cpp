@@ -379,11 +379,20 @@ StyleSizeOverrides nsTableWrapperFrame::ComputeSizeOverridesForInnerTable(
     const StyleSizeOverrides& aWrapperSizeOverrides,
     const LogicalSize& aBorderPadding,
     const LogicalSize& aAreaOccupiedByCaption) const {
-  if (aWrapperSizeOverrides.mApplyOverridesVerbatim ||
-      !aWrapperSizeOverrides.HasAnyLengthOverrides()) {
-    // We are asked to apply the size overrides directly to the inner table, or
-    // there's no 'Length' size overrides. No need to tweak the size overrides.
+  if (aWrapperSizeOverrides.mApplyOverridesVerbatim) {
+    // We are asked to apply the size overrides directly to the inner table
+    // frame, so we just return the original overrides.
     return aWrapperSizeOverrides;
+  }
+
+  // We are asked to apply the size overrides to ourselves (table wrapper
+  // frame).
+  StyleSizeOverrides innerSizeOverrides;
+  if (!aWrapperSizeOverrides.HasAnyLengthOverrides()) {
+    // There's no 'Length' size overrides, so no need to tweak the size
+    // overrides. Just return an empty override so that the inner table frame
+    // uses its own sizes from the style system.
+    return innerSizeOverrides;
   }
 
   const auto wm = aTableFrame->GetWritingMode();
@@ -395,7 +404,6 @@ StyleSizeOverrides nsTableWrapperFrame::ComputeSizeOverridesForInnerTable(
     areaOccupied += aBorderPadding;
   }
 
-  StyleSizeOverrides innerSizeOverrides;
   const auto& wrapperISize = aWrapperSizeOverrides.mStyleISize;
   if (wrapperISize) {
     MOZ_ASSERT(!wrapperISize->HasPercent(),
