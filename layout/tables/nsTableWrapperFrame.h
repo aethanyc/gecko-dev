@@ -282,7 +282,7 @@ class nsTableWrapperFrame : public nsContainerFrame {
    * Helper for ComputeAutoSize.
    * Compute the margin-box inline size of the frame given the inputs.
    *
-   * Note: CaptionShrinkWrapISize doesn't need StyleSizeOverrides parameter.
+   * Note: CaptionShrinkWrapSize doesn't need StyleSizeOverrides parameter.
    */
   mozilla::LogicalSize InnerTableShrinkWrapSize(
       gfxContext* aRenderingContext, nsTableFrame* aTableFrame,
@@ -293,7 +293,12 @@ class nsTableWrapperFrame : public nsContainerFrame {
   mozilla::LogicalSize CaptionShrinkWrapSize(
       gfxContext* aRenderingContext, nsIFrame* aCaptionFrame,
       mozilla::WritingMode aWM, const mozilla::LogicalSize& aCBSize,
-      nscoord aAvailableISize, mozilla::ComputeSizeFlags aFlag) const;
+      nscoord aAvailableISize, mozilla::ComputeSizeFlags aFlag);
+  nscoord MeasureCaptionMarginBSize(gfxContext* aRenderingContext,
+                                    nsIFrame* aCaptionFrame,
+                                    mozilla::WritingMode aWM,
+                                    const mozilla::LogicalSize& aCBSize,
+                                    nscoord aAvailableISize);
 
   /**
    * Create a new StyleSize by reducing the size by aAmountToReduce.

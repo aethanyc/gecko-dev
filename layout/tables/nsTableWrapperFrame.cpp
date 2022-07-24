@@ -346,7 +346,7 @@ LogicalSize nsTableWrapperFrame::InnerTableShrinkWrapSize(
 LogicalSize nsTableWrapperFrame::CaptionShrinkWrapSize(
     gfxContext* aRenderingContext, nsIFrame* aCaptionFrame, WritingMode aWM,
     const LogicalSize& aCBSize, nscoord aAvailableISize,
-    ComputeSizeFlags aFlags) const {
+    ComputeSizeFlags aFlags) {
   MOZ_ASSERT(aCaptionFrame == mCaptionFrames.FirstChild());
 
   AutoMaybeDisableFontInflation an(aCaptionFrame);
@@ -363,8 +363,34 @@ LogicalSize nsTableWrapperFrame::CaptionShrinkWrapSize(
   size.ISize(aWM) += (marginSize.ISize(aWM) + bpSize.ISize(aWM));
   if (size.BSize(aWM) != NS_UNCONSTRAINEDSIZE) {
     size.BSize(aWM) += (marginSize.BSize(aWM) + bpSize.BSize(aWM));
+  } else {
+    size.BSize(aWM) = MeasureCaptionMarginBSize(
+        aRenderingContext, aCaptionFrame, aWM, aCBSize, aAvailableISize);
   }
   return size;
+}
+
+nscoord nsTableWrapperFrame::MeasureCaptionMarginBSize(
+    gfxContext* aRenderingContext, nsIFrame* aCaptionFrame, WritingMode aWM,
+    const LogicalSize& aCBSize, nscoord aAvailableISize) {
+  ReflowInput dummyParentRI(PresContext(), this, aRenderingContext, aCBSize,
+                            ReflowInput::InitFlag::DummyParentReflowInput);
+  Maybe<ReflowInput> captionRI;
+  CreateReflowInputForCaption(PresContext(), aCaptionFrame, dummyParentRI,
+                              captionRI, aAvailableISize);
+  ReflowOutput captionRO(aWM);
+  nsReflowStatus captionStatus;
+  ReflowChild(PresContext(), aCaptionFrame, *captionRI, captionRO,
+              captionStatus);
+
+  // The caption's position doesn't matter because we'll move it after
+  // reflowing it in table wrapper's reflow.
+  FinishReflowChild(aCaptionFrame, PresContext(), captionRO, captionRI.ptr(),
+                    aWM, LogicalPoint(aWM), nsSize(),
+                    nsIFrame::ReflowChildFlags::NoMoveFrame |
+                        nsIFrame::ReflowChildFlags::NoSizeView);
+  return captionRO.BSize(aWM) +
+         captionRI->ComputedLogicalMargin(aWM).BStartEnd(aWM);
 }
 
 StyleSize nsTableWrapperFrame::ReduceStyleSizeBy(
