@@ -293,7 +293,7 @@ class nsTableWrapperFrame : public nsContainerFrame {
   mozilla::LogicalSize CaptionShrinkWrapSize(
       gfxContext* aRenderingContext, nsIFrame* aCaptionFrame,
       mozilla::WritingMode aWM, const mozilla::LogicalSize& aCBSize,
-      nscoord aAvailableISize, mozilla::ComputeSizeFlags aFlag) const;
+      nscoord aAvailableISize, mozilla::ComputeSizeFlags aFlag);
 
   /**
    * Create a new StyleSize by reducing the size by aAmountToReduce.
