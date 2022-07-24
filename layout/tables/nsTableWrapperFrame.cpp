@@ -367,6 +367,32 @@ LogicalSize nsTableWrapperFrame::CaptionShrinkWrapSize(
   return size;
 }
 
+nscoord nsTableWrapperFrame::MeasureCaptionMarginBSize(
+    gfxContext* aRenderingContext, nsIFrame* aCaptionFrame, WritingMode aWM,
+    const LogicalSize& aCBSize, nscoord aAvailableISize) {
+  MOZ_ASSERT(!HasAnyStateBits(NS_FRAME_IN_REFLOW),
+             "Table wrapper frame shouldn't already be in a reflow!");
+
+  ReflowInput dummyParentRI(PresContext(), this, aRenderingContext, aCBSize,
+                            ReflowInput::InitFlag::DummyParentReflowInput);
+  Maybe<ReflowInput> captionRI;
+  CreateReflowInputForCaption(PresContext(), aCaptionFrame, dummyParentRI,
+                              captionRI, aAvailableISize);
+  ReflowOutput captionRO(aWM);
+  nsReflowStatus captionStatus;
+
+  ReflowChild(PresContext(), aCaptionFrame, *captionRI, captionRO,
+              captionStatus);
+  // The caption's position doesn't matter because we'll move it after
+  // reflowing it in table wrapper's reflow.
+  FinishReflowChild(aCaptionFrame, PresContext(), captionRO, captionRI.ptr(),
+                    aWM, LogicalPoint(aWM), nsSize(),
+                    nsIFrame::ReflowChildFlags::NoMoveFrame |
+                        nsIFrame::ReflowChildFlags::NoSizeView);
+  return captionRO.BSize(aWM) +
+         captionRI->ComputedLogicalMargin(aWM).BStartEnd(aWM);
+}
+
 StyleSize nsTableWrapperFrame::ReduceStyleSizeBy(
     const StyleSize& aStyleSize, const nscoord aAmountToReduce) const {
   MOZ_ASSERT(aStyleSize.ConvertsToLength(), "Only handles 'Length' StyleSize!");
@@ -510,9 +536,16 @@ LogicalSize nsTableWrapperFrame::ComputeAutoSize(
                               aWM, aCBSize, innerTableSize.ISize(aWM), flags);
     result.ISize(aWM) =
         std::max(innerTableSize.ISize(aWM), captionSize.ISize(aWM));
-    if (innerTableSize.BSize(aWM) != NS_UNCONSTRAINEDSIZE &&
-        captionSize.BSize(aWM) != NS_UNCONSTRAINEDSIZE) {
-      result.BSize(aWM) = innerTableSize.BSize(aWM) + captionSize.BSize(aWM);
+    if (innerTableSize.BSize(aWM) != NS_UNCONSTRAINEDSIZE) {
+      // The inner table has a definite block-size, so it's worth the effort to
+      // reflow the caption to get its margin block-size.
+      const nscoord captionMarginBSize =
+          captionSize.BSize(aWM) != NS_UNCONSTRAINEDSIZE
+              ? captionSize.BSize(aWM)
+              : MeasureCaptionMarginBSize(aRenderingContext,
+                                          mCaptionFrames.FirstChild(), aWM,
+                                          aCBSize, innerTableSize.ISize(aWM));
+      result.BSize(aWM) = innerTableSize.BSize(aWM) + captionMarginBSize;
     }
   } else {
     MOZ_ASSERT(*captionSide == StyleCaptionSide::TopOutside ||
