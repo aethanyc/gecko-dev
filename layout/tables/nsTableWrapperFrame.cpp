@@ -346,7 +346,7 @@ LogicalSize nsTableWrapperFrame::InnerTableShrinkWrapSize(
 LogicalSize nsTableWrapperFrame::CaptionShrinkWrapSize(
     gfxContext* aRenderingContext, nsIFrame* aCaptionFrame, WritingMode aWM,
     const LogicalSize& aCBSize, nscoord aAvailableISize,
-    ComputeSizeFlags aFlags) const {
+    ComputeSizeFlags aFlags) {
   MOZ_ASSERT(aCaptionFrame == mCaptionFrames.FirstChild());
 
   AutoMaybeDisableFontInflation an(aCaptionFrame);
@@ -360,10 +360,22 @@ LogicalSize nsTableWrapperFrame::CaptionShrinkWrapSize(
                   ->ComputeSize(aRenderingContext, aWM, aCBSize,
                                 aAvailableISize, marginSize, bpSize, {}, aFlags)
                   .mLogicalSize;
-  size.ISize(aWM) += (marginSize.ISize(aWM) + bpSize.ISize(aWM));
-  if (size.BSize(aWM) != NS_UNCONSTRAINEDSIZE) {
-    size.BSize(aWM) += (marginSize.BSize(aWM) + bpSize.BSize(aWM));
+
+  if (size.BSize(aWM) == NS_UNCONSTRAINEDSIZE) {
+    ReflowInput dummyParentRI(PresContext(), this, aRenderingContext,
+                              LogicalSize(aWM, 0, NS_UNCONSTRAINEDSIZE),
+                              ReflowInput::InitFlag::DummyParentReflowInput);
+    Maybe<ReflowInput> captionRI;
+    CreateReflowInputForCaption(PresContext(), aCaptionFrame, dummyParentRI,
+                                captionRI, aAvailableISize);
+    ReflowOutput captionRO(aWM);
+    nsReflowStatus captionStatus;
+    ReflowChild(PresContext(), aCaptionFrame, *captionRI, captionRO,
+                captionStatus);
+    size.BSize(aWM) = captionRO.BSize(aWM);
   }
+
+  size += (marginSize + bpSize);
   return size;
 }
 
