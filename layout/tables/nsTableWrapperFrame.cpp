@@ -814,12 +814,13 @@ void nsTableWrapperFrame::CreateReflowInputForCaption(
     const nscoord aAvailISize) const {
   MOZ_ASSERT(aCaptionFrame == mCaptionFrames.FirstChild());
 
-  const WritingMode wm = aCaptionFrame->GetWritingMode();
-
   // Use unconstrained available block-size so that the caption is always
   // fully-complete.
-  const LogicalSize availSize(wm, aAvailISize, NS_UNCONSTRAINEDSIZE);
-  aChildRI.emplace(aPresContext, aOuterRI, aCaptionFrame, availSize);
+  const LogicalSize availSize(aOuterRI.GetWritingMode(), aAvailISize,
+                              NS_UNCONSTRAINEDSIZE);
+  aChildRI.emplace(aPresContext, aOuterRI, aCaptionFrame,
+                   availSize.ConvertTo(aCaptionFrame->GetWritingMode(),
+                                       aOuterRI.GetWritingMode()));
 
   // See if we need to reset mIsTopOfPage flag.
   if (aChildRI->mFlags.mIsTopOfPage) {
