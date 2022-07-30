@@ -1710,6 +1710,7 @@ void nsFlexContainerFrame::ResolveAutoFlexBasisAndMinSize(
         const nscoord availISize = 0;  // for min-content size
         StyleSizeOverrides sizeOverrides;
         sizeOverrides.mStyleISize.emplace(StyleSize::Auto());
+        sizeOverrides.mApplyOverridesVerbatim = true;
         const auto sizeInItemWM = aFlexItem.Frame()->ComputeSize(
             aItemReflowInput.mRenderingContext, itemWM,
             aItemReflowInput.mContainingBlockSize, availISize,
@@ -2102,6 +2103,7 @@ nscoord nsFlexContainerFrame::MeasureFlexItemContentBSize(
     FLEX_LOGV(" Cross size override: %d", aFlexItem.CrossSize());
   }
   sizeOverrides.mStyleBSize.emplace(StyleSize::Auto());
+  sizeOverrides.mApplyOverridesVerbatim = true;
 
   ReflowInput childRIForMeasuringBSize(
       PresContext(), aParentReflowInput, aFlexItem.Frame(), availSize,
