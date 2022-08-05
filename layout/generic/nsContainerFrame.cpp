@@ -2743,9 +2743,6 @@ bool nsContainerFrame::ShouldAvoidBreakInside(
   if (aReflowInput.mFlags.mIsTopOfPage) {
     return false;
   }
-  if (IsAbsolutelyPositioned(disp)) {
-    return false;
-  }
   if (GetPrevInFlow()) {
     return false;
   }
