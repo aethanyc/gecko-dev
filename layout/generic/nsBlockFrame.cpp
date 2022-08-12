@@ -4204,8 +4204,7 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowState& aState,
           frame->AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
         }
 
-        if ((aLine == mLines.front() && !GetPrevInFlow()) ||
-            ShouldAvoidBreakInside(aState.mReflowInput)) {
+        if (ShouldAvoidBreakInside(aState.mReflowInput)) {
           // If it's our very first line *or* we're not at the top of the page
           // and we have page-break-inside:avoid, then we need to be pushed to
           // our parent's next-in-flow.
