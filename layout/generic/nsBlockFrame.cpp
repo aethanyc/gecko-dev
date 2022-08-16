@@ -5403,24 +5403,20 @@ void nsBlockFrame::DrainSelfPushedFloats() {
       if (f->GetPrevContinuation()) {
         // FIXME
       } else {
-        nsPlaceholderFrame* placeholder = f->GetPlaceholderFrame();
-        nsIFrame* floatOriginalParent =
-            presContext->PresShell()
-                ->FrameConstructor()
-                ->GetFloatContainingBlock(placeholder);
-        if (floatOriginalParent != this) {
-          // This is a first continuation that was pushed from one of our
-          // previous continuations.  Take it out of the pushed floats
-          // list and put it in our floats list, before any of our
-          // floats, but after other pushed floats.
-          ourPushedFloats->RemoveFrame(f);
-          mFloats.InsertFrame(nullptr, insertionPrevSibling, f);
-        }
+        // This is a first continuation that was pushed from one of our
+        // previous continuations.  Take it out of the pushed floats
+        // list and put it in our floats list, before any of our
+        // floats, but after other pushed floats.
+        ourPushedFloats->RemoveFrame(f);
+        mFloats.InsertFrame(nullptr, insertionPrevSibling, f);
       }
     }
 
     if (ourPushedFloats->IsEmpty()) {
       RemovePushedFloats()->Delete(presContext->PresShell());
+    } else {
+      NS_ASSERTION(ourPushedFloats->IsEmpty(),
+                   "Our self pushed floats is not fully drained!");
     }
   }
 }
