@@ -106,6 +106,7 @@ WordRange WordBreaker::FindWord(const char16_t* aText, uint32_t aLen,
 
   // Scan forward
   for (uint32_t i = aPos + 1; i <= aLen; i++) {
+    printf("scan forward: i %d, aText[i] %d\n", i, aText[i]);
     if (c != GetClass(aText[i])) {
       range.mEnd = i;
       break;

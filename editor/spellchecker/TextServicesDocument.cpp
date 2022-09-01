@@ -2694,7 +2694,10 @@ TextServicesDocument::OffsetEntryArray::FindWordRange(
   uint32_t strLen = aAllTextInBlock.Length();
 
   intl::WordRange res = intl::WordBreaker::FindWord(str, strLen, strOffset);
+  printf("begin %d, end %d, strLen %d, strOffset %d, str '%s'\n",
+         res.mBegin, res.mEnd, strLen, strOffset, NS_ConvertUTF16toUTF8(str).get());
   if (res.mBegin == res.mEnd) {
+    printf("return err!\n");
     return Err(str ? NS_ERROR_ILLEGAL_VALUE : NS_ERROR_NULL_POINTER);
   }
 
