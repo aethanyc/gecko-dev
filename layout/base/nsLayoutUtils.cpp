@@ -4953,9 +4953,23 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         result = aFrame->BSize();
       }
     } else {
-      result = aType == IntrinsicISizeType::MinISize
-                   ? aFrame->GetMinISize(aRenderingContext)
-                   : aFrame->GetPrefISize(aRenderingContext);
+      const nscoord cbISize = 0;
+      SizeComputationInput input(aFrame, aRenderingContext,
+                                 aFrame->GetParent()->GetWritingMode(),
+                                 cbISize);
+      StyleSizeOverrides sizeOverrides;
+      if (aType == IntrinsicISizeType::MinISize) {
+        sizeOverrides.mStyleISize.emplace(StyleSize::MinContent());
+      } else {
+        sizeOverrides.mStyleISize.emplace(StyleSize::MaxContent());
+      }
+      const auto sizeInChildWM = aFrame->ComputeSize(
+          input.mRenderingContext, childWM,
+          aPercentageBasis.valueOr(LogicalSize(childWM, 0, 0)), cbISize,
+          input.ComputedLogicalMargin(childWM).Size(childWM),
+          input.ComputedLogicalBorderPadding(childWM).Size(childWM),
+          sizeOverrides, {});
+      result = sizeInChildWM.mLogicalSize.ISize(childWM);
     }
 #ifdef DEBUG_INTRINSIC_WIDTH
     --gNoiseIndent;
