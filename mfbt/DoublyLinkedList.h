@@ -189,6 +189,63 @@ class DoublyLinkedList final {
   const Iterator end() const { return Iterator(); }
   const Iterator cend() const { return Iterator(); }
 
+  class ReverseIterator final {
+    T* mCurrent;
+
+   public:
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = T;
+    using difference_type = std::ptrdiff_t;
+    using pointer = T*;
+    using reference = T&;
+
+    ReverseIterator() : mCurrent(nullptr) {}
+    explicit ReverseIterator(T* aCurrent) : mCurrent(aCurrent) {}
+
+    T& operator*() const { return *mCurrent; }
+    T* operator->() const { return mCurrent; }
+
+    ReverseIterator& operator++() {
+      mCurrent = mCurrent ? ElementAccess::Get(mCurrent).mPrev : nullptr;
+      return *this;
+    }
+
+    ReverseIterator operator++(int) {
+      ReverseIterator result = *this;
+      ++(*this);
+      return result;
+    }
+
+    ReverseIterator& operator--() {
+      mCurrent = ElementAccess::Get(mCurrent).mNext;
+      return *this;
+    }
+
+    ReverseIterator operator--(int) {
+      ReverseIterator result = *this;
+      --(*this);
+      return result;
+    }
+
+    bool operator!=(const ReverseIterator& aOther) const {
+      return mCurrent != aOther.mCurrent;
+    }
+
+    bool operator==(const ReverseIterator& aOther) const {
+      return mCurrent == aOther.mCurrent;
+    }
+
+    explicit operator bool() const { return mCurrent; }
+  };
+
+  ReverseIterator rbegin() { return ReverseIterator(mTail); }
+  const ReverseIterator rbegin() const { return ReverseIterator(mTail); }
+  const ReverseIterator crbegin() const { return ReverseIterator(mTail); }
+
+  ReverseIterator rend() { return ReverseIterator(); }
+  const ReverseIterator rend() const { return ReverseIterator(); }
+  const ReverseIterator crend() const { return ReverseIterator(); }
+
   /**
    * Returns true if the list contains no elements.
    */

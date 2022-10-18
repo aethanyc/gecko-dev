@@ -35,6 +35,8 @@ static void TestDoublyLinkedList() {
   MOZ_RELEASE_ASSERT(list.isEmpty());
   MOZ_RELEASE_ASSERT(!list.begin());
   MOZ_RELEASE_ASSERT(!list.end());
+  MOZ_RELEASE_ASSERT(!list.rbegin());
+  MOZ_RELEASE_ASSERT(!list.rend());
 
   for (SomeClass& x : list) {
     MOZ_RELEASE_ASSERT(x.mValue);
@@ -53,7 +55,9 @@ static void TestDoublyLinkedList() {
 
   MOZ_RELEASE_ASSERT(!list.isEmpty());
   MOZ_RELEASE_ASSERT(list.begin()->mValue == 1);
+  MOZ_RELEASE_ASSERT(list.rbegin()->mValue == 1);
   MOZ_RELEASE_ASSERT(!list.end());
+  MOZ_RELEASE_ASSERT(!list.rend());
 
   list.pushFront(&two);
   {
@@ -62,7 +66,9 @@ static void TestDoublyLinkedList() {
   }
 
   MOZ_RELEASE_ASSERT(list.begin()->mValue == 2);
+  MOZ_RELEASE_ASSERT(list.rbegin()->mValue == 1);
   MOZ_RELEASE_ASSERT(!list.end());
+  MOZ_RELEASE_ASSERT(!list.rend());
   MOZ_RELEASE_ASSERT(!list.contains(three));
 
   list.pushBack(&three);
@@ -72,7 +78,9 @@ static void TestDoublyLinkedList() {
   }
 
   MOZ_RELEASE_ASSERT(list.begin()->mValue == 2);
+  MOZ_RELEASE_ASSERT(list.rbegin()->mValue == 3);
   MOZ_RELEASE_ASSERT(!list.end());
+  MOZ_RELEASE_ASSERT(!list.rend());
 
   list.remove(&one);
   {
