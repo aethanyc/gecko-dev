@@ -10,6 +10,7 @@
 #define nsLineBox_h___
 
 #include "mozilla/Attributes.h"
+#include "mozilla/DoublyLinkedList.h"
 #include "mozilla/Likely.h"
 #include "nsILineIterator.h"
 #include "nsIFrame.h"
@@ -77,7 +78,7 @@ class nsLineLink {
  * enough state to support incremental reflow of the frames, event handling
  * for the frames, and rendering of the frames.
  */
-class nsLineBox final : public nsLineLink {
+class nsLineBox final : public mozilla::DoublyLinkedListElement<nsLineBox> {
  private:
   nsLineBox(nsIFrame* aFrame, int32_t aCount, bool aIsBlock);
   ~nsLineBox();
@@ -1151,7 +1152,9 @@ class nsLineList_const_reverse_iterator {
 #endif
 };
 
-class nsLineList {
+class nsLineList final {
+  mozilla::DoublyLinkedList<nsLineBox> mList;
+
  public:
   friend class nsLineList_iterator;
   friend class nsLineList_reverse_iterator;
@@ -1163,10 +1166,6 @@ class nsLineList {
 
   typedef nsLineLink link_type;
 
- private:
-  link_type mLink;
-
- public:
   typedef nsLineList self_type;
 
   typedef nsLineBox& reference;
@@ -1180,110 +1179,34 @@ class nsLineList {
   typedef nsLineList_const_iterator const_iterator;
   typedef nsLineList_const_reverse_iterator const_reverse_iterator;
 
-  nsLineList() {
-    MOZ_COUNT_CTOR(nsLineList);
-    clear();
-  }
+  nsLineList() { MOZ_COUNT_CTOR(nsLineList); }
 
   MOZ_COUNTED_DTOR(nsLineList)
 
-  const_iterator begin() const {
-    const_iterator rv;
-    rv.mCurrent = mLink._mNext;
-#ifdef DEBUG
-    rv.mListLink = &mLink;
-#endif
-    return rv;
-  }
-
-  iterator begin() {
-    iterator rv;
-    rv.mCurrent = mLink._mNext;
-#ifdef DEBUG
-    rv.mListLink = &mLink;
-#endif
-    return rv;
-  }
-
+  const_iterator begin() const { return mList.begin(); }
+  iterator begin() { return mList.begin(); }
   iterator begin(nsLineBox* aLine) {
-    iterator rv;
-    rv.mCurrent = aLine;
-#ifdef DEBUG
-    rv.mListLink = &mLink;
-#endif
-    return rv;
+    return mozilla::DoublyLinkedList<nsLineBox>::Iterator(aLine);
   }
 
-  const_iterator end() const {
-    const_iterator rv;
-    rv.mCurrent = &mLink;
-#ifdef DEBUG
-    rv.mListLink = &mLink;
-#endif
-    return rv;
-  }
+  const_iterator end() const { return mList.end(); }
+  iterator end() { return mList.end(); }
 
-  iterator end() {
-    iterator rv;
-    rv.mCurrent = &mLink;
-#ifdef DEBUG
-    rv.mListLink = &mLink;
-#endif
-    return rv;
-  }
-
-  const_reverse_iterator rbegin() const {
-    const_reverse_iterator rv;
-    rv.mCurrent = mLink._mPrev;
-#ifdef DEBUG
-    rv.mListLink = &mLink;
-#endif
-    return rv;
-  }
-
-  reverse_iterator rbegin() {
-    reverse_iterator rv;
-    rv.mCurrent = mLink._mPrev;
-#ifdef DEBUG
-    rv.mListLink = &mLink;
-#endif
-    return rv;
-  }
-
+  const_reverse_iterator rbegin() const { return mList.rbegin(); }
+  reverse_iterator rbegin() { return mList.rbegin(); }
   reverse_iterator rbegin(nsLineBox* aLine) {
-    reverse_iterator rv;
-    rv.mCurrent = aLine;
-#ifdef DEBUG
-    rv.mListLink = &mLink;
-#endif
-    return rv;
+    return mozilla::DoublyLinkedList<nsLineBox>::ReverseIterator(aLine);
   }
 
-  const_reverse_iterator rend() const {
-    const_reverse_iterator rv;
-    rv.mCurrent = &mLink;
-#ifdef DEBUG
-    rv.mListLink = &mLink;
-#endif
-    return rv;
-  }
+  const_reverse_iterator rend() const { return mList.rend(); }
+  reverse_iterator rend() { return mList.rend(); }
 
-  reverse_iterator rend() {
-    reverse_iterator rv;
-    rv.mCurrent = &mLink;
-#ifdef DEBUG
-    rv.mListLink = &mLink;
-#endif
-    return rv;
-  }
-
-  bool empty() const { return mLink._mNext == &mLink; }
+  bool empty() const { return mList.isEmpty(); }
 
   // NOTE: O(N).
   size_type size() const {
     size_type count = 0;
-    for (const link_type* cur = mLink._mNext; cur != &mLink;
-         cur = cur->_mNext) {
+    for (const auto* cur : mList) {
       ++count;
     }
     return count;
@@ -1291,67 +1214,43 @@ class nsLineList {
 
   pointer front() {
     NS_ASSERTION(!empty(), "no element to return");
-    return static_cast<pointer>(mLink._mNext);
+    return &*mList.begin();
   }
 
   const_pointer front() const {
     NS_ASSERTION(!empty(), "no element to return");
-    return static_cast<const_pointer>(mLink._mNext);
+    return &*mList.begin();
   }
 
   pointer back() {
     NS_ASSERTION(!empty(), "no element to return");
-    return static_cast<pointer>(mLink._mPrev);
+    return &*mList.rbegin();
   }
 
   const_pointer back() const {
     NS_ASSERTION(!empty(), "no element to return");
-    return static_cast<const_pointer>(mLink._mPrev);
+    return &*mList.rbegin();
   }
 
-  void push_front(pointer aNew) {
-    aNew->_mNext = mLink._mNext;
-    mLink._mNext->_mPrev = aNew;
-    aNew->_mPrev = &mLink;
-    mLink._mNext = aNew;
-  }
+  void push_front(pointer aNew) { mList.pushFront(aNew); }
 
   void pop_front()
   // NOTE: leaves dangling next/prev pointers
   {
-    NS_ASSERTION(!empty(), "no element to pop");
-    link_type* newFirst = mLink._mNext->_mNext;
-    newFirst->_mPrev = &mLink;
-    // mLink._mNext->_mNext = nullptr;
-    // mLink._mNext->_mPrev = nullptr;
-    mLink._mNext = newFirst;
+    mList.popFront();
   }
 
-  void push_back(pointer aNew) {
-    aNew->_mPrev = mLink._mPrev;
-    mLink._mPrev->_mNext = aNew;
-    aNew->_mNext = &mLink;
-    mLink._mPrev = aNew;
-  }
+  void push_back(pointer aNew) { mList.pushBack(aNew); }
 
   void pop_back()
   // NOTE: leaves dangling next/prev pointers
   {
-    NS_ASSERTION(!empty(), "no element to pop");
-    link_type* newLast = mLink._mPrev->_mPrev;
-    newLast->_mNext = &mLink;
-    // mLink._mPrev->_mPrev = nullptr;
-    // mLink._mPrev->_mNext = nullptr;
-    mLink._mPrev = newLast;
+    mList.popBack();
   }
 
   // inserts x before position
   iterator before_insert(iterator position, pointer x) {
-    // use |mCurrent| to prevent DEBUG_PASS_END assertions
-    x->_mPrev = position.mCurrent->_mPrev;
-    x->_mNext = position.mCurrent;
-    position.mCurrent->_mPrev->_mNext = x;
-    position.mCurrent->_mPrev = x;
+    mList.insertBefore(position, x);
     return --position;
   }
 
