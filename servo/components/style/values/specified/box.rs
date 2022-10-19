@@ -2087,6 +2087,8 @@ pub enum BreakBetween {
     Avoid,
     Left,
     Right,
+    Column,
+    AvoidColumn,
 }
 
 impl BreakBetween {
@@ -2104,7 +2106,7 @@ impl BreakBetween {
             BreakBetween::Auto | BreakBetween::Avoid | BreakBetween::Left | BreakBetween::Right => {
                 Ok(break_value)
             },
-            BreakBetween::Page => {
+            _ => {
                 Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             },
         }
@@ -2122,7 +2124,7 @@ impl BreakBetween {
                 self.to_css(dest)
             },
             BreakBetween::Page => dest.write_str("always"),
-            BreakBetween::Always => Ok(()),
+            _ => Ok(()),
         }
     }
 }
