@@ -1619,14 +1619,15 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
       case mozilla::StyleBreakBetween::Right:
       case mozilla::StyleBreakBetween::Page:
       case mozilla::StyleBreakBetween::Always:
+      case mozilla::StyleBreakBetween::Column:
         return true;
       case mozilla::StyleBreakBetween::Auto:
       case mozilla::StyleBreakBetween::Avoid:
-        return false;
-      default:
-        MOZ_ASSERT_UNREACHABLE("Unknown break kind");
+      case mozilla::StyleBreakBetween::AvoidColumn:
         return false;
     }
+    MOZ_ASSERT_UNREACHABLE("Unknown break kind");
+    return false;
   }
 
   bool BreakBefore() const { return ShouldBreak(mBreakBefore); }
