@@ -1633,6 +1633,10 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
   bool BreakBefore() const { return ShouldBreak(mBreakBefore); }
 
   bool BreakAfter() const { return ShouldBreak(mBreakAfter); }
+  bool BreakAfterColumn() const {
+    return mBreakAfter == mozilla::StyleBreakBetween::Always ||
+           mBreakAfter == mozilla::StyleBreakBetween::Column;
+  }
 
   // These are defined in nsStyleStructInlines.h.
 

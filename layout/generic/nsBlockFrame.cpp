@@ -4299,6 +4299,11 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowState& aState,
                  aState.mPrevBEndMargin.get(), collapsedBEndMargin.get());
 #endif
           aState.mPrevBEndMargin = collapsedBEndMargin;
+          if (childReflowInput->AvailableBSize() != NS_UNCONSTRAINEDSIZE &&
+              childReflowInput->mBreakType == ReflowInput::BreakType::Column &&
+              childReflowInput->mStyleDisplay->BreakAfterColumn()) {
+            PushTruncatedLine(aState, aLine.next(), aKeepReflowGoing);
+          }
         }
 #ifdef NOISY_BLOCK_DIR_MARGINS
         ListTag(stdout);
