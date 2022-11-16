@@ -1117,6 +1117,29 @@ struct nsFlexContainerFrame::SharedFlexData final {
   NS_DECLARE_FRAME_PROPERTY_DELETABLE(Prop, SharedFlexData)
 };
 
+// Flex data stored in every in-flow fragment (continuation) of the flex
+// container. The data is stored at the end of Reflow().
+struct nsFlexContainerFrame::PerFragmentFlexData final {
+  // Suppose D is the distance from a flex container fragment's content-box
+  // block-start edge to whichever is larger of either (a) the block-end edge of
+  // its children, or (b) the available space's block-end edge. D is
+  // conceptually the sum of the block-size of the children, the packing space
+  // before & in between them, and part of the packing space after them if (b)
+  // happens.
+  //
+  // mSumOfChildrenBSize stores the sum of the D of the current flex
+  // container fragment and the D's of its prev-in-flows from the last reflow.
+  // It's intended to prevent quadratic operations resulting from each fragment
+  // having to walk its full prev-in-flow chain, and also serves as an argument
+  // to the flex fragmentainer next-in-flow's ReflowChildren(), to compute the
+  // position offset for each flex item.
+  nscoord mSumOfChildrenBSize = 0;
+
+  // The frame property under which this struct is stored. Set on every in-flow
+  // fragment (continuation).
+  NS_DECLARE_FRAME_PROPERTY_DELETABLE(Prop, PerFragmentFlexData)
+};
+
 // Forward iterate all the FlexItems in aLines.
 class nsFlexContainerFrame::FlexItemIterator final {
  public:
@@ -2767,20 +2790,6 @@ NS_QUERYFRAME_HEAD(nsFlexContainerFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 NS_IMPL_FRAMEARENA_HELPERS(nsFlexContainerFrame)
-
-// Suppose D is the distance from a flex container fragment's content-box
-// block-start edge to whichever is larger of either (a) the block-end edge of
-// its children, or (b) the available space's block-end edge. D is conceptually
-// the sum of the block-size of the children, the packing space before & in
-// between them, and part of the packing space after them if (b) happens.
-//
-// SumOfBlockEndEdgeOfChildrenProperty stores the sum of the D of the current
-// flex container fragment and the D's of its prev-in-flows from the last
-// reflow. It's intended to prevent quadratic operations resulting from each
-// fragment having to walk its full prev-in-flow chain, and also serves as an
-// argument to the flex fragmentainer next-in-flow's ReflowChildren(), to
-// compute the position offset for each flex item.
-NS_DECLARE_FRAME_PROPERTY_SMALL_VALUE(SumOfChildrenBlockSizeProperty, nscoord)
 
 nsContainerFrame* NS_NewFlexContainerFrame(PresShell* aPresShell,
                                            ComputedStyle* aStyle) {
@@ -4498,6 +4507,7 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
   ComputedFlexContainerInfo* containerInfo = CreateOrClearFlexContainerInfo();
 
   FlexLayoutResult flr;
+  PerFragmentFlexData fragmentData;
   const nsIFrame* prevInFlow = GetPrevInFlow();
   if (!prevInFlow) {
     const LogicalSize tentativeContentBoxSize = aReflowInput.ComputedSize();
@@ -4541,6 +4551,7 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
     }
   } else {
     flr = GenerateFlexLayoutResult();
+    fragmentData = *prevInFlow->GetProperty(PerFragmentFlexData::Prop());
   }
 
   const LogicalSize contentBoxSize =
@@ -4585,22 +4596,17 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
 
   OverflowAreas ocBounds;
   nsReflowStatus ocStatus;
-  nscoord sumOfChildrenBlockSize;
   if (prevInFlow) {
     ReflowOverflowContainerChildren(
         aPresContext, aReflowInput, ocBounds, ReflowChildFlags::Default,
         ocStatus, MergeSortedFrameListsFor, Some(containerSize));
-    sumOfChildrenBlockSize =
-        prevInFlow->GetProperty(SumOfChildrenBlockSizeProperty());
-  } else {
-    sumOfChildrenBlockSize = 0;
   }
 
   const LogicalSize availableSizeForItems =
       ComputeAvailableSizeForItems(aReflowInput, borderPadding);
   const auto [maxBlockEndEdgeOfChildren, areChildrenComplete] =
       ReflowChildren(aReflowInput, containerSize, availableSizeForItems,
-                     borderPadding, sumOfChildrenBlockSize, axisTracker, flr);
+                     borderPadding, axisTracker, flr, fragmentData);
 
   if (aReflowInput.AvailableBSize() != NS_UNCONSTRAINEDSIZE) {
     // maxBlockEndEdgeOfChildren is relative to border-box, so we need to
@@ -4609,7 +4615,7 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
     // flex item's block-end edge and the available space's block-end edge, we
     // want to record the available size of item to consume part of the packing
     // space.
-    sumOfChildrenBlockSize +=
+    fragmentData.mSumOfChildrenBSize +=
         std::max(maxBlockEndEdgeOfChildren - borderPadding.BStart(wm),
                  availableSizeForItems.BSize(wm));
   }
@@ -4661,8 +4667,6 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
           SetProperty(SharedFlexData::Prop(), sharedDataProp);
         }
         sharedDataProp->Update(std::move(flr));
-
-        SetProperty(SumOfChildrenBlockSizeProperty(), sumOfChildrenBlockSize);
       } else if (sharedDataProp && !GetNextInFlow()) {
         // We are fully-complete, so no next-in-flow is needed. However, if we
         // report SetInlineLineBreakBeforeAndReset() in an incremental reflow,
@@ -4670,10 +4674,21 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
         // us if it is an overflow container. Delete the existing data only if
         // we don't have a next-in-flow.
         RemoveProperty(SharedFlexData::Prop());
-        RemoveProperty(SumOfChildrenBlockSizeProperty());
       }
-    } else {
-      SetProperty(SumOfChildrenBlockSizeProperty(), sumOfChildrenBlockSize);
+    }
+
+    PerFragmentFlexData* fragmentDataProp =
+        GetProperty(PerFragmentFlexData::Prop());
+    if (!aStatus.IsFullyComplete()) {
+      if (!fragmentDataProp) {
+        fragmentDataProp = new PerFragmentFlexData;
+        SetProperty(PerFragmentFlexData::Prop(), fragmentDataProp);
+      }
+      *fragmentDataProp = fragmentData;
+    } else if (fragmentDataProp && !GetNextInFlow()) {
+      // Similar to the reason when removing SharedFlexData. Delete the existing
+      // data only if we don't have a next-in-flow.
+      RemoveProperty(PerFragmentFlexData::Prop());
     }
   }
 }
@@ -5193,9 +5208,8 @@ nsFlexContainerFrame::FlexLayoutResult nsFlexContainerFrame::DoFlexLayout(
 std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
     const ReflowInput& aReflowInput, const nsSize& aContainerSize,
     const LogicalSize& aAvailableSizeForItems,
-    const LogicalMargin& aBorderPadding,
-    const nscoord aSumOfPrevInFlowsChildrenBlockSize,
-    const FlexboxAxisTracker& aAxisTracker, FlexLayoutResult& aFlr) {
+    const LogicalMargin& aBorderPadding, const FlexboxAxisTracker& aAxisTracker,
+    FlexLayoutResult& aFlr, PerFragmentFlexData& aFragmentData) {
   if (HidesContentForLayout()) {
     return {0, false};
   }
@@ -5234,7 +5248,7 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
       } else if (GetPrevInFlow()) {
         // We haven't laid the item out. Subtract its block-direction position
         // by the sum of our prev-in-flows' content block-end.
-        framePos.B(flexWM) -= aSumOfPrevInFlowsChildrenBlockSize;
+        framePos.B(flexWM) -= aFragmentData.mSumOfChildrenBSize;
       }
 
       // Adjust available block-size for the item. (We compute it here because
