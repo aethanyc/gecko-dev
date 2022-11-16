@@ -1135,6 +1135,12 @@ struct nsFlexContainerFrame::PerFragmentFlexData final {
   // position offset for each flex item.
   nscoord mSumOfChildrenBSize = 0;
 
+  nscoord mSumOfChildrenBCoordShift = 0;
+
+  nscoord mSumOfFlexContainerBSizeStretch = 0;
+
+  nscoord mRemainingPackingSpace = 0;
+
   // The frame property under which this struct is stored. Set on every in-flow
   // fragment (continuation).
   NS_DECLARE_FRAME_PROPERTY_DELETABLE(Prop, PerFragmentFlexData)
@@ -4554,9 +4560,14 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
     fragmentData = *prevInFlow->GetProperty(PerFragmentFlexData::Prop());
   }
 
-  const LogicalSize contentBoxSize =
+  const LogicalSize origContentBoxSize =
       axisTracker.LogicalSizeFromFlexRelativeSizes(flr.mContentBoxMainSize,
                                                    flr.mContentBoxCrossSize);
+  LogicalSize contentBoxSize(wm, origContentBoxSize.ISize(wm),
+                             aReflowInput.ApplyMinMaxBSize(
+                                 origContentBoxSize.BSize(wm) +
+                                 fragmentData.mSumOfFlexContainerBSizeStretch));
+
   const nscoord consumedBSize = CalcAndCacheConsumedBSize();
   const nscoord effectiveContentBSize =
       contentBoxSize.BSize(wm) - consumedBSize;
@@ -4615,9 +4626,16 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
     // flex item's block-end edge and the available space's block-end edge, we
     // want to record the available size of item to consume part of the packing
     // space.
-    fragmentData.mSumOfChildrenBSize +=
-        std::max(maxBlockEndEdgeOfChildren - borderPadding.BStart(wm),
-                 availableSizeForItems.BSize(wm));
+    const nscoord childrenBSize =
+        maxBlockEndEdgeOfChildren - borderPadding.BStart(wm);
+    fragmentData.mSumOfChildrenBSize += childrenBSize;
+    fragmentData.mRemainingPackingSpace =
+        std::max(0, availableSizeForItems.BSize(wm) - childrenBSize);
+
+    // mSumOfFlexContainerBSizeStretch might be updated in ReflowChildren().
+    contentBoxSize.BSize(wm) = aReflowInput.ApplyMinMaxBSize(
+        origContentBoxSize.BSize(wm) +
+        fragmentData.mSumOfFlexContainerBSizeStretch);
   }
 
   PopulateReflowOutput(aReflowOutput, aReflowInput, aStatus, contentBoxSize,
@@ -5249,6 +5267,22 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
         // We haven't laid the item out. Subtract its block-direction position
         // by the sum of our prev-in-flows' content block-end.
         framePos.B(flexWM) -= aFragmentData.mSumOfChildrenBSize;
+
+        if (&item == firstItem) {
+          const nscoord firstItemBCoordShift = std::min(
+              framePos.B(flexWM), aFragmentData.mRemainingPackingSpace);
+          aFragmentData.mSumOfChildrenBCoordShift += firstItemBCoordShift;
+
+          if (aReflowInput.ComputedBSize() == NS_UNCONSTRAINEDSIZE) {
+            // Stretch flex container's block-size only if its block-size is
+            // unconstrained.
+            const nscoord flexContainerBSizeStretch = std::max(
+                0, aFragmentData.mRemainingPackingSpace - framePos.B(flexWM));
+            aFragmentData.mSumOfFlexContainerBSizeStretch +=
+                flexContainerBSizeStretch;
+          }
+        }
+        framePos.B(flexWM) -= aFragmentData.mSumOfChildrenBCoordShift;
       }
 
       // Adjust available block-size for the item. (We compute it here because
@@ -5272,6 +5306,7 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
       const bool childBPosExceedAvailableSpaceBEnd =
           availableBSizeForItem != NS_UNCONSTRAINEDSIZE &&
           availableBSizeForItem <= 0;
+      bool itemInPushedItems = false;
       if (childBPosExceedAvailableSpaceBEnd) {
         // Note: Even if all of our items are beyond the available space & get
         // pushed here, we'll be guaranteed to place at least one of them (and
@@ -5285,6 +5320,7 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
             "next-in-flow due to position below available space's block-end",
             item.Frame());
         pushedItems.Insert(item.Frame());
+        itemInPushedItems = true;
       } else if (item.NeedsFinalReflow(availableBSizeForItem)) {
         // The available size must be in item's writing-mode.
         const WritingMode itemWM = item.GetWritingMode();
@@ -5297,16 +5333,46 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
             ReflowFlexItem(aAxisTracker, aReflowInput, item, framePos,
                            availableSize, aContainerSize);
 
-        if (childReflowStatus.IsIncomplete()) {
+        FLEX_LOG("item bsize %d, availableBSizeForItem %d, reflow status %s",
+                 item.Frame()->BSize(), availableBSizeForItem,
+                 ToString(childReflowStatus).c_str());
+
+        const bool shouldPushItem = [&]() {
+          if (framePos.B(flexWM) == containerContentBoxOrigin.B(flexWM)) {
+            // Flex item is adjacent with block-start of the container's
+            // content-box. Don't push it, or we'll trap in an infinite loop.
+            return false;
+          }
+          if (item.Frame()->BSize() <= availableBSizeForItem) {
+            return false;
+          }
+          if (item.Frame()->StyleDisplay()->mBreakBefore ==
+              StyleBreakBetween::Avoid) {
+            return false;
+          }
+          return true;
+        }();
+        if (shouldPushItem) {
+          FLEX_LOG(
+              "[frag] Flex item %p needed to be pushed to container's "
+              "next-in-flow mainly because its block-size is large than "
+              "available space",
+              item.Frame());
+          pushedItems.Insert(item.Frame());
+          itemInPushedItems = true;
+        } else if (childReflowStatus.IsIncomplete()) {
           incompleteItems.Insert(item.Frame());
         } else if (childReflowStatus.IsOverflowIncomplete()) {
           overflowIncompleteItems.Insert(item.Frame());
         }
       } else {
+        MOZ_ASSERT(availableBSizeForItem == NS_UNCONSTRAINEDSIZE,
+                   "We should always reflow flex item when available "
+                   "block-size is constrained unless bug 1637091 is fixed!");
         MoveFlexItemToFinalPosition(item, framePos, aContainerSize);
       }
 
-      if (!childBPosExceedAvailableSpaceBEnd) {
+      if (!itemInPushedItems) {
         // The item (or a fragment thereof) was placed in this flex container
         // fragment. Update the max block-end edge with the item's block-end
         // edge.
@@ -5589,6 +5655,9 @@ nsReflowStatus nsFlexContainerFrame::ReflowFlexItem(
   // NOTE: Be very careful about doing anything else with childReflowInput
   // after this point, because some of its methods (e.g. SetComputedWidth)
   // internally call InitResizeFlags and stomp on mVResize & mHResize.
+
+  FLEX_LOG("Reflowing flex item %p at its desired position %s", aItem.Frame(),
+           ToString(aFramePos).c_str());
 
   // CachedFlexItemData is stored in item's writing mode, so we pass
   // aChildReflowInput into ReflowOutput's constructor.
