@@ -386,6 +386,7 @@ class nsFlexContainerFrame::FlexItem final {
     FlexItem item(*this);
     item.mFrame = aContinuation;
     item.mHadMeasuringReflow = false;
+    item.CheckForMinSizeAuto();
     return item;
   }
 
@@ -658,7 +659,8 @@ class nsFlexContainerFrame::FlexItem final {
         "and main max-size should be an upper-bound for resolved val");
     MOZ_ASSERT(
         mNeedsMinSizeAutoResolution &&
-            (mMainMinSize == 0 || mFrame->IsThemed(mFrame->StyleDisplay())),
+            (mMainMinSize == 0 || mFrame->IsThemed(mFrame->StyleDisplay()) ||
+             Frame()->GetPrevInFlow()),
         "Should only use this function for resolving min-size:auto, "
         "so we shouldn't already have a nonzero min-size established "
         "(unless it's a themed-widget-imposed minimum size)");
@@ -841,8 +843,7 @@ class nsFlexContainerFrame::FlexItem final {
 
  protected:
   // Helper called by the constructor, to set mNeedsMinSizeAutoResolution:
-  void CheckForMinSizeAuto(const ReflowInput& aFlexItemReflowInput,
-                           const FlexboxAxisTracker& aAxisTracker);
+  void CheckForMinSizeAuto();
 
   uint32_t NumAutoMarginsInAxis(LogicalAxis aAxis) const;
 
@@ -2194,7 +2195,7 @@ FlexItem::FlexItem(ReflowInput& aFlexItemReflowInput, float aFlexGrow,
   }
 
   SetFlexBaseSizeAndMainSize(aFlexBaseSize);
-  CheckForMinSizeAuto(aFlexItemReflowInput, aAxisTracker);
+  CheckForMinSizeAuto();
 
   const nsStyleMargin* styleMargin = aFlexItemReflowInput.mStyleMargin;
   mHasAnyAutoMargin = styleMargin->HasInlineAxisAuto(mCBWM) ||
@@ -2256,20 +2257,15 @@ FlexItem::FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize,
              "out-of-flow frames should not be treated as flex items");
 }
 
-void FlexItem::CheckForMinSizeAuto(const ReflowInput& aFlexItemReflowInput,
-                                   const FlexboxAxisTracker& aAxisTracker) {
-  const nsStylePosition* pos = aFlexItemReflowInput.mStylePosition;
-  const nsStyleDisplay* disp = aFlexItemReflowInput.mStyleDisplay;
-
+void FlexItem::CheckForMinSizeAuto() {
   // We'll need special behavior for "min-[width|height]:auto" (whichever is in
   // the flex container's main axis) iff:
   // (a) its computed value is "auto"
   // (b) the "overflow" sub-property in the same axis (the main axis) has a
   //     computed value of "visible" and the item does not create a scroll
   //     container.
-  const auto& mainMinSize = aAxisTracker.IsRowOriented()
-                                ? pos->MinISize(aAxisTracker.GetWritingMode())
-                                : pos->MinBSize(aAxisTracker.GetWritingMode());
+  const auto& mainMinSize =
+      Frame()->StylePosition()->MinSize(MainAxis(), ContainingBlockWM());
 
   // If the scrollable overflow makes us create a scroll container, then we
   // don't need to do any extra resolution for our `min-size:auto` value.
@@ -2277,7 +2273,7 @@ void FlexItem::CheckForMinSizeAuto(const ReflowInput& aFlexItemReflowInput,
   // because this will be true for both or neither axis.
   mNeedsMinSizeAutoResolution =
       IsAutoOrEnumOnBSize(mainMinSize, IsInlineAxisMainAxis()) &&
-      !disp->IsScrollableOverflow();
+      !Frame()->StyleDisplay()->IsScrollableOverflow();
 }
 
 nscoord FlexItem::BaselineOffsetFromOuterCrossEdge(
@@ -4149,7 +4145,8 @@ void nsFlexContainerFrame::GenerateFlexLines(
 }
 
 nsFlexContainerFrame::FlexLayoutResult
-nsFlexContainerFrame::GenerateFlexLayoutResult() {
+nsFlexContainerFrame::GenerateFlexLayoutResult(
+    const ReflowInput& aReflowInput) {
   MOZ_ASSERT(GetPrevInFlow(), "This should be called by non-first-in-flows!");
 
   auto* data = FirstInFlow()->GetProperty(SharedFlexData::Prop());
@@ -4167,6 +4164,11 @@ nsFlexContainerFrame::GenerateFlexLayoutResult() {
   AddOrRemoveStateBits(NS_STATE_FLEX_NORMAL_FLOW_CHILDREN_IN_CSS_ORDER,
                        GetPrevInFlow()->HasAnyStateBits(
                            NS_STATE_FLEX_NORMAL_FLOW_CHILDREN_IN_CSS_ORDER));
+
+  int count = 1;
+  for (const FlexLine& l : data->mLines) {
+    FLEX_LOG("this is line %d, %p", count++, &l);
+  }
 
   // Construct flex items for this flex container fragment from existing flex
   // items in SharedFlexData.
@@ -4186,7 +4188,17 @@ nsFlexContainerFrame::GenerateFlexLayoutResult() {
 
     for (; !itemIter.AtEnd(); itemIter.Next()) {
       if (itemIter->Frame() == childFirstInFlow) {
-        flr.mLines[0].Items().AppendElement(itemIter->CloneFor(child));
+        FlexItem* item =
+            flr.mLines[0].Items().AppendElement(itemIter->CloneFor(child));
+        if (item->NeedsMinSizeAutoResolution()) {
+          nscoord contentBSize =
+              MeasureFlexItemContentBSize(*item, true, aReflowInput);
+          if (nsContainerFrame* f = do_QueryFrame(item->Frame())) {
+            const nscoord itemConsumedBSize = f->CalcAndCacheConsumedBSize();
+            item->UpdateMainMinSize(itemConsumedBSize + contentBSize);
+          }
+          FLEX_LOG("item main size %d", item->MainSize());
+        }
         itemIter.Next();
         break;
       }
@@ -4556,7 +4568,7 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
                          crossGapSize, struts, containerInfo);
     }
   } else {
-    flr = GenerateFlexLayoutResult();
+    flr = GenerateFlexLayoutResult(aReflowInput);
     fragmentData = *prevInFlow->GetProperty(PerFragmentFlexData::Prop());
   }
 
@@ -5282,7 +5294,11 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
                 flexContainerBSizeStretch;
           }
         }
+        // const bool isSingleLine =
+        //     StyleFlexWrap::Nowrap == aReflowInput.mStylePosition->mFlexWrap;
+        // if (isSingleLine || aAxisTracker.IsRowOriented()) {
         framePos.B(flexWM) -= aFragmentData.mSumOfChildrenBCoordShift;
+        // }
       }
 
       // Adjust available block-size for the item. (We compute it here because
@@ -5294,6 +5310,13 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
           aAvailableSizeForItems.BSize(flexWM) == NS_UNCONSTRAINEDSIZE
               ? NS_UNCONSTRAINEDSIZE
               : aAvailableSizeForItems.BSize(flexWM) - framePos.B(flexWM);
+
+      if (availableBSizeForItem != NS_UNCONSTRAINEDSIZE &&
+          !item.Frame()->GetPrevInFlow()) {
+        item.Frame()->SetProperty(
+            FragStretchBSizeProperty(),
+            item.IsBlockAxisMainAxis() ? item.MainSize() : item.CrossSize());
+      }
 
       // Adjust framePos to be relative to the container's border-box
       // (i.e. its frame rect), instead of the container's content-box:
@@ -5332,6 +5355,15 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
         const nsReflowStatus childReflowStatus =
             ReflowFlexItem(aAxisTracker, aReflowInput, item, framePos,
                            availableSize, aContainerSize);
+
+        if (childReflowStatus.IsComplete()) {
+          const nscoord origBSize = item.Frame()->FirstInFlow()->GetProperty(
+              FragStretchBSizeProperty());
+          const nscoord finalBSize =
+              item.IsBlockAxisMainAxis() ? item.MainSize() : item.CrossSize();
+          aFragmentData.mSumOfFlexContainerBSizeStretch +=
+              (finalBSize - origBSize);
+        }
 
         FLEX_LOG("item bsize %d, availableBSizeForItem %d, reflow status %s",
                  item.Frame()->BSize(), availableBSizeForItem,

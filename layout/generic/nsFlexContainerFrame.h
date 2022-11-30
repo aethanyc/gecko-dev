@@ -462,7 +462,7 @@ class nsFlexContainerFrame final : public nsContainerFrame,
    * some sizing metrics that should be used to lay out a particular flex
    * container continuation (i.e. don't call this on the first-in-flow).
    */
-  FlexLayoutResult GenerateFlexLayoutResult();
+  FlexLayoutResult GenerateFlexLayoutResult(const ReflowInput& aReflowInput);
 
   /**
    * Resolves the content-box main-size of a flex container frame,
