@@ -5251,6 +5251,9 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
           overflowIncompleteItems.Insert(item.Frame());
         }
       } else {
+        MOZ_ASSERT(availableBSizeForItem == NS_UNCONSTRAINEDSIZE,
+                   "We should always reflow flex item when available "
+                   "block-size is constrained until bug 1637091 is fixed!");
         MoveFlexItemToFinalPosition(item, framePos, aContainerSize);
       }
 
@@ -5537,6 +5540,9 @@ nsReflowStatus nsFlexContainerFrame::ReflowFlexItem(
   // NOTE: Be very careful about doing anything else with childReflowInput
   // after this point, because some of its methods (e.g. SetComputedWidth)
   // internally call InitResizeFlags and stomp on mVResize & mHResize.
+
+  FLEX_LOG("Reflowing flex item %p at its desired position %s", aItem.Frame(),
+           ToString(aFramePos).c_str());
 
   // CachedFlexItemData is stored in item's writing mode, so we pass
   // aChildReflowInput into ReflowOutput's constructor.
