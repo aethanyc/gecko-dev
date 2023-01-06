@@ -3912,7 +3912,8 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowState& aState,
       // *it* to be pushed in its entirety.)
       aState.mBCoord = startingBCoord;
       aState.mPrevBEndMargin = incomingMargin;
-      if (ShouldAvoidBreakInside(aState.mReflowInput)) {
+      if ((aLine == mLines.front() && !GetPrevInFlow()) ||
+          ShouldAvoidBreakInside(aState.mReflowInput)) {
         SetBreakBeforeStatusBeforeLine(aState, aLine, aKeepReflowGoing);
       } else {
         PushTruncatedLine(aState, aLine, aKeepReflowGoing);
