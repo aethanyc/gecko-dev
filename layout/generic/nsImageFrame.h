@@ -326,6 +326,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
 
   inline void GetLoadGroup(nsPresContext* aPresContext,
                            nsILoadGroup** aLoadGroup);
+  nscoord GetContinuationOffset() const;
   void GetDocumentCharacterSet(nsACString& aCharset) const;
   bool ShouldDisplaySelection();
 

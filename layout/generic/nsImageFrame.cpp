@@ -750,12 +750,7 @@ bool nsImageFrame::GetSourceToDestTransform(nsTransform2D& aTransform) {
   // (which we need for ComputeObjectDestRect to work correctly).
   nsRect constraintRect(GetContentRectRelativeToSelf().TopLeft(),
                         mComputedSize);
-
-  if (GetWritingMode().IsVertical()) {
-    constraintRect.x -= CalcAndCacheConsumedBSize();
-  } else {
-    constraintRect.y -= CalcAndCacheConsumedBSize();
-  }
+  constraintRect.y -= GetContinuationOffset();
 
   nsRect destRect = nsLayoutUtils::ComputeObjectDestRect(
       constraintRect, mIntrinsicSize, mIntrinsicRatio, StylePosition());
@@ -1201,12 +1196,7 @@ nsRect nsImageFrame::PredictedDestRect(const nsRect& aFrameContentBox) {
   // Note: To get the "dest rect", we have to provide the "constraint rect"
   // (which is the content-box, with the effects of fragmentation undone).
   nsRect constraintRect(aFrameContentBox.TopLeft(), mComputedSize);
-
-  if (GetWritingMode().IsVertical()) {
-    constraintRect.x -= CalcAndCacheConsumedBSize();
-  } else {
-    constraintRect.y -= CalcAndCacheConsumedBSize();
-  }
+  constraintRect.y -= GetContinuationOffset();
 
   return nsLayoutUtils::ComputeObjectDestRect(constraintRect, mIntrinsicSize,
                                               mIntrinsicRatio, StylePosition());
@@ -1267,6 +1257,17 @@ Element* nsImageFrame::GetMapElement() const {
   return imageLoader ? static_cast<nsImageLoadingContent*>(imageLoader.get())
                            ->FindImageMap()
                      : nullptr;
+}
+
+// get the offset into the content area of the image where aImg starts if it is
+// a continuation.
+nscoord nsImageFrame::GetContinuationOffset() const {
+  nscoord offset = 0;
+  for (nsIFrame* f = GetPrevInFlow(); f; f = f->GetPrevInFlow()) {
+    offset += f->GetContentRect().height;
+  }
+  NS_ASSERTION(offset >= 0, "bogus GetContentRect");
+  return offset;
 }
 
 nscoord nsImageFrame::GetMinISize(gfxContext* aRenderingContext) {
@@ -2258,11 +2259,7 @@ ImgDrawResult nsImageFrame::PaintImage(gfxContext& aRenderingContext,
   // (which we need for ComputeObjectDestRect to work correctly).
   nsRect constraintRect(aPt + GetContentRectRelativeToSelf().TopLeft(),
                         mComputedSize);
-  if (GetWritingMode().IsVertical()) {
-    constraintRect.x -= CalcAndCacheConsumedBSize();
-  } else {
-    constraintRect.y -= CalcAndCacheConsumedBSize();
-  }
+  constraintRect.y -= GetContinuationOffset();
 
   nsPoint anchorPoint;
   nsRect dest = nsLayoutUtils::ComputeObjectDestRect(
