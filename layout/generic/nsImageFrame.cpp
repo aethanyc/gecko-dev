@@ -12,6 +12,7 @@
 #include "gfx2DGlue.h"
 #include "gfxContext.h"
 #include "gfxUtils.h"
+#include "mozilla/AppUnits.h"
 #include "mozilla/intl/BidiEmbeddingLevel.h"
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/DebugOnly.h"
@@ -749,7 +750,12 @@ bool nsImageFrame::GetSourceToDestTransform(nsTransform2D& aTransform) {
   // (which we need for ComputeObjectDestRect to work correctly).
   nsRect constraintRect(GetContentRectRelativeToSelf().TopLeft(),
                         mComputedSize);
-  constraintRect.y -= GetContinuationOffset();
+
+  if (GetWritingMode().IsVertical()) {
+    constraintRect.x -= CalcAndCacheConsumedBSize();
+  } else {
+    constraintRect.y -= CalcAndCacheConsumedBSize();
+  }
 
   nsRect destRect = nsLayoutUtils::ComputeObjectDestRect(
       constraintRect, mIntrinsicSize, mIntrinsicRatio, StylePosition());
@@ -1195,7 +1201,12 @@ nsRect nsImageFrame::PredictedDestRect(const nsRect& aFrameContentBox) {
   // Note: To get the "dest rect", we have to provide the "constraint rect"
   // (which is the content-box, with the effects of fragmentation undone).
   nsRect constraintRect(aFrameContentBox.TopLeft(), mComputedSize);
-  constraintRect.y -= GetContinuationOffset();
+
+  if (GetWritingMode().IsVertical()) {
+    constraintRect.x -= CalcAndCacheConsumedBSize();
+  } else {
+    constraintRect.y -= CalcAndCacheConsumedBSize();
+  }
 
   return nsLayoutUtils::ComputeObjectDestRect(constraintRect, mIntrinsicSize,
                                               mIntrinsicRatio, StylePosition());
@@ -1258,17 +1269,6 @@ Element* nsImageFrame::GetMapElement() const {
                      : nullptr;
 }
 
-// get the offset into the content area of the image where aImg starts if it is
-// a continuation.
-nscoord nsImageFrame::GetContinuationOffset() const {
-  nscoord offset = 0;
-  for (nsIFrame* f = GetPrevInFlow(); f; f = f->GetPrevInFlow()) {
-    offset += f->GetContentRect().height;
-  }
-  NS_ASSERTION(offset >= 0, "bogus GetContentRect");
-  return offset;
-}
-
 nscoord nsImageFrame::GetMinISize(gfxContext* aRenderingContext) {
   // XXX The caller doesn't account for constraints of the block-size,
   // min-block-size, and max-block-size properties.
@@ -1327,7 +1327,7 @@ void nsImageFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
   NS_FRAME_TRACE(
       NS_FRAME_TRACE_CALLS,
       ("enter nsImageFrame::Reflow: availSize=%d,%d",
-       aReflowInput.AvailableWidth(), aReflowInput.AvailableHeight()));
+       aReflowInput.AvailableISize(), aReflowInput.AvailableBSize()));
 
   MOZ_ASSERT(mState & NS_FRAME_IN_REFLOW, "frame is not in reflow");
 
@@ -1338,21 +1338,21 @@ void nsImageFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
     RemoveStateBits(IMAGE_SIZECONSTRAINED);
   }
 
-  mComputedSize =
-      nsSize(aReflowInput.ComputedWidth(), aReflowInput.ComputedHeight());
+  mComputedSize = aReflowInput.ComputedPhysicalSize();
 
-  aMetrics.Width() = mComputedSize.width;
-  aMetrics.Height() = mComputedSize.height;
+  printf("mComputedSize %s\n", ToString(mComputedSize).c_str());
 
-  // add borders and padding
-  aMetrics.Width() += aReflowInput.ComputedPhysicalBorderPadding().LeftRight();
-  aMetrics.Height() += aReflowInput.ComputedPhysicalBorderPadding().TopBottom();
+  const auto wm = aReflowInput.GetWritingMode();
 
   if (GetPrevInFlow()) {
-    aMetrics.Width() = GetPrevInFlow()->GetSize().width;
-    nscoord y = GetContinuationOffset();
-    aMetrics.Height() -= y + aReflowInput.ComputedPhysicalBorderPadding().top;
-    aMetrics.Height() = std::max(0, aMetrics.Height());
+    const LogicalMargin borderPadding =
+        aReflowInput.ComputedLogicalBorderPadding(wm).ApplySkipSides(
+            PreReflowBlockLevelLogicalSkipSides());
+    aMetrics.SetSize(wm,
+                     aReflowInput.ComputedSize(wm) + borderPadding.Size(wm));
+    aMetrics.BSize(wm) -= CalcAndCacheConsumedBSize();
+  } else {
+    aMetrics.SetSize(wm, aReflowInput.ComputedSizeWithBorderPadding(wm));
   }
 
   // we have to split images if we are:
@@ -1363,15 +1363,14 @@ void nsImageFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
     currentRequest->GetImageStatus(&loadStatus);
   }
 
+  const nscoord availBSize = aReflowInput.AvailableBSize();
   if (aPresContext->IsPaginated() &&
       ((loadStatus & imgIRequest::STATUS_SIZE_AVAILABLE) ||
        (mState & IMAGE_SIZECONSTRAINED)) &&
-      NS_UNCONSTRAINEDSIZE != aReflowInput.AvailableHeight() &&
-      aMetrics.Height() > aReflowInput.AvailableHeight()) {
-    // our desired height was greater than 0, so to avoid infinite
-    // splitting, use 1 pixel as the min
-    aMetrics.Height() = std::max(nsPresContext::CSSPixelsToAppUnits(1),
-                                 aReflowInput.AvailableHeight());
+      availBSize != NS_UNCONSTRAINEDSIZE && aMetrics.BSize(wm) > availBSize) {
+    // Our desired bsize was greater than 0, so to avoid infinite splitting, use
+    // 1 pixel as the min bsize.
+    aMetrics.BSize(wm) = std::max(AppUnitsPerCSSPixel(), availBSize);
     aStatus.SetIncomplete();
   }
 
@@ -1412,8 +1411,9 @@ void nsImageFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
     PresShell()->PostReflowCallback(this);
   }
 
-  NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS, ("exit nsImageFrame::Reflow: size=%d,%d",
-                                        aMetrics.Width(), aMetrics.Height()));
+  NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
+                 ("exit nsImageFrame::Reflow: size=%d,%d", aMetrics.ISize(wm),
+                  aMetrics.BSize(wm)));
 }
 
 bool nsImageFrame::ReflowFinished() {
@@ -2258,7 +2258,11 @@ ImgDrawResult nsImageFrame::PaintImage(gfxContext& aRenderingContext,
   // (which we need for ComputeObjectDestRect to work correctly).
   nsRect constraintRect(aPt + GetContentRectRelativeToSelf().TopLeft(),
                         mComputedSize);
-  constraintRect.y -= GetContinuationOffset();
+  if (GetWritingMode().IsVertical()) {
+    constraintRect.x -= CalcAndCacheConsumedBSize();
+  } else {
+    constraintRect.y -= CalcAndCacheConsumedBSize();
+  }
 
   nsPoint anchorPoint;
   nsRect dest = nsLayoutUtils::ComputeObjectDestRect(
