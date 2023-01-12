@@ -4155,20 +4155,23 @@ nsFlexContainerFrame::GenerateFlexLayoutResult(
       }
       for (const FlexItem& item : line.Items()) {
         if (item.Frame() == childFirstInFlow) {
-          FlexItem& clonedItem =
-              *currentLine->Items().AppendElement(item.CloneFor(child));
-          if (clonedItem.IsBlockAxisMainAxis()) {
-            nsSplittableFrame* f = do_QueryFrame(clonedItem.Frame());
-            if (f && clonedItem.IsFlexBaseSizeContentBSize()) {
-              nscoord contentBSize =
-                  MeasureFlexItemContentBSize(clonedItem, true, aReflowInput);
-              nscoord consumedContentBSize = f->CalcAndCacheConsumedBSize();
-              nscoord newContentBSize = consumedContentBSize + contentBSize;
-              if (clonedItem.MainSize() < newContentBSize) {
-                clonedItem.SetMainSize(newContentBSize);
-              }
-            }
-          }
+          currentLine->Items().AppendElement(item.CloneFor(child));
+
+          // FlexItem& clonedItem =
+          //     *currentLine->Items().AppendElement(item.CloneFor(child));
+          // if (clonedItem.IsBlockAxisMainAxis()) {
+          //   nsSplittableFrame* f = do_QueryFrame(clonedItem.Frame());
+          //   if (f && clonedItem.IsFlexBaseSizeContentBSize()) {
+          //     nscoord contentBSize =
+          //         MeasureFlexItemContentBSize(clonedItem, true,
+          //         aReflowInput);
+          //     nscoord consumedContentBSize = f->CalcAndCacheConsumedBSize();
+          //     nscoord newContentBSize = consumedContentBSize + contentBSize;
+          //     if (clonedItem.MainSize() < newContentBSize) {
+          //       clonedItem.SetMainSize(newContentBSize);
+          //     }
+          //   }
+          // }
 
           iter.Next();
           if (iter.AtEnd()) {
@@ -5321,6 +5324,8 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
           }
 
           if (bAxisMetrics.mMaxPositionShiftToBStart) {
+            FLEX_LOG("bAxisMetrics.mMaxPositionShiftToBStart %d",
+                     *bAxisMetrics.mMaxPositionShiftToBStart);
             framePos.B(flexWM) -= *bAxisMetrics.mMaxPositionShiftToBStart;
           }
         }
@@ -5404,16 +5409,16 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
           overflowIncompleteItems.Insert(item.Frame());
         }
 
-        FLEX_LOG("Adjust mSumOfFlexContainerBSizeStretch?");
-        if (aAxisTracker.IsColumnOriented() &&
-            childReflowStatus.IsFullyComplete() &&
-            aReflowInput.ComputedBSize() == NS_UNCONSTRAINEDSIZE) {
-          FLEX_LOG("Adjust main size: new - orig %d",
-                   item.MainSize() - item.OriginalMainSize());
+        // FLEX_LOG("Adjust mSumOfFlexContainerBSizeStretch?");
+        // if (aAxisTracker.IsColumnOriented() &&
+        //     childReflowStatus.IsFullyComplete() &&
+        //     aReflowInput.ComputedBSize() == NS_UNCONSTRAINEDSIZE) {
+        //   FLEX_LOG("Adjust main size: new - orig %d",
+        //            item.MainSize() - item.OriginalMainSize());
 
-          aFragmentData.mSumOfFlexContainerBSizeStretch +=
-              (item.MainSize() - item.OriginalMainSize());
-        }
+        //   aFragmentData.mSumOfFlexContainerBSizeStretch +=
+        //       (item.MainSize() - item.OriginalMainSize());
+        // }
       } else {
         MOZ_ASSERT(availableBSizeForItem == NS_UNCONSTRAINEDSIZE,
                    "We should always reflow flex item when available "
@@ -5454,6 +5459,17 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
           } else {
             bAxisMetrics.mMaxBEndEdgeAfterBCoordShift.emplace(
                 bEndEdgeAfterFinalShift);
+          }
+        }
+
+        if (aAxisTracker.IsColumnOriented()) {
+          if (itemBSize > item.MainSize()) {
+            nscoord itemStretch = itemBSize - item.MainSize();
+            aFragmentData.mSumOfFlexContainerBSizeStretch += itemStretch;
+            if (bAxisMetrics.mMaxPositionShiftToBStart) {
+              *bAxisMetrics.mMaxPositionShiftToBStart -=
+                  (itemBSize - item.MainSize());
+            }
           }
         }
       }
@@ -5708,9 +5724,11 @@ nsReflowStatus nsFlexContainerFrame::ReflowFlexItem(
 
   StyleSizeOverrides sizeOverrides;
   // Override flex item's main size.
+  FLEX_LOG("IsFlexBaseSizeContentBSize %d", aItem.IsFlexBaseSizeContentBSize());
+
   if (aItem.IsInlineAxisMainAxis()) {
     sizeOverrides.mStyleISize.emplace(aItem.StyleMainSize());
-  } else {
+  } else if (!aItem.IsFlexBaseSizeContentBSize()) {
     sizeOverrides.mStyleBSize.emplace(aItem.StyleMainSize());
   }
   FLEX_LOGV(" Main size override: %d", aItem.MainSize());
@@ -5725,7 +5743,7 @@ nsReflowStatus nsFlexContainerFrame::ReflowFlexItem(
     }
     FLEX_LOGV(" Cross size override: %d", aItem.CrossSize());
   }
-  if (sizeOverrides.mStyleBSize) {
+  if (sizeOverrides.mStyleBSize || aItem.IsFlexBaseSizeContentBSize()) {
     // We are overriding the block-size. For robustness, we always assume that
     // this represents a block-axis resize for the frame. This may be
     // conservative, but we do capture all the conditions in the block-axis
@@ -5768,6 +5786,9 @@ nsReflowStatus nsFlexContainerFrame::ReflowFlexItem(
   ReflowChild(aItem.Frame(), PresContext(), childReflowOutput, childReflowInput,
               outerWM, aFramePos, aContainerSize, ReflowChildFlags::Default,
               childReflowStatus);
+
+  FLEX_LOG("Desired size %s for flex item %p",
+           ToString(childReflowOutput.Size(outerWM)).c_str(), aItem.Frame());
 
   // XXXdholbert Perhaps we should call CheckForInterrupt here; see bug 1495532.
 
