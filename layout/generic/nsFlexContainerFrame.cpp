@@ -27,6 +27,8 @@
 #include "nsLayoutUtils.h"
 #include "nsPlaceholderFrame.h"
 #include "nsPresContext.h"
+#include "nsQueryFrame.h"
+#include "nsSplittableFrame.h"
 
 using namespace mozilla;
 using namespace mozilla::layout;
@@ -369,6 +371,8 @@ class nsFlexContainerFrame::FlexItem final {
                "aContinuation should be in aItem's continuation chain!");
     FlexItem item(*this);
     item.mFrame = aContinuation;
+    item.mOriginalMainSize = mMainSize;
+    item.mIsFrozen = false;
     item.mHadMeasuringReflow = false;
     return item;
   }
@@ -386,6 +390,7 @@ class nsFlexContainerFrame::FlexItem final {
 
   // Note: These return the main-axis position and size of our *content box*.
   nscoord MainSize() const { return mMainSize; }
+  nscoord OriginalMainSize() const { return mOriginalMainSize; }
   nscoord MainPosition() const { return mMainPosn; }
 
   nscoord CrossMinSize() const { return mCrossMinSize; }
@@ -508,6 +513,10 @@ class nsFlexContainerFrame::FlexItem final {
   // "align-self: stretch" with an auto cross-size and no auto margins in the
   // cross axis).
   bool IsStretched() const { return mIsStretched; }
+
+  bool IsFlexBaseSizeContentBSize() const {
+    return mIsFlexBaseSizeContentBSize;
+  }
 
   // Indicates whether we need to resolve an 'auto' value for the main-axis
   // min-[width|height] property.
@@ -780,6 +789,8 @@ class nsFlexContainerFrame::FlexItem final {
     mIsStretched = true;
   }
 
+  void SetIsFlexBaseSizeContentBSize() { mIsFlexBaseSizeContentBSize = true; }
+
   // Setter for margin components (for resolving "auto" margins)
   void SetMarginComponentForSide(LogicalSide aSide, nscoord aLength) {
     MOZ_ASSERT(mIsFrozen, "main size should be resolved before this");
@@ -868,6 +879,9 @@ class nsFlexContainerFrame::FlexItem final {
   nscoord mCrossSize = 0;
   nscoord mCrossPosn = 0;
 
+  // The main size without fragmentation.
+  nscoord mOriginalMainSize = 0;
+
   // Mutable b/c it's set & resolved lazily, sometimes via const pointer. See
   // comment above SetAscent().
   // We initialize this to ASK_FOR_BASELINE, and opportunistically fill it in
@@ -913,6 +927,8 @@ class nsFlexContainerFrame::FlexItem final {
 
   // Does this item have an auto margin in either main or cross axis?
   bool mHasAnyAutoMargin = false;
+
+  bool mIsFlexBaseSizeContentBSize = false;
 
   // My "align-self" computed value (with "auto" swapped out for parent"s
   // "align-items" value, in our constructor).
@@ -1580,8 +1596,11 @@ void nsFlexContainerFrame::ResolveAutoFlexBasisAndMinSize(
     return;
   }
 
-  FLEX_LOGV("Resolving auto main size or auto min main size for flex item %p",
-            aFlexItem.Frame());
+  FLEX_LOGV(
+      "Resolving auto main size (%s) and/or auto main min size (%s)"
+      " for flex item %p",
+      isMainSizeAuto ? "yes" : "no", isMainMinSizeAuto ? "yes" : "no",
+      aFlexItem.Frame());
 
   nscoord resolvedMinSize;  // (only set/used if isMainMinSizeAuto==true)
   bool minSizeNeedsToMeasureContent = false;  // assume the best
@@ -1654,7 +1673,9 @@ void nsFlexContainerFrame::ResolveAutoFlexBasisAndMinSize(
         contentSizeSuggestion = contentBSize;
       }
       if (flexBasisNeedsToMeasureContent) {
+        FLEX_LOG("Yes, flexBasisNeedsToMeasureContent");
         aFlexItem.SetFlexBaseSizeAndMainSize(contentBSize);
+        aFlexItem.SetIsFlexBaseSizeContentBSize();
       }
     }
 
@@ -4078,7 +4099,8 @@ void nsFlexContainerFrame::GenerateFlexLines(
 }
 
 nsFlexContainerFrame::FlexLayoutResult
-nsFlexContainerFrame::GenerateFlexLayoutResult() {
+nsFlexContainerFrame::GenerateFlexLayoutResult(
+    const ReflowInput& aReflowInput) {
   MOZ_ASSERT(GetPrevInFlow(), "This should be called by non-first-in-flows!");
 
   auto* data = FirstInFlow()->GetProperty(SharedFlexData::Prop());
@@ -4133,7 +4155,21 @@ nsFlexContainerFrame::GenerateFlexLayoutResult() {
       }
       for (const FlexItem& item : line.Items()) {
         if (item.Frame() == childFirstInFlow) {
-          currentLine->Items().AppendElement(item.CloneFor(child));
+          FlexItem& clonedItem =
+              *currentLine->Items().AppendElement(item.CloneFor(child));
+          if (clonedItem.IsBlockAxisMainAxis()) {
+            nsSplittableFrame* f = do_QueryFrame(clonedItem.Frame());
+            if (f && clonedItem.IsFlexBaseSizeContentBSize()) {
+              nscoord contentBSize =
+                  MeasureFlexItemContentBSize(clonedItem, true, aReflowInput);
+              nscoord consumedContentBSize = f->CalcAndCacheConsumedBSize();
+              nscoord newContentBSize = consumedContentBSize + contentBSize;
+              if (clonedItem.MainSize() < newContentBSize) {
+                clonedItem.SetMainSize(newContentBSize);
+              }
+            }
+          }
+
           iter.Next();
           if (iter.AtEnd()) {
             // We've constructed flex items for all children. No need to check
@@ -4516,7 +4552,7 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
                          crossGapSize, struts, containerInfo);
     }
   } else {
-    flr = GenerateFlexLayoutResult();
+    flr = GenerateFlexLayoutResult(aReflowInput);
     auto* fragmentDataProp =
         prevInFlow->GetProperty(PerFragmentFlexData::Prop());
     MOZ_ASSERT(fragmentDataProp,
@@ -4569,7 +4605,7 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
       ReflowChildren(aReflowInput, containerSize, availableSizeForItems,
                      borderPadding, axisTracker, flr, fragmentData);
 
-  if (aReflowInput.AvailableBSize() != NS_UNCONSTRAINEDSIZE) {
+  if (aReflowInput.AvailableBSize() != NS_UNCONSTRAINEDSIZE || prevInFlow) {
     // maxBlockEndEdgeOfChildren is relative to border-box, so we need to
     // subtract block-start border and padding to make it relative to our
     // content-box. Note that if there is a packing space in between the last
@@ -5366,6 +5402,17 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
           incompleteItems.Insert(item.Frame());
         } else if (childReflowStatus.IsOverflowIncomplete()) {
           overflowIncompleteItems.Insert(item.Frame());
+        }
+
+        FLEX_LOG("Adjust mSumOfFlexContainerBSizeStretch?");
+        if (aAxisTracker.IsColumnOriented() &&
+            childReflowStatus.IsFullyComplete() &&
+            aReflowInput.ComputedBSize() == NS_UNCONSTRAINEDSIZE) {
+          FLEX_LOG("Adjust main size: new - orig %d",
+                   item.MainSize() - item.OriginalMainSize());
+
+          aFragmentData.mSumOfFlexContainerBSizeStretch +=
+              (item.MainSize() - item.OriginalMainSize());
         }
       } else {
         MOZ_ASSERT(availableBSizeForItem == NS_UNCONSTRAINEDSIZE,
