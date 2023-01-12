@@ -19,6 +19,8 @@
 class nsSplittableFrame : public nsIFrame {
  public:
   NS_DECL_ABSTRACT_FRAME(nsSplittableFrame)
+  NS_DECL_QUERYFRAME_TARGET(nsSplittableFrame)
+  NS_DECL_QUERYFRAME
 
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
             nsIFrame* aPrevInFlow) override;
@@ -76,13 +78,6 @@ class nsSplittableFrame : public nsIFrame {
   // methods.
   static void RemoveFromFlow(nsIFrame* aFrame);
 
- protected:
-  nsSplittableFrame(ComputedStyle* aStyle, nsPresContext* aPresContext,
-                    ClassID aID)
-      : nsIFrame(aStyle, aPresContext, aID),
-        mPrevContinuation(nullptr),
-        mNextContinuation(nullptr) {}
-
   /**
    * Return the sum of the block-axis content size of our previous
    * continuations.
@@ -95,6 +90,13 @@ class nsSplittableFrame : public nsIFrame {
    * multiple times in the same reflow is wasteful, but not an error.
    */
   nscoord CalcAndCacheConsumedBSize();
+
+ protected:
+  nsSplittableFrame(ComputedStyle* aStyle, nsPresContext* aPresContext,
+                    ClassID aID)
+      : nsIFrame(aStyle, aPresContext, aID),
+        mPrevContinuation(nullptr),
+        mNextContinuation(nullptr) {}
 
   /**
    * Retrieve the effective computed block size of this frame, which is the
