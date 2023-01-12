@@ -4630,7 +4630,9 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
     // Check if we may need a next-in-flow. If so, we'll need to skip block-end
     // border and padding.
     mayNeedNextInFlow = contentBoxSize.BSize(wm) - consumedBSize >
-                        availableSizeForItems.BSize(wm);
+                            availableSizeForItems.BSize(wm) ||
+                        (aReflowInput.ComputedBSize() == NS_UNCONSTRAINEDSIZE &&
+                         anyChildIncomplete);
     if (mayNeedNextInFlow && aReflowInput.mStyleBorder->mBoxDecorationBreak ==
                                  StyleBoxDecorationBreak::Slice) {
       borderPadding.BEnd(wm) = 0;
@@ -5463,13 +5465,21 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
         }
 
         if (aAxisTracker.IsColumnOriented()) {
-          if (itemBSize > item.MainSize()) {
-            nscoord itemStretch = itemBSize - item.MainSize();
-            aFragmentData.mSumOfFlexContainerBSizeStretch += itemStretch;
-            if (bAxisMetrics.mMaxPositionShiftToBStart) {
-              *bAxisMetrics.mMaxPositionShiftToBStart -=
-                  (itemBSize - item.MainSize());
-            }
+          nscoord consumedItemBSize = 0;
+          if (nsSplittableFrame* f = do_QueryFrame(item.Frame())) {
+            consumedItemBSize = f->CalcAndCacheConsumedBSize();
+          }
+
+          nscoord itemBSizeStretch = 0;
+          if (consumedItemBSize >= item.MainSize()) {
+            itemBSizeStretch = itemBSize;
+          } else if (consumedItemBSize + itemBSize >= item.MainSize()) {
+            itemBSizeStretch = consumedItemBSize + itemBSize - item.MainSize();
+          }
+          aFragmentData.mSumOfFlexContainerBSizeStretch += itemBSizeStretch;
+
+          if (bAxisMetrics.mMaxPositionShiftToBStart) {
+            *bAxisMetrics.mMaxPositionShiftToBStart -= itemBSizeStretch;
           }
         }
       }
