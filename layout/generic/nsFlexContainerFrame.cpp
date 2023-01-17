@@ -4612,9 +4612,10 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
     // Check if we may need a next-in-flow. If so, we'll need to skip block-end
     // border and padding.
     mayNeedNextInFlow = contentBoxSize.BSize(wm) - consumedBSize >
-                            availableSizeForItems.BSize(wm) ||
-                        (aReflowInput.ComputedBSize() == NS_UNCONSTRAINEDSIZE &&
-                         anyChildIncomplete);
+                        availableSizeForItems.BSize(wm)  //  ||
+        // (aReflowInput.ComputedBSize() == NS_UNCONSTRAINEDSIZE &&
+        //  anyChildIncomplete)
+        ;
     if (mayNeedNextInFlow && aReflowInput.mStyleBorder->mBoxDecorationBreak ==
                                  StyleBoxDecorationBreak::Slice) {
       borderPadding.BEnd(wm) = 0;
@@ -4625,6 +4626,10 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
                        borderPadding, consumedBSize, mayNeedNextInFlow,
                        maxBlockEndEdgeOfChildren, anyChildIncomplete,
                        flr.mAscent, flr.mLines, axisTracker);
+
+  FLEX_LOG("mSumOfFlexContainerBSizeStretch %d, desired size %s, aStatus %s",
+           fragmentData.mSumOfFlexContainerBSizeStretch,
+           ToString(aReflowOutput.Size(wm)).c_str(), ToString(aStatus).c_str());
 
   if (wm.IsVerticalRL()) {
     // If the final border-box block-size is different from the tentative one,
@@ -5460,6 +5465,8 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
           }
           aFragmentData.mSumOfFlexContainerBSizeStretch += itemBSizeStretch;
 
+          FLEX_LOG("itemBSizeStretch %d", itemBSizeStretch);
+
           if (bAxisMetrics.mMaxPositionShiftToBStart) {
             *bAxisMetrics.mMaxPositionShiftToBStart -= itemBSizeStretch;
           }
@@ -5713,16 +5720,24 @@ nsReflowStatus nsFlexContainerFrame::ReflowFlexItem(
   FLEX_LOG("Doing final reflow for flex item %p", aItem.Frame());
 
   WritingMode outerWM = aReflowInput.GetWritingMode();
+  WritingMode childWM = aItem.GetWritingMode();
+  const bool inPaginatedContext =
+      aAvailableSize.BSize(childWM) != NS_UNCONSTRAINEDSIZE || GetPrevInFlow();
 
   StyleSizeOverrides sizeOverrides;
   // Override flex item's main size.
-  FLEX_LOG("IsFlexBaseSizeContentBSize %d", aItem.IsFlexBaseSizeContentBSize());
+
+  // XXX: We want the item to grow its block size in paginated context.
+  const bool overrideItemBSize =
+      !inPaginatedContext || (!aItem.IsFlexBaseSizeContentBSize() ||
+                              aItem.MainSize() > aItem.FlexBaseSize());
+
+  FLEX_LOG("IsFlexBaseSizeContentBSize %d, overrideItemBSize %d",
+           aItem.IsFlexBaseSizeContentBSize(), overrideItemBSize);
 
   if (aItem.IsInlineAxisMainAxis()) {
     sizeOverrides.mStyleISize.emplace(aItem.StyleMainSize());
-  } else if (!aItem.IsFlexBaseSizeContentBSize() ||  // XXX: is this condition
-                                                     // correct?
-             aItem.FlexBaseSize() <= aItem.MainSize()) {
+  } else if (overrideItemBSize) {
     sizeOverrides.mStyleBSize.emplace(aItem.StyleMainSize());
   }
   FLEX_LOGV(" Main size override: %d", aItem.MainSize());
@@ -5737,7 +5752,7 @@ nsReflowStatus nsFlexContainerFrame::ReflowFlexItem(
     }
     FLEX_LOGV(" Cross size override: %d", aItem.CrossSize());
   }
-  if (sizeOverrides.mStyleBSize || aItem.IsFlexBaseSizeContentBSize()) {
+  if (sizeOverrides.mStyleBSize || inPaginatedContext) {
     // We are overriding the block-size. For robustness, we always assume that
     // this represents a block-axis resize for the frame. This may be
     // conservative, but we do capture all the conditions in the block-axis
