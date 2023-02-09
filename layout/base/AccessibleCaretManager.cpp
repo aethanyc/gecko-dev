@@ -102,6 +102,14 @@ void AccessibleCaretManager::Terminate() {
 nsresult AccessibleCaretManager::OnSelectionChanged(Document* aDoc,
                                                     Selection* aSel,
                                                     int16_t aReason) {
+  AutoRestore<bool> saveAllowFlushingLayout(mLayoutFlusher.mAllowFlushing);
+  mLayoutFlusher.mAllowFlushing = false;
+
+  Maybe<PresShell::AutoAssertNoFlush> assert;
+  if (mPresShell) {
+    assert.emplace(*mPresShell);
+  }
+
   Selection* selection = GetSelection();
   AC_LOG("%s: aSel: %p, GetSelection(): %p, aReason: %d", __FUNCTION__, aSel,
          selection, aReason);
@@ -1037,6 +1045,7 @@ void AccessibleCaretManager::LayoutFlusher::MaybeFlush(
     mFlushing = true;
 
     if (Document* doc = aPresShell.GetDocument()) {
+      AC_LOG("%s, FlushPendingNotifications", __FUNCTION__);
       doc->FlushPendingNotifications(FlushType::Layout);
       // Don't access the PresShell after flushing, it could've become invalid.
     }
