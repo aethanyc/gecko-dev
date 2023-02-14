@@ -145,13 +145,16 @@ nscoord SVGOuterSVGFrame::GetPrefISize(gfxContext* aRenderingContext) {
           ContainSizeAxesIfApplicable(this).ContainIntrinsicISize(*this)) {
     result = *containISize;
   } else if (isize.IsPercentage()) {
-    // If we are here, our inline size attribute is a percentage either
-    // explicitly (via an attribute value) or implicitly (by being unset, which
-    // is treated as 100%). The following if-condition, deciding to return
-    // either the fallback intrinsic size or zero, is made to match blink and
-    // webkit's behavior for webcompat.
-    if (isize.IsExplicitlySet() || StylePosition()->ISize(wm).HasPercent() ||
-        !GetAspectRatio()) {
+    // If we are here, our inline size attribute is a percentage or a
+    // "fit-content" value, which is set either explicitly (via an attribute
+    // value) or implicitly (by being unset, which is treated as 100%).
+    //
+    // The following if-condition, deciding to return either the fallback
+    // intrinsic size or zero, is made to match blink and webkit's behavior for
+    // webcompat.
+    const auto& styleISize = StylePosition()->ISize(wm);
+    if (isize.IsExplicitlySet() || styleISize.HasPercent() ||
+        styleISize.IsFitContent() || !GetAspectRatio()) {
       result = wm.IsVertical() ? kFallbackIntrinsicSize.height
                                : kFallbackIntrinsicSize.width;
     } else {
