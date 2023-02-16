@@ -8,6 +8,7 @@
 
 #include "nsGfxScrollFrame.h"
 
+#include "mozilla/WritingModes.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "nsIXULRuntime.h"
 #include "base/compiler_specific.h"
@@ -1505,13 +1506,15 @@ void nsHTMLScrollFrame::Reflow(nsPresContext* aPresContext,
 
   nsSize layoutSize =
       mIsUsingMinimumScaleSize ? mMinimumScaleSize : state.mInsideBorderSize;
-  aDesiredSize.Width() = layoutSize.width + state.mComputedBorder.LeftRight();
-  aDesiredSize.Height() = layoutSize.height + state.mComputedBorder.TopBottom();
+  const auto desiredWM = aDesiredSize.GetWritingMode();
+  const LogicalSize desiredSize =
+      LogicalSize(desiredWM, layoutSize) +
+      LogicalMargin(desiredWM, mComputedBorder).Size(wm);
+  aDesiredSize(desiredWM, desiredSize);
 
   // Set the size of the frame now since computing the perspective-correct
   // overflow (within PlaceScrollArea) can rely on it.
-  SetSize(aDesiredSize.GetWritingMode(),
-          aDesiredSize.Size(aDesiredSize.GetWritingMode()));
+  SetSize(desiredWM, desiredSize);
 
   // Restore the old scroll position, for now, even if that's not valid anymore
   // because we changed size. We'll fix it up in a post-reflow callback, because

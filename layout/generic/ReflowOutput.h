@@ -216,15 +216,6 @@ class ReflowOutput {
   // dimensions.
   nscoord Width() const { return mSize.Width(mWritingMode); }
   nscoord Height() const { return mSize.Height(mWritingMode); }
-  nscoord& Width() {
-    return mWritingMode.IsVertical() ? mSize.BSize(mWritingMode)
-                                     : mSize.ISize(mWritingMode);
-  }
-  nscoord& Height() {
-    return mWritingMode.IsVertical() ? mSize.ISize(mWritingMode)
-                                     : mSize.BSize(mWritingMode);
-  }
-
   nsSize PhysicalSize() const { return mSize.GetPhysicalSize(mWritingMode); }
 
   // It's only meaningful to consider "ascent" on the block-start side of the
