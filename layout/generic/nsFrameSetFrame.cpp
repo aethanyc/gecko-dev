@@ -12,6 +12,7 @@
 #include "gfxUtils.h"
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/WritingModes.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Helpers.h"
 #include "mozilla/Likely.h"
@@ -654,17 +655,17 @@ void nsHTMLFramesetFrame::ReflowPlaceChild(nsIFrame* aChild,
                                            nsPoint& aOffset, nsSize& aSize,
                                            nsIntPoint* aCellIndex) {
   // reflow the child
-  ReflowInput reflowInput(aPresContext, aReflowInput, aChild,
-                          LogicalSize(aChild->GetWritingMode(), aSize));
-  reflowInput.SetComputedWidth(std::max(
-      0,
-      aSize.width - reflowInput.ComputedPhysicalBorderPadding().LeftRight()));
-  reflowInput.SetComputedHeight(std::max(
-      0,
-      aSize.height - reflowInput.ComputedPhysicalBorderPadding().TopBottom()));
+  const auto childWM = aChild->GetWritingMode();
+  const LogicalSize size(childWM, aSize);
+  ReflowInput reflowInput(aPresContext, aReflowInput, aChild, size);
+
+  const LogicalMargin bp = reflowInput.ComputedLogicalBorderPadding(childWM);
+  reflowInput.SetComputedISize(
+      std::max(0, size.ISize(childWM) - bp.IStartEnd(childWM)));
+  reflowInput.SetComputedBSize(
+      std::max(0, size.BSize(childWM) - bp.BStartEnd(childWM)));
+
   ReflowOutput reflowOutput(aReflowInput);
-  reflowOutput.Width() = aSize.width;
-  reflowOutput.Height() = aSize.height;
   nsReflowStatus status;
 
   ReflowChild(aChild, aPresContext, reflowOutput, reflowInput, aOffset.x,
@@ -672,8 +673,7 @@ void nsHTMLFramesetFrame::ReflowPlaceChild(nsIFrame* aChild,
   NS_ASSERTION(status.IsComplete(), "bad status");
 
   // Place and size the child
-  reflowOutput.Width() = aSize.width;
-  reflowOutput.Height() = aSize.height;
+  reflowOutput.SetSize(childWM, size);
   FinishReflowChild(aChild, aPresContext, reflowOutput, &reflowInput, aOffset.x,
                     aOffset.y, ReflowChildFlags::Default);
 }

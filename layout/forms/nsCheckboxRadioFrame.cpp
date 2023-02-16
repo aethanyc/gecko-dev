@@ -126,8 +126,8 @@ void nsCheckboxRadioFrame::Reflow(nsPresContext* aPresContext,
 
   if (nsLayoutUtils::FontSizeInflationEnabled(aPresContext)) {
     float inflation = nsLayoutUtils::FontSizeInflationFor(this);
-    aDesiredSize.Width() *= inflation;
-    aDesiredSize.Height() *= inflation;
+    aDesiredSize.ISize(wm) *= inflation;
+    aDesiredSize.BSize(wm) *= inflation;
   }
 
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,

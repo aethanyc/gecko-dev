@@ -10927,6 +10927,10 @@ void nsIFrame::BoxReflow(nsBoxLayoutState& aState, nsPresContext* aPresContext,
 
   bool needsReflow = IsSubtreeDirty();
 
+  const nsSize parentSize(aWidth, aHeight);
+  const auto wm = GetWritingMode();
+  const LogicalSize parentLogicalSize(wm, parentSize);
+
   // if we don't need a reflow then
   // lets see if we are already that size. Yes? then don't even reflow. We are
   // done.
@@ -10936,12 +10940,10 @@ void nsIFrame::BoxReflow(nsBoxLayoutState& aState, nsPresContext* aPresContext,
       if ((metrics->mLastSize.width == 0 || metrics->mLastSize.height == 0) &&
           (aWidth == 0 || aHeight == 0)) {
         needsReflow = false;
-        aDesiredSize.Width() = aWidth;
-        aDesiredSize.Height() = aHeight;
-        SetSize(aDesiredSize.Size(GetWritingMode()));
+        aDesiredSize.SetSize(wm, parentLogicalSize);
+        SetSize(parentLogicalSize);
       } else {
-        aDesiredSize.Width() = metrics->mLastSize.width;
-        aDesiredSize.Height() = metrics->mLastSize.height;
+        aDesiredSize.SetSize(wm, LogicalSize(wm, metrics->mLastSize));
 
         // remove the margin. The rect of our child does not include it but our
         // calculated size does. don't reflow if we are already the right size
@@ -10969,7 +10971,6 @@ void nsIFrame::BoxReflow(nsBoxLayoutState& aState, nsPresContext* aPresContext,
     nsMargin margin(0, 0, 0, 0);
     GetXULMargin(margin);
 
-    nsSize parentSize(aWidth, aHeight);
     if (parentSize.height != NS_UNCONSTRAINEDSIZE)
       parentSize.height += margin.TopBottom();
     if (parentSize.width != NS_UNCONSTRAINEDSIZE)
