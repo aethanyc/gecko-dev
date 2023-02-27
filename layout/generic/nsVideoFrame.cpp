@@ -261,7 +261,7 @@ void nsVideoFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
     if (child->GetContent() == mPosterImage) {
       // Reflow the poster frame.
       nsImageFrame* imageFrame = static_cast<nsImageFrame*>(child);
-      ReflowOutput kidDesiredSize(aReflowInput);
+      ReflowOutput kidDesiredSize(myWM);
       WritingMode wm = imageFrame->GetWritingMode();
       LogicalSize availableSize = aReflowInput.AvailableSize(wm);
       availableSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
@@ -300,7 +300,7 @@ void nsVideoFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
 
       ReflowInput kidReflowInput(aPresContext, aReflowInput, child,
                                  availableSize);
-      ReflowOutput kidDesiredSize(kidReflowInput);
+      ReflowOutput kidDesiredSize(myWM);
       ReflowChild(child, aPresContext, kidDesiredSize, kidReflowInput,
                   borderPadding.left, borderPadding.top,
                   ReflowChildFlags::Default, childStatus);
@@ -315,8 +315,7 @@ void nsVideoFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
         if (GetContainSizeAxes().mBContained) {
           contentBoxBSize = 0;
         } else {
-          contentBoxBSize = myWM.IsOrthogonalTo(wm) ? kidDesiredSize.ISize(wm)
-                                                    : kidDesiredSize.BSize(wm);
+          contentBoxBSize = kidDesiredSize.BSize(myWM);
         }
       }
 
