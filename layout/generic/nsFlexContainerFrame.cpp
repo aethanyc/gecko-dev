@@ -393,13 +393,10 @@ class nsFlexContainerFrame::FlexItem final {
 
   // Lazy getter for mAscent.
   nscoord ResolvedAscent(bool aUseFirstBaseline) const {
-    // XXXdholbert Two concerns to follow up on here:
-    // (1) We probably should be checking and reacting to aUseFirstBaseline
-    // for all of the cases here (e.g. this first one). Maybe we need to store
-    // two versions of mAscent and choose the appropriate one based on
-    // aUseFirstBaseline? This is roughly bug 1480850, I think.
-    // (2) We should be using the *container's* writing-mode (mCBWM) here,
-    // instead of the item's (mWM). This is essentially bug 1155322.
+    // XXXdholbert: We probably should be checking and reacting to
+    // aUseFirstBaseline for all of the cases here (e.g. this first one). Maybe
+    // we need to store two versions of mAscent and choose the appropriate one
+    // based on aUseFirstBaseline? This is roughly bug 1480850, I think.
     if (mAscent != ReflowOutput::ASK_FOR_BASELINE) {
       return mAscent;
     }
@@ -407,8 +404,8 @@ class nsFlexContainerFrame::FlexItem final {
     // Use GetFirstLineBaseline() or GetLastLineBaseline() as appropriate:
     bool found =
         aUseFirstBaseline
-            ? nsLayoutUtils::GetFirstLineBaseline(mWM, mFrame, &mAscent)
-            : nsLayoutUtils::GetLastLineBaseline(mWM, mFrame, &mAscent);
+            ? nsLayoutUtils::GetFirstLineBaseline(mCBWM, mFrame, &mAscent)
+            : nsLayoutUtils::GetLastLineBaseline(mCBWM, mFrame, &mAscent);
     if (found) {
       return mAscent;
     }
@@ -416,18 +413,19 @@ class nsFlexContainerFrame::FlexItem final {
     // If the nsLayoutUtils getter fails, then ask the frame directly:
     auto baselineGroup = aUseFirstBaseline ? BaselineSharingGroup::First
                                            : BaselineSharingGroup::Last;
-    if (auto baseline = mFrame->GetNaturalBaselineBOffset(mWM, baselineGroup)) {
+    if (auto baseline =
+            mFrame->GetNaturalBaselineBOffset(mCBWM, baselineGroup)) {
       // Offset for last baseline from `GetNaturalBaselineBOffset` originates
       // from the frame's block end, so convert it back.
       mAscent = baselineGroup == BaselineSharingGroup::First
                     ? *baseline
-                    : mFrame->BSize(mWM) - *baseline;
+                    : mFrame->BSize(mCBWM) - *baseline;
       return mAscent;
     }
 
     // We couldn't determine a baseline, so we synthesize one from border box:
     mAscent = Baseline::SynthesizeBOffsetFromBorderBox(
-        mFrame, mWM, BaselineSharingGroup::First);
+        mFrame, mCBWM, BaselineSharingGroup::First);
     return mAscent;
   }
 
@@ -462,13 +460,10 @@ class nsFlexContainerFrame::FlexItem final {
   }
 
   // Returns the distance between this FlexItem's baseline and the cross-start
-  // edge of its margin-box. Used in baseline alignment.
-  //
-  // (This function needs to be told which physical start side we're measuring
-  // the baseline from, so that it can look up the appropriate components from
-  // margin.)
-  nscoord BaselineOffsetFromOuterCrossEdge(mozilla::Side aStartSide,
-                                           bool aUseFirstLineBaseline) const;
+  // edge of its margin-box in flex container's writing-mode (mCBWM). Used in
+  // baseline alignment.
+  nscoord BaselineOffsetFromOuterCrossStartEdge(
+      bool aUseFirstLineBaseline) const;
 
   double ShareOfWeightSoFar() const { return mShareOfWeightSoFar; }
 
@@ -2206,8 +2201,8 @@ bool FlexItem::IsMinSizeAutoResolutionNeeded() const {
          !Frame()->StyleDisplay()->IsScrollableOverflow();
 }
 
-nscoord FlexItem::BaselineOffsetFromOuterCrossEdge(
-    mozilla::Side aStartSide, bool aUseFirstLineBaseline) const {
+nscoord FlexItem::BaselineOffsetFromOuterCrossStartEdge(
+    bool aUseFirstLineBaseline) const {
   // NOTE:
   //  * We only use baselines for aligning in the flex container's cross axis.
   //  * Baselines are a measurement in the item's block axis.
@@ -2219,14 +2214,11 @@ nscoord FlexItem::BaselineOffsetFromOuterCrossEdge(
              "Only expecting to be doing baseline computations when the "
              "cross axis is the block axis");
 
-  mozilla::Side itemBlockStartSide = mWM.PhysicalSide(eLogicalSideBStart);
+  const nscoord marginBStartToBaseline =
+      ResolvedAscent(aUseFirstLineBaseline) +
+      Margin().Side(eLogicalSideBStart, mCBWM);
 
-  nscoord marginBStartToBaseline = ResolvedAscent(aUseFirstLineBaseline) +
-                                   PhysicalMargin().Side(itemBlockStartSide);
-
-  return (aStartSide == itemBlockStartSide)
-             ? marginBStartToBaseline
-             : OuterCrossSize() - marginBStartToBaseline;
+  return marginBStartToBaseline;
 }
 
 bool FlexItem::IsCrossSizeAuto() const {
@@ -3607,9 +3599,6 @@ void FlexLine::ComputeCrossSizeAndBaseline(
          item.AlignSelf()._0 == StyleAlignFlags::LAST_BASELINE) &&
         item.NumAutoMarginsInCrossAxis() == 0) {
       const bool useFirst = (item.AlignSelf()._0 == StyleAlignFlags::BASELINE);
-      // FIXME: Once we support "writing-mode", we'll have to do baseline
-      // alignment in vertical flex containers here (w/ horizontal cross-axes).
-
       // Find distance from our item's cross-start and cross-end margin-box
       // edges to its baseline.
       //
@@ -3636,8 +3625,8 @@ void FlexLine::ComputeCrossSizeAndBaseline(
       // * If we subtract that from the curOuterCrossSize, we get
       //   crossEndToBaseline.
 
-      nscoord crossStartToBaseline = item.BaselineOffsetFromOuterCrossEdge(
-          aAxisTracker.CrossAxisPhysicalStartSide(), useFirst);
+      nscoord crossStartToBaseline =
+          item.BaselineOffsetFromOuterCrossStartEdge(useFirst);
       nscoord crossEndToBaseline = curOuterCrossSize - crossStartToBaseline;
 
       // Now, update our "largest" values for these (across all the flex items
@@ -3816,15 +3805,15 @@ void SingleLineCrossAxisPositionTracker::EnterAlignPackingSpace(
              alignSelf == StyleAlignFlags::LAST_BASELINE) {
     const bool useFirst = (alignSelf == StyleAlignFlags::BASELINE);
 
-    // Baseline-aligned items are collectively aligned with the line's physical
-    // cross-start or cross-end side, depending on whether we're doing
-    // first-baseline or last-baseline alignment.
-    const mozilla::Side baselineAlignStartSide =
-        useFirst ? aAxisTracker.CrossAxisPhysicalStartSide()
-                 : aAxisTracker.CrossAxisPhysicalEndSide();
+    const nscoord itemBaselineOffsetFromOuterCrossStartEdge =
+        aItem.BaselineOffsetFromOuterCrossStartEdge(useFirst);
 
-    nscoord itemBaselineOffset = aItem.BaselineOffsetFromOuterCrossEdge(
-        baselineAlignStartSide, useFirst);
+    // If we're doing last-baseline alignment, change the offset to originate
+    // from the cross-end edge of the line.
+    const nscoord itemBaselineOffset =
+        useFirst ? itemBaselineOffsetFromOuterCrossStartEdge
+                 : aItem.OuterCrossSize() -
+                       itemBaselineOffsetFromOuterCrossStartEdge;
 
     nscoord lineBaselineOffset =
         useFirst ? aLine.FirstBaselineOffset() : aLine.LastBaselineOffset();
