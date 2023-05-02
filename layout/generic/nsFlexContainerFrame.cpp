@@ -462,8 +462,10 @@ class nsFlexContainerFrame::FlexItem final {
   // Returns the distance between this FlexItem's baseline and the cross-start
   // edge of its margin-box in flex container's writing-mode (mCBWM). Used in
   // baseline alignment.
+  //
+  // @param aCrossStartSide the flex container's cross-start side.
   nscoord BaselineOffsetFromOuterCrossStartEdge(
-      bool aUseFirstLineBaseline) const;
+      LogicalSide aCrossStartSide, bool aUseFirstLineBaseline) const;
 
   double ShareOfWeightSoFar() const { return mShareOfWeightSoFar; }
 
@@ -2202,7 +2204,7 @@ bool FlexItem::IsMinSizeAutoResolutionNeeded() const {
 }
 
 nscoord FlexItem::BaselineOffsetFromOuterCrossStartEdge(
-    bool aUseFirstLineBaseline) const {
+    LogicalSide aCrossStartSide, bool aUseFirstLineBaseline) const {
   // NOTE:
   //  * We only use baselines for aligning in the flex container's cross axis.
   //  * Baselines are a measurement in the item's block axis.
@@ -2218,7 +2220,9 @@ nscoord FlexItem::BaselineOffsetFromOuterCrossStartEdge(
       ResolvedAscent(aUseFirstLineBaseline) +
       Margin().Side(eLogicalSideBStart, mCBWM);
 
-  return marginBStartToBaseline;
+  return aCrossStartSide == eLogicalSideBStart
+             ? marginBStartToBaseline
+             : OuterCrossSize() - marginBStartToBaseline;
 }
 
 bool FlexItem::IsCrossSizeAuto() const {
@@ -3625,8 +3629,8 @@ void FlexLine::ComputeCrossSizeAndBaseline(
       // * If we subtract that from the curOuterCrossSize, we get
       //   crossEndToBaseline.
 
-      nscoord crossStartToBaseline =
-          item.BaselineOffsetFromOuterCrossStartEdge(useFirst);
+      nscoord crossStartToBaseline = item.BaselineOffsetFromOuterCrossStartEdge(
+          aAxisTracker.CrossAxisStartSide(), useFirst);
       nscoord crossEndToBaseline = curOuterCrossSize - crossStartToBaseline;
 
       // Now, update our "largest" values for these (across all the flex items
@@ -3806,10 +3810,11 @@ void SingleLineCrossAxisPositionTracker::EnterAlignPackingSpace(
     const bool useFirst = (alignSelf == StyleAlignFlags::BASELINE);
 
     const nscoord itemBaselineOffsetFromOuterCrossStartEdge =
-        aItem.BaselineOffsetFromOuterCrossStartEdge(useFirst);
+        aItem.BaselineOffsetFromOuterCrossStartEdge(
+            aAxisTracker.CrossAxisStartSide(), useFirst);
 
-    // If we're doing last-baseline alignment, change the offset to originate
-    // from the cross-end edge of the line.
+    // If we're doing last-baseline alignment, convert the item's baseline
+    // offset to be originated from the cross-end edge of the line.
     const nscoord itemBaselineOffset =
         useFirst ? itemBaselineOffsetFromOuterCrossStartEdge
                  : aItem.OuterCrossSize() -
