@@ -5529,7 +5529,6 @@ void nsBlockFrame::DrainSelfPushedFloats() {
   // rather than this block?  Might we need to pull it back so we don't
   // report ourselves complete?
   // FIXME: Maybe we should just pull all of them back?
-  nsPresContext* presContext = PresContext();
   nsFrameList* ourPushedFloats = GetPushedFloats();
   if (ourPushedFloats) {
     // When we pull back floats, we want to put them with the pushed
@@ -5543,17 +5542,17 @@ void nsBlockFrame::DrainSelfPushedFloats() {
       insertionPrevSibling = f;
     }
 
-    for (nsIFrame *f = ourPushedFloats->LastChild(), *next; f; f = next) {
-      next = f->GetPrevSibling();
+    nsIFrame* f = ourPushedFloats->LastChild();
+    while (f) {
+      nsIFrame* prevSibling = f->GetPrevSibling();
 
       if (f->GetPrevContinuation()) {
         // FIXME
       } else {
         nsPlaceholderFrame* placeholder = f->GetPlaceholderFrame();
         nsIFrame* floatOriginalParent =
-            presContext->PresShell()
-                ->FrameConstructor()
-                ->GetFloatContainingBlock(placeholder);
+            PresShell()->FrameConstructor()->GetFloatContainingBlock(
+                placeholder);
         if (floatOriginalParent != this) {
           // This is a first continuation that was pushed from one of our
           // previous continuations.  Take it out of the pushed floats
@@ -5563,10 +5562,12 @@ void nsBlockFrame::DrainSelfPushedFloats() {
           mFloats.InsertFrame(nullptr, insertionPrevSibling, f);
         }
       }
+
+      f = prevSibling;
     }
 
     if (ourPushedFloats->IsEmpty()) {
-      RemovePushedFloats()->Delete(presContext->PresShell());
+      RemovePushedFloats()->Delete(PresShell());
     }
   }
 }
