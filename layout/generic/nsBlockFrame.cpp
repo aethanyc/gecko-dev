@@ -5524,11 +5524,6 @@ void nsBlockFrame::DrainSelfPushedFloats() {
   // placeholders were in earlier blocks (since first-in-flows whose
   // placeholders are in this block will get pulled appropriately by
   // AddFloat, and will then be more likely to be in the correct order).
-  // FIXME: What if there's a continuation in our pushed floats list
-  // whose prev-in-flow is in a previous continuation of this block
-  // rather than this block?  Might we need to pull it back so we don't
-  // report ourselves complete?
-  // FIXME: Maybe we should just pull all of them back?
   nsFrameList* ourPushedFloats = GetPushedFloats();
   if (ourPushedFloats) {
     // When we pull back floats, we want to put them with the pushed
@@ -5546,21 +5541,16 @@ void nsBlockFrame::DrainSelfPushedFloats() {
     while (f) {
       nsIFrame* prevSibling = f->GetPrevSibling();
 
-      if (f->GetPrevContinuation()) {
-        // FIXME
-      } else {
-        nsPlaceholderFrame* placeholder = f->GetPlaceholderFrame();
-        nsIFrame* floatOriginalParent =
-            PresShell()->FrameConstructor()->GetFloatContainingBlock(
-                placeholder);
-        if (floatOriginalParent != this) {
-          // This is a first continuation that was pushed from one of our
-          // previous continuations.  Take it out of the pushed floats
-          // list and put it in our floats list, before any of our
-          // floats, but after other pushed floats.
-          ourPushedFloats->RemoveFrame(f);
-          mFloats.InsertFrame(nullptr, insertionPrevSibling, f);
-        }
+      nsPlaceholderFrame* placeholder = f->GetPlaceholderFrame();
+      nsIFrame* floatOriginalParent =
+          PresShell()->FrameConstructor()->GetFloatContainingBlock(placeholder);
+      if (floatOriginalParent != this) {
+        // This is a first continuation that was pushed from one of our
+        // previous continuations.  Take it out of the pushed floats
+        // list and put it in our floats list, before any of our
+        // floats, but after other pushed floats.
+        ourPushedFloats->RemoveFrame(f);
+        mFloats.InsertFrame(nullptr, insertionPrevSibling, f);
       }
 
       f = prevSibling;
