@@ -4654,7 +4654,7 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
 
   const LogicalSize availableSizeForItems =
       ComputeAvailableSizeForItems(aReflowInput, borderPadding);
-  const auto [maxBlockEndEdgeOfChildren, anyChildIncomplete] =
+  const auto [maxBlockEndEdgeOfChildren, childrenStatus] =
       ReflowChildren(aReflowInput, containerSize, availableSizeForItems,
                      borderPadding, axisTracker, flr, fragmentData);
 
@@ -4690,8 +4690,8 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
 
   PopulateReflowOutput(aReflowOutput, aReflowInput, aStatus, contentBoxSize,
                        borderPadding, consumedBSize, mayNeedNextInFlow,
-                       maxBlockEndEdgeOfChildren, anyChildIncomplete,
-                       axisTracker, flr);
+                       maxBlockEndEdgeOfChildren, childrenStatus, axisTracker,
+                       flr);
 
   if (wm.IsVerticalRL()) {
     // If the final border-box block-size is different from the tentative one,
@@ -5392,13 +5392,13 @@ struct FirstLineOrFirstItemBAxisMetrics final {
   Maybe<std::pair<nscoord, nscoord>> mMaxBEndEdge;
 };
 
-std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
+std::tuple<nscoord, nsReflowStatus> nsFlexContainerFrame::ReflowChildren(
     const ReflowInput& aReflowInput, const nsSize& aContainerSize,
     const LogicalSize& aAvailableSizeForItems,
     const LogicalMargin& aBorderPadding, const FlexboxAxisTracker& aAxisTracker,
     FlexLayoutResult& aFlr, PerFragmentFlexData& aFragmentData) {
   if (HidesContentForLayout()) {
-    return {0, false};
+    return {0, nsReflowStatus()};
   }
 
   // Before giving each child a final reflow, calculate the origin of the
@@ -5661,11 +5661,16 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
                        containerContentBoxOrigin, aContainerSize);
   }
 
-  const bool anyChildIncomplete = PushIncompleteChildren(
-      pushedItems, incompleteItems, overflowIncompleteItems);
+  nsReflowStatus childrenStatus;
+  if (!pushedItems.IsEmpty() || !incompleteItems.IsEmpty()) {
+    childrenStatus.SetIncomplete();
+  } else if (!overflowIncompleteItems.IsEmpty()) {
+    childrenStatus.SetOverflowIncomplete();
+  }
+  PushIncompleteChildren(pushedItems, incompleteItems, overflowIncompleteItems);
 
   // TODO: Try making this a fatal assertion after we fix bug 1751260.
-  NS_ASSERTION(!anyChildIncomplete ||
+  NS_ASSERTION(childrenStatus.IsFullyComplete() ||
                    aAvailableSizeForItems.BSize(flexWM) != NS_UNCONSTRAINEDSIZE,
                "We shouldn't have any incomplete children if the available "
                "block-size is unconstrained!");
@@ -5678,7 +5683,7 @@ std::tuple<nscoord, bool> nsFlexContainerFrame::ReflowChildren(
     aFragmentData.mCumulativeBEndEdgeShift += bAxisMetrics.mBEndEdgeShift;
   }
 
-  return {maxBlockEndEdgeOfChildren, anyChildIncomplete};
+  return {maxBlockEndEdgeOfChildren, childrenStatus};
 }
 
 void nsFlexContainerFrame::PopulateReflowOutput(
@@ -5686,8 +5691,8 @@ void nsFlexContainerFrame::PopulateReflowOutput(
     nsReflowStatus& aStatus, const LogicalSize& aContentBoxSize,
     const LogicalMargin& aBorderPadding, const nscoord aConsumedBSize,
     const bool aMayNeedNextInFlow, const nscoord aMaxBlockEndEdgeOfChildren,
-    const bool aAnyChildIncomplete, const FlexboxAxisTracker& aAxisTracker,
-    FlexLayoutResult& aFlr) {
+    const nsReflowStatus& aChildrenStatus,
+    const FlexboxAxisTracker& aAxisTracker, FlexLayoutResult& aFlr) {
   const WritingMode flexWM = aReflowInput.GetWritingMode();
 
   // Compute flex container's desired size (in its own writing-mode).
@@ -5721,7 +5726,7 @@ void nsFlexContainerFrame::PopulateReflowOutput(
           effectiveContentBSizeWithBStartBP, aMaxBlockEndEdgeOfChildren);
 
       if ((aReflowInput.ComputedBSize() != NS_UNCONSTRAINEDSIZE ||
-           !aAnyChildIncomplete) &&
+           aChildrenStatus.IsFullyComplete()) &&
           aMaxBlockEndEdgeOfChildren >= effectiveContentBSizeWithBStartBP) {
         // We have some tall unbreakable child that's sticking off the end of
         // our fragment, *and* forcing us to consume all of our remaining
@@ -5790,7 +5795,7 @@ void nsFlexContainerFrame::PopulateReflowOutput(
   // to add it in.
   desiredSizeInFlexWM.BSize(flexWM) += blockEndContainerBP;
 
-  if (aStatus.IsComplete() && aAnyChildIncomplete) {
+  if (aStatus.IsComplete() && !aChildrenStatus.IsFullyComplete()) {
     aStatus.SetOverflowIncomplete();
     aStatus.SetNextInFlowNeedsReflow();
   }
