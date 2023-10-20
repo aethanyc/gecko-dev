@@ -2396,9 +2396,18 @@ nsChangeHint nsStyleDisplay::CalcDifference(
 
   if (mScrollbarGutter != aNewData.mScrollbarGutter) {
     if (IsScrollableOverflow()) {
-      // Changing scrollbar-gutter affects available inline-size of a inner
-      // scrolled frame, so we need a reflow for scrollbar change.
-      hint |= nsChangeHint_ReflowHintsForScrollbarChange;
+      if (mOverflowY == StyleOverflow::Hidden &&
+          (aNewData.mScrollbarGutter & StyleScrollbarGutter::STABLE)) {
+        // We need the vertical scrollbar frame in order to query
+        // scrollbar-gutter's size. However, when overflow-y is hidden, we might
+        // not have the vertical scrollbar frame constructed. Thus, when
+        // scrollbar-gutter is needed, we'll need to reframe.
+        hint |= nsChangeHint_ScrollbarChange;
+      } else {
+        // Changing scrollbar-gutter affects available inline-size of a inner
+        // scrolled frame, so we need a reflow for scrollbar change.
+        hint |= nsChangeHint_ReflowHintsForScrollbarChange;
+      }
     } else {
       // scrollbar-gutter only applies to the scroll containers.
       hint |= nsChangeHint_NeutralChange;
