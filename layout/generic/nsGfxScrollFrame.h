@@ -15,6 +15,7 @@
 #include "nsIScrollableFrame.h"
 #include "nsIScrollbarMediator.h"
 #include "nsIStatefulFrame.h"
+#include "nsStyleConsts.h"
 #include "nsThreadUtils.h"
 #include "nsIReflowCallback.h"
 #include "nsQueryFrame.h"
@@ -198,6 +199,8 @@ class nsHTMLScrollFrame : public nsContainerFrame,
       nsIScrollableFrame::ScrollbarSizesOptions aOptions =
           nsIScrollableFrame::ScrollbarSizesOptions::NONE) const final;
   nsMargin GetDesiredScrollbarSizes() const final;
+  nscoord GetNonOverlayScrollbarWidth(const nsPresContext*,
+                                      mozilla::StyleScrollbarWidth) const;
   nsSize GetLayoutSize() const final {
     if (mIsUsingMinimumScaleSize) {
       return mICBSize;
