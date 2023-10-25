@@ -118,6 +118,8 @@ nsReflowStatus nsPageFrame::ReflowPageContent(
   }
   mPageContentMargin = defaultMargins;
 
+  printf("mPageContentMargin %s\n", ToString(mPageContentMargin).c_str());
+
   // Use the margins given in the @page rule if told to do so.
   // We clamp to the paper's unwriteable margins to avoid clipping, *except*
   // that we will respect a margin of zero if specified, assuming this means

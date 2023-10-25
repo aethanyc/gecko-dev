@@ -459,6 +459,9 @@ void nsTableCellFrame::BlockDirAlignChild(WritingMode aWM, nscoord aMaxAscent) {
     firstKid->InvalidateFrameSubtree();
   }
 
+  LogicalPoint pos(aWM, kidRect.IStart(aWM), kidBStart);
+  printf("Set inner cell frame %s pos %s\n", ToString(firstKid).c_str(),
+         ToString(pos).c_str());
   firstKid->SetPosition(aWM, LogicalPoint(aWM, kidRect.IStart(aWM), kidBStart),
                         containerSize);
   ReflowOutput desiredSize(aWM);
@@ -733,6 +736,9 @@ void nsTableCellFrame::Reflow(nsPresContext* aPresContext,
   // https://drafts.csswg.org/css-break/#breaking-rules
   availSize.BSize(wm) =
       std::max(availSize.BSize(wm), nsPresContext::CSSPixelsToAppUnits(1));
+
+  printf("Reflow inner table cell %s: availSize %s\n", ListTag().get(),
+         ToString(availSize).c_str());
 
   WritingMode kidWM = firstKid->GetWritingMode();
   ReflowInput kidReflowInput(aPresContext, aReflowInput, firstKid,

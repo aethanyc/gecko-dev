@@ -381,6 +381,7 @@ void nsTableRowGroupFrame::ReflowChildren(
       }
 
       LogicalPoint kidPosition(wm, 0, aReflowInput.mBCoord);
+      printf("Call ReflowChild for %s\n", kidFrame->ListTag().get());
       ReflowChild(kidFrame, aPresContext, kidDesiredSize, kidReflowInput, wm,
                   kidPosition, containerSize, ReflowChildFlags::Default,
                   aStatus);
@@ -1078,8 +1079,15 @@ void nsTableRowGroupFrame::SplitRowGroup(nsPresContext* aPresContext,
        rowFrame = rowFrame->GetNextRow()) {
     bool rowIsOnPage = true;
     nscoord cellSpacingB = aTableFrame->GetRowSpacing(rowFrame->GetRowIndex());
+    printf("Iter on rowFrame %s: cellSpacingB %d\n", rowFrame->ListTag().get(),
+           cellSpacingB);
     const LogicalRect rowRect =
         rowFrame->GetLogicalNormalRect(wm, containerSize);
+    printf(
+        "rowRect %s, availBSize %d, pageBSize %d, "
+        "aDesiredSize.BSize(wm) %d\n",
+        ToString(rowRect).c_str(), availBSize, pageBSize,
+        aDesiredSize.BSize(wm));
     // See if the row fits on this page
     if (rowRect.BEnd(wm) > availBSize) {
       nsTableRowFrame* contRow = nullptr;
@@ -1114,6 +1122,8 @@ void nsTableRowGroupFrame::SplitRowGroup(nsPresContext* aPresContext,
         // moving the row frame.
         const LogicalPoint dummyPos(wm);
         const nsSize dummyContainerSize;
+        printf("In SplitRowGroup: Call ReflowChild for %s\n",
+               rowFrame->ListTag().get());
         ReflowChild(rowFrame, aPresContext, rowMetrics, rowReflowInput, wm,
                     dummyPos, dummyContainerSize, ReflowChildFlags::NoMoveFrame,
                     aStatus);
@@ -1144,10 +1154,14 @@ void nsTableRowGroupFrame::SplitRowGroup(nsPresContext* aPresContext,
                 "Data loss - incomplete row needed more block-size than "
                 "available, on top of page!");
             contRow = CreateContinuingRowFrame(rowFrame);
+            printf("Create continuation %s for %s\n", contRow->ListTag().get(),
+                   rowFrame->ListTag().get());
             aDesiredSize.BSize(wm) += rowMetrics.BSize(wm);
             if (prevRowFrame) {
               aDesiredSize.BSize(wm) += cellSpacingB;
             }
+            printf("table row group %s desired bsize %d\n", ListTag().get(),
+                   aDesiredSize.BSize(wm));
           } else {
             // Put the row on the next page to give it more block-size.
             rowIsOnPage = false;
@@ -1344,6 +1358,7 @@ void nsTableRowGroupFrame::Reflow(nsPresContext* aPresContext,
   MoveOverflowToChildList();
 
   // Reflow the existing frames.
+  printf("Call nsTableRowGroupFrame::ReflowChildren\n");
   bool splitDueToPageBreak = false;
   ReflowChildren(aPresContext, aDesiredSize, state, aStatus,
                  &splitDueToPageBreak);
@@ -1360,6 +1375,7 @@ void nsTableRowGroupFrame::Reflow(nsPresContext* aPresContext,
     const bool savedSpecialBSizeReflow = mutableRIFlags.mSpecialBSizeReflow;
     mutableRIFlags.mSpecialBSizeReflow = false;
 
+    printf("Call SplitRowGroup\n");
     SplitRowGroup(aPresContext, aDesiredSize, aReflowInput, tableFrame, aStatus,
                   splitDueToPageBreak);
 

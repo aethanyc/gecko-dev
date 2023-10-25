@@ -361,6 +361,9 @@ void nsTableRowFrame::DidResize() {
       cellSize.BSize(wm) = cellBSize;
       cellFrame->SetSize(wm, cellSize);
 
+      printf("Cell %s size %s\n", cellFrame->ListTag().get(),
+             ToString(cellSize).c_str());
+
       if (tableFrame->IsBorderCollapse()) {
         nsTableFrame::InvalidateTableFrame(cellFrame, cellOldRect,
                                            cellInkOverflow, false);
@@ -369,6 +372,7 @@ void nsTableRowFrame::DidResize() {
 
     // realign cell content based on the new bsize.  We might be able to
     // skip this if the bsize didn't change... maybe.  Hard to tell.
+    printf("Call BlockDirAlignChild, mMaxCellAscent %d\n", mMaxCellAscent);
     cellFrame->BlockDirAlignChild(wm, mMaxCellAscent);
 
     // Always store the overflow, even if the height didn't change, since
@@ -692,6 +696,9 @@ void nsTableRowFrame::ReflowChildren(nsPresContext* aPresContext,
 
   // This computes the max of all cell bsizes
   nscoord cellMaxBSize = 0;
+
+  printf("%s: ReflowChildren with avail bsize %d\n", ListTag().get(),
+         aReflowInput.AvailableBSize());
 
   // Reflow each of our existing cell frames
   WritingMode wm = aReflowInput.GetWritingMode();

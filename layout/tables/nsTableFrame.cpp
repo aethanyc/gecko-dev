@@ -1678,6 +1678,8 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
     }
     nsIFrame* lastChildReflowed = nullptr;
 
+    printf("needToInitiateSpecialReflow %d\n", needToInitiateSpecialReflow);
+
     NS_ASSERTION(!aReflowInput.mFlags.mSpecialBSizeReflow,
                  "Shouldn't be in special bsize reflow here!");
 
@@ -1690,6 +1692,8 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
     nscoord availBSize = needToInitiateSpecialReflow
                              ? NS_UNCONSTRAINEDSIZE
                              : aReflowInput.AvailableBSize();
+
+    printf("Table frame avaiilBSize %d\n", availBSize);
 
     ReflowTable(aDesiredSize, aReflowInput, availBSize, lastChildReflowed,
                 aStatus);
@@ -1751,6 +1755,7 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
   aDesiredSize.ISize(wm) =
       aReflowInput.ComputedISize() +
       aReflowInput.ComputedLogicalBorderPadding(wm).IStartEnd(wm);
+  printf("Does table has desired bsize? %s\n", haveDesiredBSize ? "yes" : "no");
   if (!haveDesiredBSize) {
     CalcDesiredBSize(aReflowInput, aDesiredSize);
   }
@@ -1918,7 +1923,16 @@ void nsTableFrame::ReflowTable(ReflowOutput& aDesiredSize,
   }
 
   LogicalSize availSize(wm, availISize, availBSize);
+
   TableReflowInput reflowInput(aReflowInput, borderPadding, availSize);
+  printf(
+      "table %s: borderPadding %s, orig availSize %s, availSize %s, mICoord "
+      "%d, mBCoord "
+      "%d\n",
+      ListTag().get(), ToString(borderPadding).c_str(),
+      ToString(aReflowInput.AvailableSize(wm)).c_str(),
+      ToString(availSize).c_str(), reflowInput.mICoord, reflowInput.mBCoord);
+
   ReflowChildren(reflowInput, aStatus, aLastChildReflowed,
                  aDesiredSize.mOverflowAreas);
 
@@ -2843,9 +2857,13 @@ void nsTableFrame::ReflowChildren(TableReflowInput& aReflowInput,
 
       LogicalPoint kidPosition(wm, aReflowInput.mICoord, aReflowInput.mBCoord);
       aStatus.Reset();
+      printf("Calling ReflowChild for row group %s at pos %s\n",
+             kidFrame->ListTag().get(), ToString(kidPosition).c_str());
       ReflowChild(kidFrame, presContext, desiredSize, kidReflowInput, wm,
                   kidPosition, containerSize, ReflowChildFlags::Default,
                   aStatus);
+      printf("Finished ReflowChild for row group %s, desired size %s\n",
+             kidFrame->ListTag().get(), ToString(desiredSize.Size(wm)).c_str());
 
       if (reorder) {
         // Reorder row groups - the reflow may have changed the nextinflows.
@@ -3080,6 +3098,8 @@ void nsTableFrame::CalcDesiredBSize(const ReflowInput& aReflowInput,
   }
   int32_t rowCount = cellMap->GetRowCount();
   int32_t colCount = cellMap->GetColCount();
+
+  printf("In CalcDesiredBSize: rowCount %d, colCount %d\n", rowCount, colCount);
   if (rowCount > 0 && colCount > 0) {
     desiredBSize += GetRowSpacing(-1);
     for (uint32_t rgIdx = 0; rgIdx < rowGroups.Length(); rgIdx++) {
