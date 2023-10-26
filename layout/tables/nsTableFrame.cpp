@@ -6101,6 +6101,9 @@ BCPaintBorderIterator::BCPaintBorderIterator(nsTableFrame* aTable)
       mInitialOffsetI(0),
       mNextOffsetB(0),
       mPrevInlineSegBSize(0) {
+  MOZ_ASSERT(mTable->IsBorderCollapse(),
+             "Why are we here if the table is not border-collapsed?");
+
   LogicalMargin childAreaOffset = mTable->GetChildAreaOffset(mTableWM, nullptr);
   // y position of first row in damage area
   mInitialOffsetB =
