@@ -89,8 +89,8 @@ struct TableReflowInput {
       : mReflowInput(aReflowInput), mAvailSize(aAvailSize) {
     MOZ_ASSERT(mReflowInput.mFrame->IsTableFrame(),
                "TableReflowInput should only be created for nsTableFrame");
-    nsTableFrame* table =
-        static_cast<nsTableFrame*>(mReflowInput.mFrame->FirstInFlow());
+
+    auto* table = static_cast<nsTableFrame*>(mReflowInput.mFrame);
     WritingMode wm = aReflowInput.GetWritingMode();
     LogicalMargin borderPadding = table->GetChildAreaOffset(wm, &mReflowInput);
 
