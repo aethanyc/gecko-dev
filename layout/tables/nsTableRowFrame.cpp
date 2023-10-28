@@ -314,9 +314,6 @@ void nsTableRowFrame::DidResize() {
 
   WritingMode wm = GetWritingMode();
   ReflowOutput desiredSize(wm);
-  desiredSize.SetSize(wm, GetLogicalSize(wm));
-  desiredSize.SetOverflowAreasToDesiredBounds();
-
   nsSize containerSize = mRect.Size();
 
   for (nsTableCellFrame* cellFrame = GetFirstCell(); cellFrame;
