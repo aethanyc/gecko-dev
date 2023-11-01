@@ -336,8 +336,8 @@ class nsTableFrame : public nsContainerFrame {
               nsReflowStatus& aStatus) override;
 
   void ReflowTable(ReflowOutput& aDesiredSize, const ReflowInput& aReflowInput,
-                   nscoord aAvailBSize, nsIFrame*& aLastChildReflowed,
-                   nsReflowStatus& aStatus);
+                   const LogicalMargin& aBorderPadding, nscoord aAvailBSize,
+                   nsIFrame*& aLastChildReflowed, nsReflowStatus& aStatus);
 
   nsFrameList& GetColGroups();
 
@@ -642,7 +642,8 @@ class nsTableFrame : public nsContainerFrame {
   // Note: this method is accurate after the children are reflowed. It might
   // distribute extra block-size to table rows if the table has a specified
   // block-size larger than the intrinsic block-size.
-  nscoord CalcDesiredBSize(const ReflowInput& aReflowInput);
+  nscoord CalcDesiredBSize(const ReflowInput& aReflowInput,
+                           const LogicalMargin& aBorderPadding);
 
   // The following is a helper for CalcDesiredBSize
   void DistributeBSizeToRows(const ReflowInput& aReflowInput, nscoord aAmount);
