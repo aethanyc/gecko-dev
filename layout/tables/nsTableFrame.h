@@ -336,8 +336,8 @@ class nsTableFrame : public nsContainerFrame {
               nsReflowStatus& aStatus) override;
 
   void ReflowTable(ReflowOutput& aDesiredSize, const ReflowInput& aReflowInput,
-                   nscoord aAvailBSize, nsIFrame*& aLastChildReflowed,
-                   nsReflowStatus& aStatus);
+                   const LogicalMargin& aBorderPadding, nscoord aAvailBSize,
+                   nsIFrame*& aLastChildReflowed, nsReflowStatus& aStatus);
 
   nsFrameList& GetColGroups();
 
@@ -645,10 +645,10 @@ class nsTableFrame : public nsContainerFrame {
   // current reflow input, the table attributes and the content driven rowgroup
   // bsizes this function can change the overflow area
   void CalcDesiredBSize(const ReflowInput& aReflowInput,
+                        const LogicalMargin& aBorderPadding,
                         ReflowOutput& aDesiredSize);
 
   // The following is a helper for CalcDesiredBSize
-
   void DistributeBSizeToRows(const ReflowInput& aReflowInput, nscoord aAmount);
 
   void PlaceChild(TableReflowInput& aReflowInput, nsIFrame* aKidFrame,
