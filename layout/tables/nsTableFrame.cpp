@@ -69,6 +69,7 @@ namespace mozilla {
 
 struct TableReflowInput final {
   TableReflowInput(const ReflowInput& aReflowInput,
+                   const LogicalMargin& aBorderPadding,
                    const LogicalSize& aAvailSize)
       : mReflowInput(aReflowInput),
         mWM(aReflowInput.GetWritingMode()),
@@ -78,25 +79,20 @@ struct TableReflowInput final {
     nsTableFrame* table =
         static_cast<nsTableFrame*>(mReflowInput.mFrame->FirstInFlow());
 
-    // XXX: We need to call ApplySkipSides() for borderPadding. Otherwise,
-    // mAvailSize will be wrong in a continuation.
-    LogicalMargin borderPadding =
-        mReflowInput.ComputedLogicalBorderPadding(mWM);
-
-    mICoord = borderPadding.IStart(mWM) + table->GetColSpacing(-1);
-    mBCoord = borderPadding.BStart(mWM);  // rowspacing added during reflow
+    mICoord = aBorderPadding.IStart(mWM) + table->GetColSpacing(-1);
+    mBCoord = aBorderPadding.BStart(mWM);  // rowspacing added during reflow
 
     // XXX do we actually need to check for unconstrained inline-size here?
     if (NS_UNCONSTRAINEDSIZE != mAvailSize.ISize(mWM)) {
       int32_t colCount = table->GetColCount();
-      mAvailSize.ISize(mWM) -= borderPadding.IStartEnd(mWM) +
+      mAvailSize.ISize(mWM) -= aBorderPadding.IStartEnd(mWM) +
                                table->GetColSpacing(-1) +
                                table->GetColSpacing(colCount);
       mAvailSize.ISize(mWM) = std::max(0, mAvailSize.ISize(mWM));
     }
 
     if (NS_UNCONSTRAINEDSIZE != mAvailSize.BSize(mWM)) {
-      mAvailSize.BSize(mWM) -= borderPadding.BStartEnd(mWM) +
+      mAvailSize.BSize(mWM) -= aBorderPadding.BStartEnd(mWM) +
                                table->GetRowSpacing(-1) +
                                table->GetRowSpacing(table->GetRowCount());
       mAvailSize.BSize(mWM) = std::max(0, mAvailSize.BSize(mWM));
@@ -1659,6 +1655,10 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
   bool haveDesiredBSize = false;
   SetHaveReflowedColGroups(false);
 
+  // XXX: We need to call ApplySkipSides() for borderPadding so that it is
+  // correct in a continuation.
+  LogicalMargin borderPadding = aReflowInput.ComputedLogicalBorderPadding(wm);
+
   // The tentative width is the width we assumed for the table when the child
   // frames were positioned (which only matters in vertical-rl mode, because
   // they're positioned relative to the right-hand edge). Then, after reflowing
@@ -1699,11 +1699,10 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
       // when there is a specified table bsize
       if (!GetPrevInFlow() &&
           NS_UNCONSTRAINEDSIZE != aReflowInput.AvailableBSize()) {
-        LogicalMargin bp = aReflowInput.ComputedLogicalBorderPadding(wm);
-        nscoord tableSpecifiedBSize =
-            CalcBorderBoxBSize(aReflowInput, bp, NS_UNCONSTRAINEDSIZE);
-        if (tableSpecifiedBSize > 0 &&
-            tableSpecifiedBSize != NS_UNCONSTRAINEDSIZE) {
+        nscoord tableSpecifiedBSize = CalcBorderBoxBSize(
+            aReflowInput, borderPadding, NS_UNCONSTRAINEDSIZE);
+        if (tableSpecifiedBSize != NS_UNCONSTRAINEDSIZE &&
+            tableSpecifiedBSize > 0) {
           needToInitiateSpecialReflow = true;
         }
       }
@@ -1726,8 +1725,9 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
                              ? NS_UNCONSTRAINEDSIZE
                              : aReflowInput.AvailableBSize();
 
-    ReflowTable(aDesiredSize, aReflowInput, availBSize, lastChildReflowed,
-                aStatus);
+    ReflowTable(aDesiredSize, aReflowInput, borderPadding, availBSize,
+                lastChildReflowed, aStatus);
+
     // When in vertical-rl mode, there may be two kinds of scenarios in which
     // the positioning of all the children need to be adjusted along the x-axis
     // because the width we assumed for the table when the child frames were
@@ -1762,17 +1762,15 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
       ReflowInput& mutable_rs = const_cast<ReflowInput&>(aReflowInput);
 
       // distribute extra block-direction space to rows
-      aDesiredSize.BSize(wm) = CalcDesiredBSize(aReflowInput);
+      aDesiredSize.BSize(wm) = CalcDesiredBSize(aReflowInput, borderPadding);
       mutable_rs.mFlags.mSpecialBSizeReflow = true;
 
-      ReflowTable(aDesiredSize, aReflowInput, aReflowInput.AvailableBSize(),
-                  lastChildReflowed, aStatus);
+      ReflowTable(aDesiredSize, aReflowInput, borderPadding,
+                  aReflowInput.AvailableBSize(), lastChildReflowed, aStatus);
 
       if (lastChildReflowed && aStatus.IsIncomplete()) {
         // if there is an incomplete child, then set the desired bsize
         // to include it but not the next one
-        LogicalMargin borderPadding =
-            aReflowInput.ComputedLogicalBorderPadding(wm);
         aDesiredSize.BSize(wm) =
             borderPadding.BEnd(wm) + GetRowSpacing(GetRowCount()) +
             lastChildReflowed->GetLogicalNormalRect(wm, containerSize).BEnd(wm);
@@ -1784,10 +1782,9 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
   }
 
   aDesiredSize.ISize(wm) =
-      aReflowInput.ComputedISize() +
-      aReflowInput.ComputedLogicalBorderPadding(wm).IStartEnd(wm);
+      aReflowInput.ComputedISize() + borderPadding.IStartEnd(wm);
   if (!haveDesiredBSize) {
-    aDesiredSize.BSize(wm) = CalcDesiredBSize(aReflowInput);
+    aDesiredSize.BSize(wm) = CalcDesiredBSize(aReflowInput, borderPadding);
   }
   if (IsRowInserted()) {
     ProcessRowInserted(aDesiredSize.BSize(wm));
@@ -1815,7 +1812,6 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
     ConsiderChildOverflow(aDesiredSize.mOverflowAreas, kid);
   }
 
-  LogicalMargin borderPadding = aReflowInput.ComputedLogicalBorderPadding(wm);
   SetColumnDimensions(aDesiredSize.BSize(wm), wm, borderPadding,
                       aDesiredSize.PhysicalSize());
   NS_WARNING_ASSERTION(NS_UNCONSTRAINEDSIZE != aReflowInput.AvailableISize(),
@@ -1922,6 +1918,7 @@ bool nsTableFrame::ComputeCustomOverflow(OverflowAreas& aOverflowAreas) {
 
 void nsTableFrame::ReflowTable(ReflowOutput& aDesiredSize,
                                const ReflowInput& aReflowInput,
+                               const LogicalMargin& aBorderPadding,
                                nscoord aAvailBSize,
                                nsIFrame*& aLastChildReflowed,
                                nsReflowStatus& aStatus) {
@@ -1935,11 +1932,9 @@ void nsTableFrame::ReflowTable(ReflowOutput& aDesiredSize,
   // cellspacing
   WritingMode wm = aReflowInput.GetWritingMode();
   LogicalSize availSize(
-      wm,
-      aReflowInput.ComputedISize() +
-          aReflowInput.ComputedLogicalBorderPadding(wm).IStartEnd(wm),
+      wm, aReflowInput.ComputedISize() + aBorderPadding.IStartEnd(wm),
       aAvailBSize);
-  TableReflowInput reflowInput(aReflowInput, availSize);
+  TableReflowInput reflowInput(aReflowInput, aBorderPadding, availSize);
   ReflowChildren(reflowInput, aStatus, aLastChildReflowed,
                  aDesiredSize.mOverflowAreas);
 
@@ -3017,9 +3012,9 @@ void nsTableFrame::ReflowColGroups(gfxContext* aRenderingContext) {
   }
 }
 
-nscoord nsTableFrame::CalcDesiredBSize(const ReflowInput& aReflowInput) {
+nscoord nsTableFrame::CalcDesiredBSize(const ReflowInput& aReflowInput,
+                                       const LogicalMargin& aBorderPadding) {
   WritingMode wm = aReflowInput.GetWritingMode();
-  LogicalMargin borderPadding = aReflowInput.ComputedLogicalBorderPadding(wm);
 
   // get the natural bsize based on the last child's (row group) rect
   RowGroupArray rowGroups = OrderedRowGroups();
@@ -3028,15 +3023,15 @@ nscoord nsTableFrame::CalcDesiredBSize(const ReflowInput& aReflowInput) {
       // empty tables should not have a size in quirks mode
       return 0;
     }
-    return CalcBorderBoxBSize(aReflowInput, borderPadding,
-                              borderPadding.BStartEnd(wm));
+    return CalcBorderBoxBSize(aReflowInput, aBorderPadding,
+                              aBorderPadding.BStartEnd(wm));
   }
 
   nsTableCellMap* cellMap = GetCellMap();
   MOZ_ASSERT(cellMap);
   int32_t rowCount = cellMap->GetRowCount();
   int32_t colCount = cellMap->GetColCount();
-  nscoord desiredBSize = borderPadding.BStartEnd(wm);
+  nscoord desiredBSize = aBorderPadding.BStartEnd(wm);
   if (rowCount > 0 && colCount > 0) {
     desiredBSize += GetRowSpacing(-1);
     for (uint32_t rgIdx = 0; rgIdx < rowGroups.Length(); rgIdx++) {
@@ -3049,7 +3044,7 @@ nscoord nsTableFrame::CalcDesiredBSize(const ReflowInput& aReflowInput) {
   // see if a specified table bsize requires dividing additional space to rows
   if (!GetPrevInFlow()) {
     nscoord bSize =
-        CalcBorderBoxBSize(aReflowInput, borderPadding, desiredBSize);
+        CalcBorderBoxBSize(aReflowInput, aBorderPadding, desiredBSize);
     if (bSize > desiredBSize) {
       // proportionately distribute the excess bsize to unconstrained rows in
       // each unconstrained row group.
