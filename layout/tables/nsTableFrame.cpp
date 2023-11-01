@@ -1634,7 +1634,7 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
   nscoord tentativeContainerWidth = 0;
   bool mayAdjustXForAllChildren = false;
 
-  const LogicalMargin borderPadding =
+  LogicalMargin borderPadding =
       aReflowInput.ComputedLogicalBorderPadding(wm).ApplySkipSides(
           PreReflowBlockLevelLogicalSkipSides());
 
@@ -1751,6 +1751,12 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
 
       mutable_rs.mFlags.mSpecialBSizeReflow = false;
     }
+  }
+
+  if (aStatus.IsIncomplete() &&
+      aReflowInput.mStyleBorder->mBoxDecorationBreak ==
+          StyleBoxDecorationBreak::Slice) {
+    borderPadding.BEnd(wm) = 0;
   }
 
   aDesiredSize.ISize(wm) =
@@ -3096,14 +3102,28 @@ void nsTableFrame::CalcDesiredBSize(const ReflowInput& aReflowInput,
   int32_t colCount = cellMap->GetColCount();
 
   printf("In CalcDesiredBSize: rowCount %d, colCount %d\n", rowCount, colCount);
+
   if (rowCount > 0 && colCount > 0) {
-    desiredBSize += GetRowSpacing(-1);
-    for (uint32_t rgIdx = 0; rgIdx < rowGroups.Length(); rgIdx++) {
-      desiredBSize += rowGroups[rgIdx]->BSize(wm) +
-                      GetRowSpacing(rowGroups[rgIdx]->GetRowCount() +
-                                    rowGroups[rgIdx]->GetStartRowIndex());
+    const nsSize containerSize =
+        aReflowInput.ComputedSizeAsContainerIfConstrained();
+    nsTableRowGroupFrame* lastRowGroup = rowGroups.LastElement();
+    desiredBSize += lastRowGroup->GetLogicalRect(wm, containerSize).BEnd(wm);
+    if (!lastRowGroup->GetNextInFlow()) {
+      desiredBSize += GetRowSpacing(lastRowGroup->GetRowCount() +
+                                    lastRowGroup->GetStartRowIndex());
     }
+
+    // if (GetNextInFlow()) {
+    //   desiredBSize
+    // }
+
+    // for (uint32_t rgIdx = 0; rgIdx < rowGroups.Length(); rgIdx++) {
+    //   desiredBSize += rowGroups[rgIdx]->BSize(wm) +
+    //                   GetRowSpacing(rowGroups[rgIdx]->GetRowCount() +
+    //                                 rowGroups[rgIdx]->GetStartRowIndex());
+    // }
   }
+  printf("In CalcDesiredBSize: desiredBSize %d\n", desiredBSize);
 
   // see if a specified table bsize requires dividing additional space to rows
   if (!GetPrevInFlow()) {
