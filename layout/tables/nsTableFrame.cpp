@@ -77,28 +77,11 @@ struct TableReflowInput final {
         mPos(mWM) {
     MOZ_ASSERT(mReflowInput.mFrame->IsTableFrame(),
                "TableReflowInput should only be created for nsTableFrame");
-    nsTableFrame* table =
-        static_cast<nsTableFrame*>(mReflowInput.mFrame->FirstInFlow());
+    auto* table = static_cast<nsTableFrame*>(mReflowInput.mFrame);
     WritingMode wm = aReflowInput.GetWritingMode();
 
-    mPos.I(mWM) = aBorderPadding.IStart(wm) + table->GetColSpacing(-1);
-    mPos.B(mWM) = aBorderPadding.BStart(wm);  // rowspacing added during reflow
-
-    // XXX do we actually need to check for unconstrained inline-size here?
-    if (NS_UNCONSTRAINEDSIZE != mAvailSize.ISize(wm)) {
-      int32_t colCount = table->GetColCount();
-      mAvailSize.ISize(wm) -= aBorderPadding.IStartEnd(wm) +
-                              table->GetColSpacing(-1) +
-                              table->GetColSpacing(colCount);
-      mAvailSize.ISize(wm) = std::max(0, mAvailSize.ISize(wm));
-    }
-
-    if (NS_UNCONSTRAINEDSIZE != mAvailSize.BSize(wm)) {
-      mAvailSize.BSize(wm) -= aBorderPadding.BStartEnd(wm) +
-                              table->GetRowSpacing(-1) +
-                              table->GetRowSpacing(table->GetRowCount());
-      mAvailSize.BSize(wm) = std::max(0, mAvailSize.BSize(wm));
-    }
+    mICoord = aBorderPadding.IStart(wm) + table->GetColSpacing(-1);
+    mBCoord = aBorderPadding.BStart(wm);  // cellspacing added during reflow
   }
 
   // Advance to the next block-offset and reduce the available block-size.
@@ -1657,9 +1640,9 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
   bool haveDesiredBSize = false;
   SetHaveReflowedColGroups(false);
 
-  // XXX: We need to call ApplySkipSides() for borderPadding so that it is
-  // correct in a continuation.
-  LogicalMargin borderPadding = aReflowInput.ComputedLogicalBorderPadding(wm);
+  LogicalMargin borderPadding =
+      aReflowInput.ComputedLogicalBorderPadding(wm).ApplySkipSides(
+          PreReflowBlockLevelLogicalSkipSides());
 
   // The tentative width is the width we assumed for the table when the child
   // frames were positioned (which only matters in vertical-rl mode, because
@@ -1781,6 +1764,12 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
 
       mutable_rs.mFlags.mSpecialBSizeReflow = false;
     }
+  }
+
+  if (aStatus.IsIncomplete() &&
+      aReflowInput.mStyleBorder->mBoxDecorationBreak ==
+          StyleBoxDecorationBreak::Slice) {
+    borderPadding.BEnd(wm) = 0;
   }
 
   aDesiredSize.ISize(wm) =
@@ -1929,13 +1918,25 @@ void nsTableFrame::ReflowTable(ReflowOutput& aDesiredSize,
   if (!GetPrevInFlow()) {
     mTableLayoutStrategy->ComputeColumnISizes(aReflowInput);
   }
-  // Constrain our reflow isize to the computed table isize (of the 1st in
-  // flow). and our reflow bsize to our avail bsize minus border, padding,
-  // cellspacing
+
   WritingMode wm = aReflowInput.GetWritingMode();
-  LogicalSize availSize(
-      wm, aReflowInput.ComputedISize() + aBorderPadding.IStartEnd(wm),
-      aAvailBSize);
+  const nscoord availISize =
+      std::max(0, aReflowInput.ComputedISize() - GetColSpacing(-1) -
+                      GetColSpacing(GetColCount()));
+  nscoord availBSize = aAvailBSize;
+  if (availBSize != NS_UNCONSTRAINEDSIZE) {
+    availBSize -= aBorderPadding.BStart(wm);
+    if (!GetPrevInFlow()) {
+      availBSize -= GetRowSpacing(-1);
+    }
+    if (aReflowInput.mStyleBorder->mBoxDecorationBreak ==
+        StyleBoxDecorationBreak::Clone) {
+      availBSize -= aBorderPadding.BEnd(wm);
+    }
+    availBSize = std::max(0, availBSize);
+  }
+
+  const LogicalSize availSize(wm, availISize, availBSize);
   TableReflowInput reflowInput(aReflowInput, aBorderPadding, availSize);
   ReflowChildren(reflowInput, aStatus, aLastChildReflowed,
                  aDesiredSize.mOverflowAreas);
@@ -2797,7 +2798,23 @@ void nsTableFrame::ReflowChildren(TableReflowInput& aReflowInput,
                .BEnd(wm) > 0)) {
         kidReflowInput.mFlags.mIsTopOfPage = false;
       }
-      aReflowInput.AdvanceBOffset(rowSpacing);
+
+      const bool advanceBCoord = [&]() {
+        if (kidFrame == thead) {
+          // Add rowSpacing before thead only when the thead is in table's
+          // first-in-flow.
+          return !GetPrevInFlow();
+        }
+        if (thead) {
+          // There is a thead, so add rowSpacing between thead and tbody.
+          return true;
+        }
+        // Add rowSpacing before tbody only if the tbody is a first-in-flow.
+        return !kidFrame->GetPrevInFlow();
+      }();
+      if (advanceBCoord) {
+        aReflowInput.AdvanceBOffset(rowSpacing);
+      }
       // record the presence of a next in flow, it might get destroyed so we
       // need to reorder the row group array
       const bool reorder = kidFrame->GetNextInFlow();
@@ -3016,7 +3033,6 @@ nscoord nsTableFrame::CalcDesiredBSize(const ReflowInput& aReflowInput,
                                        const LogicalMargin& aBorderPadding) {
   WritingMode wm = aReflowInput.GetWritingMode();
 
-  // get the natural bsize based on the last child's (row group) rect
   RowGroupArray rowGroups = OrderedRowGroups();
   if (rowGroups.IsEmpty()) {
     if (eCompatibility_NavQuirks == PresContext()->CompatibilityMode()) {
@@ -3033,11 +3049,15 @@ nscoord nsTableFrame::CalcDesiredBSize(const ReflowInput& aReflowInput,
   int32_t colCount = cellMap->GetColCount();
   nscoord desiredBSize = aBorderPadding.BStartEnd(wm);
   if (rowCount > 0 && colCount > 0) {
-    desiredBSize += GetRowSpacing(-1);
-    for (uint32_t rgIdx = 0; rgIdx < rowGroups.Length(); rgIdx++) {
-      desiredBSize += rowGroups[rgIdx]->BSize(wm) +
-                      GetRowSpacing(rowGroups[rgIdx]->GetRowCount() +
-                                    rowGroups[rgIdx]->GetStartRowIndex());
+    if (!GetPrevInFlow()) {
+      desiredBSize += GetRowSpacing(-1);
+    }
+    for (nsTableRowGroupFrame* rg : rowGroups) {
+      desiredBSize += rg->BSize(wm);
+      if (rg != rowGroups.LastElement() || !rg->GetNextInFlow()) {
+        desiredBSize +=
+            GetRowSpacing(rg->GetStartRowIndex() + rg->GetRowCount());
+      }
     }
   }
 
