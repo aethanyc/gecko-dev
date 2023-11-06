@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html>
+  <meta charset="utf-8">
   <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
   <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
   <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1863421">
   <link rel="match" href="table-fragmentation-001-print-ref.html">
 
   <style>
-  @page { size: 5in 3in; margin: 0in; }
+  @page { size: 5in 3in; margin: 0.5in; }
   body { margin: 0; }
 
   table {
@@ -15,29 +16,25 @@
     border: 0.25in solid black;
     padding: 0.25in;
   }
-  thead td {
-    border: 0.125in solid blue;
-    height: 0.25in;
-  }
-  tbody td {
-    vertical-align: baseline;
+  td {
+    vertical-align: top;
     padding: 0;
     border: 0.25in solid orange;
   }
   .content {
-    width: 100px;
-    height: 2in;
+    block-size: 1.5in;
     background: gold;
-  }
-  tfoot td {
-    border: 0.125in solid purple;
-    height: 0.25in;
   }
   </style>
 
+  <div style="height: 0.25in">BEFORE TABLE</div>
   <table>
-    <thead><tr><td></td></tr></thead>
-    <tbody><tr><td><div class="content"></div></td></tr></tbody>
-    <tfoot><tr><td></td></tr></tfoot>
+    <tbody>
+      <tr>
+        <td><div class="content"></div></td>
+      </tr>
+    </tbody>
   </table>
+  <div style="height: 0.25in">AFTER TABLE</div>
+
 </html>
