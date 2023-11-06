@@ -1731,7 +1731,8 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
       ReflowInput& mutable_rs = const_cast<ReflowInput&>(aReflowInput);
 
       // distribute extra block-direction space to rows
-      aDesiredSize.BSize(wm) = CalcDesiredBSize(aReflowInput, borderPadding);
+      aDesiredSize.BSize(wm) =
+          CalcDesiredBSize(aReflowInput, borderPadding, aStatus);
       mutable_rs.mFlags.mSpecialBSizeReflow = true;
 
       ReflowTable(aDesiredSize, aReflowInput, borderPadding,
@@ -1750,10 +1751,17 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
     }
   }
 
+  if (aStatus.IsIncomplete() &&
+      aReflowInput.mStyleBorder->mBoxDecorationBreak ==
+          StyleBoxDecorationBreak::Slice) {
+    borderPadding.BEnd(wm) = 0;
+  }
+
   aDesiredSize.ISize(wm) =
       aReflowInput.ComputedISize() + borderPadding.IStartEnd(wm);
   if (!haveDesiredBSize) {
-    aDesiredSize.BSize(wm) = CalcDesiredBSize(aReflowInput, borderPadding);
+    aDesiredSize.BSize(wm) =
+        CalcDesiredBSize(aReflowInput, borderPadding, aStatus);
   }
   if (IsRowInserted()) {
     ProcessRowInserted(aDesiredSize.BSize(wm));
@@ -2780,7 +2788,8 @@ void nsTableFrame::ReflowChildren(TableReflowInput& aReflowInput,
                .BEnd(wm) > 0)) {
         kidReflowInput.mFlags.mIsTopOfPage = false;
       }
-      // No need to consider rowSpacing if the kidFrame is a continuation.
+      // We don't need to consider rowSpacing before the kid if the kidFrame is
+      // a continuation.
       if (!kidFrame->GetPrevInFlow()) {
         aReflowInput.mBCoord += rowSpacing;
         aReflowInput.ReduceAvailableBSizeBy(wm, rowSpacing);
@@ -3003,10 +3012,10 @@ void nsTableFrame::ReflowColGroups(gfxContext* aRenderingContext) {
 }
 
 nscoord nsTableFrame::CalcDesiredBSize(const ReflowInput& aReflowInput,
-                                       const LogicalMargin& aBorderPadding) {
+                                       const LogicalMargin& aBorderPadding,
+                                       const nsReflowStatus& aStatus) {
   WritingMode wm = aReflowInput.GetWritingMode();
 
-  // get the natural bsize based on the last child's (row group) rect
   RowGroupArray rowGroups = OrderedRowGroups();
   if (rowGroups.IsEmpty()) {
     if (eCompatibility_NavQuirks == PresContext()->CompatibilityMode()) {
@@ -3021,15 +3030,23 @@ nscoord nsTableFrame::CalcDesiredBSize(const ReflowInput& aReflowInput,
   MOZ_ASSERT(cellMap);
   int32_t rowCount = cellMap->GetRowCount();
   int32_t colCount = cellMap->GetColCount();
-  nscoord desiredBSize = aBorderPadding.BStartEnd(wm);
+  const nsSize containerSize =
+      aReflowInput.ComputedSizeAsContainerIfConstrained();
+  nscoord desiredBSize = 0;
   if (rowCount > 0 && colCount > 0) {
-    if (!GetPrevInFlow()) {
-      desiredBSize += GetRowSpacing(-1);
+    // Get the bsize based on the last child's (row group) rect.
+    auto* lastRow = rowGroups.LastElement();
+    desiredBSize = lastRow->GetLogicalNormalRect(wm, containerSize).BEnd(wm);
+    if (!lastRow->GetNextInFlow()) {
+      desiredBSize +=
+          GetRowSpacing(lastRow->GetStartRowIndex() + lastRow->GetRowCount());
     }
-    for (uint32_t rgIdx = 0; rgIdx < rowGroups.Length(); rgIdx++) {
-      desiredBSize += rowGroups[rgIdx]->BSize(wm) +
-                      GetRowSpacing(rowGroups[rgIdx]->GetRowCount() +
-                                    rowGroups[rgIdx]->GetStartRowIndex());
+    desiredBSize += aBorderPadding.BEnd(wm);
+
+    const nscoord availBSize = aReflowInput.AvailableBSize();
+    if (availBSize != NS_UNCONSTRAINEDSIZE && aStatus.IsIncomplete()) {
+      // Consume all the available block-size.
+      desiredBSize = std::max(desiredBSize, aReflowInput.AvailableBSize());
     }
   }
 
