@@ -2833,22 +2833,19 @@ void nsTableFrame::ReflowChildren(TableReflowInput& aReflowInput,
         // if we are on top of the page place with dataloss
         if (kidReflowInput.mFlags.mIsTopOfPage) {
           if (childX + 1 < rowGroups.Length()) {
-            nsIFrame* nextRowGroupFrame = rowGroups[childX + 1];
-            if (nextRowGroupFrame) {
-              PlaceChild(aReflowInput, kidFrame, kidReflowInput, kidPosition,
-                         containerSize, desiredSize, oldKidRect,
-                         oldKidInkOverflow);
-              if (allowRepeatedFooter) {
-                PlaceRepeatedFooter(aReflowInput, tfoot, footerBSize);
-              } else if (tfoot && tfoot->IsRepeatable()) {
-                tfoot->SetRepeatable(false);
-              }
-              aStatus.Reset();
-              aStatus.SetIncomplete();
-              PushChildrenToOverflow(rowGroups, childX + 1);
-              aLastChildReflowed = kidFrame;
-              break;
+            PlaceChild(aReflowInput, kidFrame, kidReflowInput, kidPosition,
+                       containerSize, desiredSize, oldKidRect,
+                       oldKidInkOverflow);
+            if (allowRepeatedFooter) {
+              PlaceRepeatedFooter(aReflowInput, tfoot, footerBSize);
+            } else if (tfoot && tfoot->IsRepeatable()) {
+              tfoot->SetRepeatable(false);
             }
+            aStatus.Reset();
+            aStatus.SetIncomplete();
+            PushChildrenToOverflow(rowGroups, childX + 1);
+            aLastChildReflowed = kidFrame;
+            break;
           }
         } else {  // we are not on top, push this rowgroup onto the next page
           if (prevKidFrame) {  // we had a rowgroup before so push this
