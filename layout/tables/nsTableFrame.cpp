@@ -1621,7 +1621,6 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
   // Check for an overflow list, and append any row group frames being pushed
   MoveOverflowToChildList();
 
-  bool haveDesiredBSize = false;
   SetHaveReflowedColGroups(false);
 
   LogicalMargin borderPadding =
@@ -1738,15 +1737,6 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
       ReflowTable(aDesiredSize, aReflowInput, borderPadding,
                   aReflowInput.AvailableBSize(), lastChildReflowed, aStatus);
 
-      if (lastChildReflowed && aStatus.IsIncomplete()) {
-        // if there is an incomplete child, then set the desired bsize
-        // to include it but not the next one
-        aDesiredSize.BSize(wm) =
-            borderPadding.BEnd(wm) + GetRowSpacing(GetRowCount()) +
-            lastChildReflowed->GetLogicalNormalRect(wm, containerSize).BEnd(wm);
-      }
-      haveDesiredBSize = true;
-
       mutable_rs.mFlags.mSpecialBSizeReflow = false;
     }
   }
@@ -1759,10 +1749,8 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
 
   aDesiredSize.ISize(wm) =
       aReflowInput.ComputedISize() + borderPadding.IStartEnd(wm);
-  if (!haveDesiredBSize) {
-    aDesiredSize.BSize(wm) =
-        CalcDesiredBSize(aReflowInput, borderPadding, aStatus);
-  }
+  aDesiredSize.BSize(wm) =
+      CalcDesiredBSize(aReflowInput, borderPadding, aStatus);
   if (IsRowInserted()) {
     ProcessRowInserted(aDesiredSize.BSize(wm));
   }
