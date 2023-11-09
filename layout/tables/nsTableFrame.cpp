@@ -2759,6 +2759,25 @@ void nsTableFrame::ReflowChildren(TableReflowInput& aReflowInput,
         break;
       }
 
+      const bool advanceBCoord = [&]() {
+        if (kidFrame == thead) {
+          // Add rowSpacing before thead only when the thead is in table's
+          // first-in-flow.
+          return !GetPrevInFlow();
+        }
+        if (thead) {
+          // There is a thead, so add rowSpacing between thead and tbody.
+          return true;
+        }
+        // Add rowSpacing before tbody only if the tbody is a first-in-flow.
+        return !kidFrame->GetPrevInFlow();
+      }();
+      if (advanceBCoord) {
+        printf("avail size %s, AdvanceBCoord by %d\n",
+               ToString(aReflowInput.AvailableSize()).c_str(), rowSpacing);
+        aReflowInput.AdvanceBCoord(rowSpacing);
+      }
+
       LogicalSize kidAvailSize = aReflowInput.AvailableSize();
       allowRepeatedFooter = false;
       if (isPaginated && (NS_UNCONSTRAINEDSIZE != kidAvailSize.BSize(wm))) {
@@ -2796,25 +2815,6 @@ void nsTableFrame::ReflowChildren(TableReflowInput& aReflowInput,
                ->GetLogicalNormalRect(wm, containerSize)
                .BEnd(wm) > 0)) {
         kidReflowInput.mFlags.mIsTopOfPage = false;
-      }
-
-      const bool advanceBCoord = [&]() {
-        if (kidFrame == thead) {
-          // Add rowSpacing before thead only when the thead is in table's
-          // first-in-flow.
-          return !GetPrevInFlow();
-        }
-        if (thead) {
-          // There is a thead, so add rowSpacing between thead and tbody.
-          return true;
-        }
-        // Add rowSpacing before tbody only if the tbody is a first-in-flow.
-        return !kidFrame->GetPrevInFlow();
-      }();
-      if (advanceBCoord) {
-        printf("avail size %s, AdvanceBCoord by %d\n",
-               ToString(aReflowInput.AvailableSize()).c_str(), rowSpacing);
-        aReflowInput.AdvanceBCoord(rowSpacing);
       }
 
       printf("kidAvailSize %s, aReflowInput.AvailableSize() %s\n",
