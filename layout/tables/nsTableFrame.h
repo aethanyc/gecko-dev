@@ -623,6 +623,10 @@ class nsTableFrame : public nsContainerFrame {
   void HomogenousInsertFrames(ChildListID aListID, nsIFrame* aPrevFrame,
                               nsFrameList& aFrameList);
 
+  // Check if we need to add row spacing before aChild.
+  bool NeedsRowSpacingBefore(nsTableRowGroupFrame* aChild,
+                             nsTableRowGroupFrame* aThead) const;
+
  private:
   /* Handle a row that got inserted during reflow.  aNewHeight is the
      new height of the table after reflow. */
@@ -641,7 +645,8 @@ class nsTableFrame : public nsContainerFrame {
   // distribute extra block-size to table rows if the table has a specified
   // block-size larger than the intrinsic block-size.
   nscoord CalcDesiredBSize(const ReflowInput& aReflowInput,
-                           const LogicalMargin& aBorderPadding);
+                           const LogicalMargin& aBorderPadding,
+                           const nsReflowStatus& aStatus);
 
   // The following is a helper for CalcDesiredBSize
   void DistributeBSizeToRows(const ReflowInput& aReflowInput, nscoord aAmount);
