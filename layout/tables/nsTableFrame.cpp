@@ -2738,6 +2738,7 @@ void nsTableFrame::ReflowChildren(TableReflowInput& aReflowInput,
   bool allowRepeatedFooter = false;
   for (size_t childX = 0; childX < rowGroups.Length(); childX++) {
     nsTableRowGroupFrame* kidFrame = rowGroups[childX];
+    printf("Reflow kidFrame %s\n", kidFrame->ListTag().get());
     const nscoord rowSpacing =
         GetRowSpacing(kidFrame->GetStartRowIndex() + kidFrame->GetRowCount());
     // Get the frame state bits
@@ -2766,6 +2767,8 @@ void nsTableFrame::ReflowChildren(TableReflowInput& aReflowInput,
           // the child is a tbody and there is a repeatable footer
           NS_ASSERTION(tfoot == rowGroups[rowGroups.Length() - 1],
                        "Missing footer!");
+          printf("kidAvailSize %s, footerBSize %d, rowSpacing %d\n",
+                 ToString(kidAvailSize).c_str(), footerBSize, rowSpacing);
           if (footerBSize + rowSpacing < kidAvailSize.BSize(wm)) {
             allowRepeatedFooter = true;
             kidAvailSize.BSize(wm) -= footerBSize + rowSpacing;
@@ -2809,14 +2812,23 @@ void nsTableFrame::ReflowChildren(TableReflowInput& aReflowInput,
         return !kidFrame->GetPrevInFlow();
       }();
       if (advanceBCoord) {
+        printf("avail size %s, AdvanceBCoord by %d\n",
+               ToString(aReflowInput.AvailableSize()).c_str(), rowSpacing);
         aReflowInput.AdvanceBCoord(rowSpacing);
       }
+
+      printf("kidAvailSize %s, aReflowInput.AvailableSize() %s\n",
+             ToString(kidAvailSize).c_str(),
+             ToString(aReflowInput.AvailableSize()).c_str());
+
       // record the presence of a next in flow, it might get destroyed so we
       // need to reorder the row group array
       const bool reorder = kidFrame->GetNextInFlow();
 
       LogicalPoint kidPosition(wm, aReflowInput.mICoord, aReflowInput.mBCoord);
       aStatus.Reset();
+      printf("Calling ReflowChild: kidPosition %s\n",
+             ToString(kidPosition).c_str());
       ReflowChild(kidFrame, presContext, desiredSize, kidReflowInput, wm,
                   kidPosition, containerSize, ReflowChildFlags::Default,
                   aStatus);
