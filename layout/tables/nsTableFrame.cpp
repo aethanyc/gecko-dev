@@ -1645,12 +1645,16 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
   // Check for an overflow list, and append any row group frames being pushed
   MoveOverflowToChildList();
 
-  bool haveDesiredBSize = false;
+  bool haveCalledCalcDesiredBSize = false;
   SetHaveReflowedColGroups(false);
 
   LogicalMargin borderPadding =
       aReflowInput.ComputedLogicalBorderPadding(wm).ApplySkipSides(
           PreReflowBlockLevelLogicalSkipSides());
+
+  nsIFrame* lastChildReflowed = nullptr;
+  const nsSize containerSize =
+      aReflowInput.ComputedSizeAsContainerIfConstrained();
 
   // The tentative width is the width we assumed for the table when the child
   // frames were positioned (which only matters in vertical-rl mode, because
@@ -1703,7 +1707,6 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
       needToInitiateSpecialReflow =
           HasAnyStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
     }
-    nsIFrame* lastChildReflowed = nullptr;
 
     NS_ASSERTION(!aReflowInput.mFlags.mSpecialBSizeReflow,
                  "Shouldn't be in special bsize reflow here!");
@@ -1736,8 +1739,6 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
     // Note that vertical-lr, unlike vertical-rl, doesn't need to take special
     // care of this situation, because they're positioned relative to the
     // left-hand edge.
-    const nsSize containerSize =
-        aReflowInput.ComputedSizeAsContainerIfConstrained();
     if (wm.IsVerticalRL()) {
       tentativeContainerWidth = containerSize.width;
       mayAdjustXForAllChildren = true;
@@ -1757,19 +1758,12 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
       // distribute extra block-direction space to rows
       aDesiredSize.BSize(wm) =
           CalcDesiredBSize(aReflowInput, borderPadding, aStatus);
+      haveCalledCalcDesiredBSize = true;
+
       mutable_rs.mFlags.mSpecialBSizeReflow = true;
 
       ReflowTable(aDesiredSize, aReflowInput, borderPadding,
                   aReflowInput.AvailableBSize(), lastChildReflowed, aStatus);
-
-      if (lastChildReflowed && aStatus.IsIncomplete()) {
-        // if there is an incomplete child, then set the desired bsize
-        // to include it but not the next one
-        aDesiredSize.BSize(wm) =
-            borderPadding.BEnd(wm) + GetRowSpacing(GetRowCount()) +
-            lastChildReflowed->GetLogicalNormalRect(wm, containerSize).BEnd(wm);
-      }
-      haveDesiredBSize = true;
 
       mutable_rs.mFlags.mSpecialBSizeReflow = false;
     }
@@ -1783,10 +1777,17 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
 
   aDesiredSize.ISize(wm) =
       aReflowInput.ComputedISize() + borderPadding.IStartEnd(wm);
-  if (!haveDesiredBSize) {
+  if (!haveCalledCalcDesiredBSize) {
     aDesiredSize.BSize(wm) =
         CalcDesiredBSize(aReflowInput, borderPadding, aStatus);
+  } else if (lastChildReflowed && aStatus.IsIncomplete()) {
+    // If there is an incomplete child, then set the desired block-size to
+    // include it but not the next one.
+    aDesiredSize.BSize(wm) =
+        borderPadding.BEnd(wm) +
+        lastChildReflowed->GetLogicalNormalRect(wm, containerSize).BEnd(wm);
   }
+
   if (IsRowInserted()) {
     ProcessRowInserted(aDesiredSize.BSize(wm));
   }
