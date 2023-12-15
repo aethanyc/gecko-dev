@@ -6294,6 +6294,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   auto parentFrame = GetParent();
   auto alignCB = parentFrame;
   bool isGridItem = IsGridItem();
+  const bool isSubgrid = IsSubgrid();
   if (parentFrame && parentFrame->IsTableWrapperFrame() && IsTableFrame()) {
     // An inner table frame is sized as a grid item if its table wrapper is,
     // because they actually have the same CB (the wrapper's CB).
@@ -6326,8 +6327,12 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   const bool isAutoISize = styleISize.IsAuto();
   const bool isAutoBSize =
       nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM));
+
   // Compute inline-axis size
-  if (!isAutoISize) {
+  const bool isSubgriddedInInlineAxis =
+      isSubgrid && static_cast<nsGridContainerFrame*>(this)->IsColSubgrid();
+  const bool shouldComputeISize = !isAutoISize && !isSubgriddedInInlineAxis;
+  if (shouldComputeISize) {
     auto iSizeResult = ComputeISizeValue(
         aRenderingContext, aWM, aCBSize, boxSizingAdjust,
         boxSizingToMarginEdgeISize, styleISize, aSizeOverrides, aFlags);
@@ -6438,9 +6443,11 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   // the flexbox algorithm.)
   const bool isFlexItemInlineAxisMainAxis =
       isFlexItem && flexMainAxis == eLogicalAxisInline;
+  const bool shouldIgnoreMinMaxISize =
+      isFlexItemInlineAxisMainAxis || isSubgriddedInInlineAxis;
   const auto& maxISizeCoord = stylePos->MaxISize(aWM);
   nscoord maxISize = NS_UNCONSTRAINEDSIZE;
-  if (!maxISizeCoord.IsNone() && !isFlexItemInlineAxisMainAxis) {
+  if (!maxISizeCoord.IsNone() && !shouldIgnoreMinMaxISize) {
     maxISize = ComputeISizeValue(aRenderingContext, aWM, aCBSize,
                                  boxSizingAdjust, boxSizingToMarginEdgeISize,
                                  maxISizeCoord, aSizeOverrides, aFlags)
@@ -6450,7 +6457,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
 
   const auto& minISizeCoord = stylePos->MinISize(aWM);
   nscoord minISize;
-  if (!minISizeCoord.IsAuto() && !isFlexItemInlineAxisMainAxis) {
+  if (!minISizeCoord.IsAuto() && !shouldIgnoreMinMaxISize) {
     minISize = ComputeISizeValue(aRenderingContext, aWM, aCBSize,
                                  boxSizingAdjust, boxSizingToMarginEdgeISize,
                                  minISizeCoord, aSizeOverrides, aFlags)
@@ -6498,7 +6505,10 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   // that we already calculated in the initial ComputeAutoSize() call. However,
   // if we have a valid preferred aspect ratio, we still have to compute the
   // block size because aspect ratio affects the intrinsic content size.)
-  if (!isAutoBSize) {
+  const bool isSubgriddedInBlockAxis =
+      isSubgrid && static_cast<nsGridContainerFrame*>(this)->IsRowSubgrid();
+  const bool shouldComputeBSize = !isAutoBSize && !isSubgriddedInBlockAxis;
+  if (shouldComputeBSize) {
     result.BSize(aWM) = nsLayoutUtils::ComputeBSizeValue(
         aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
         styleBSize.AsLengthPercentage());
@@ -6563,14 +6573,16 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   if (result.BSize(aWM) != NS_UNCONSTRAINEDSIZE) {
     const bool isFlexItemBlockAxisMainAxis =
         isFlexItem && flexMainAxis == eLogicalAxisBlock;
-    if (!isAutoMaxBSize && !isFlexItemBlockAxisMainAxis) {
+    const bool shouldIgnoreMinMaxBSize =
+        isFlexItemBlockAxisMainAxis || isSubgriddedInBlockAxis;
+    if (!isAutoMaxBSize && !shouldIgnoreMinMaxBSize) {
       nscoord maxBSize = nsLayoutUtils::ComputeBSizeValue(
           aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
           maxBSizeCoord.AsLengthPercentage());
       result.BSize(aWM) = std::min(maxBSize, result.BSize(aWM));
     }
 
-    if (!isAutoMinBSize && !isFlexItemBlockAxisMainAxis) {
+    if (!isAutoMinBSize && !shouldIgnoreMinMaxBSize) {
       nscoord minBSize = nsLayoutUtils::ComputeBSizeValue(
           aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
           minBSizeCoord.AsLengthPercentage());
