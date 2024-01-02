@@ -20,6 +20,13 @@ NS_QUERYFRAME_HEAD(nsSplittableFrame)
   NS_QUERYFRAME_ENTRY(nsSplittableFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsIFrame)
 
+// The frame properties to cache the first-in-flow and first-continuation frame
+// pointers. All nsSplittableFrames other than the first one in the continuation
+// chain will have these properties set in SetPrevInFlow() or
+// SetPrevContinuation().
+NS_DECLARE_FRAME_PROPERTY_WITHOUT_DTOR(FirstContinuationProperty, nsIFrame);
+NS_DECLARE_FRAME_PROPERTY_WITHOUT_DTOR(FirstInFlowProperty, nsIFrame);
+
 void nsSplittableFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
                              nsIFrame* aPrevInFlow) {
   if (aPrevInFlow) {
@@ -49,8 +56,41 @@ void nsSplittableFrame::SetPrevContinuation(nsIFrame* aFrame) {
                "setting a prev continuation with incorrect type!");
   NS_ASSERTION(!IsInPrevContinuationChain(aFrame, this),
                "creating a loop in continuation chain!");
+  nsIFrame* oldFirstInFlow = FirstInFlow();
+  nsIFrame* oldFirstContinuation = FirstContinuation();
+
   mPrevContinuation = aFrame;
   RemoveStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+
+  // We joined the non-fluid continuation chain, so remove the fluid
+  // first-in-flow cache.
+  nsIFrame* newFirstInFlow = this;
+  RemoveProperty(FirstInFlowProperty());
+
+  nsIFrame* newFirstContinuation;
+  if (mPrevContinuation) {
+    newFirstContinuation = mPrevContinuation->FirstContinuation();
+    SetProperty(FirstContinuationProperty(), newFirstContinuation);
+  } else {
+    // We become the first-continuation.
+    newFirstContinuation = this;
+    RemoveProperty(FirstContinuationProperty());
+  }
+
+  if (oldFirstInFlow != newFirstInFlow) {
+    // Update the first-in-flow cache for the next-in-flows in the chain.
+    for (nsIFrame* next = GetNextInFlow(); next; next = next->GetNextInFlow()) {
+      next->SetProperty(FirstInFlowProperty(), newFirstInFlow);
+    }
+  }
+  if (oldFirstContinuation != newFirstContinuation) {
+    // Update the first-continuation cache for the next-continuations in the
+    // chain.
+    for (nsIFrame* next = GetNextContinuation(); next;
+         next = next->GetNextContinuation()) {
+      next->SetProperty(FirstContinuationProperty(), newFirstContinuation);
+    }
+  }
 }
 
 nsIFrame* nsSplittableFrame::GetNextContinuation() const {
@@ -69,13 +109,8 @@ void nsSplittableFrame::SetNextContinuation(nsIFrame* aFrame) {
 }
 
 nsIFrame* nsSplittableFrame::FirstContinuation() const {
-  nsSplittableFrame* firstContinuation = const_cast<nsSplittableFrame*>(this);
-  while (firstContinuation->mPrevContinuation) {
-    firstContinuation =
-        static_cast<nsSplittableFrame*>(firstContinuation->mPrevContinuation);
-  }
-  MOZ_ASSERT(firstContinuation, "post-condition failed");
-  return firstContinuation;
+  return GetPrevContinuation() ? GetProperty(FirstContinuationProperty())
+                               : const_cast<nsSplittableFrame*>(this);
 }
 
 nsIFrame* nsSplittableFrame::LastContinuation() const {
@@ -124,8 +159,41 @@ void nsSplittableFrame::SetPrevInFlow(nsIFrame* aFrame) {
                "setting a prev in flow with incorrect type!");
   NS_ASSERTION(!IsInPrevContinuationChain(aFrame, this),
                "creating a loop in continuation chain!");
+  nsIFrame* oldFirstInFlow = FirstInFlow();
+  nsIFrame* oldFirstContinuation = FirstContinuation();
+
   mPrevContinuation = aFrame;
   AddStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+
+  nsIFrame* newFirstInFlow;
+  nsIFrame* newFirstContinuation;
+  if (mPrevContinuation) {
+    newFirstInFlow = mPrevContinuation->FirstInFlow();
+    SetProperty(FirstInFlowProperty(), newFirstInFlow);
+    newFirstContinuation = mPrevContinuation->FirstContinuation();
+    SetProperty(FirstContinuationProperty(), newFirstContinuation);
+  } else {
+    // We become the first-in-flow and the first continuation.
+    newFirstInFlow = this;
+    RemoveProperty(FirstInFlowProperty());
+    newFirstContinuation = this;
+    RemoveProperty(FirstContinuationProperty());
+  }
+
+  if (oldFirstInFlow != newFirstInFlow) {
+    // Update the first-in-flow cache for the next-in-flows in the chain.
+    for (nsIFrame* next = GetNextInFlow(); next; next = next->GetNextInFlow()) {
+      next->SetProperty(FirstInFlowProperty(), newFirstInFlow);
+    }
+  }
+  if (oldFirstContinuation != newFirstContinuation) {
+    // Update the first-continuation cache for the next-continuations in the
+    // chain.
+    for (nsIFrame* next = GetNextContinuation(); next;
+         next = next->GetNextContinuation()) {
+      next->SetProperty(FirstContinuationProperty(), newFirstContinuation);
+    }
+  }
 }
 
 nsIFrame* nsSplittableFrame::GetNextInFlow() const {
@@ -147,12 +215,8 @@ void nsSplittableFrame::SetNextInFlow(nsIFrame* aFrame) {
 }
 
 nsIFrame* nsSplittableFrame::FirstInFlow() const {
-  nsSplittableFrame* firstInFlow = const_cast<nsSplittableFrame*>(this);
-  while (nsIFrame* prev = firstInFlow->GetPrevInFlow()) {
-    firstInFlow = static_cast<nsSplittableFrame*>(prev);
-  }
-  MOZ_ASSERT(firstInFlow, "post-condition failed");
-  return firstInFlow;
+  return GetPrevInFlow() ? GetProperty(FirstInFlowProperty())
+                         : const_cast<nsSplittableFrame*>(this);
 }
 
 nsIFrame* nsSplittableFrame::LastInFlow() const {
