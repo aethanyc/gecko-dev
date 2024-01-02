@@ -51,6 +51,9 @@ class nsSplittableFrame : public nsIFrame {
   //
   // Note: if this frame has an existing non-null next-continuation, this method
   // disconnect from it before connecting aFrame.
+  //
+  // WARNING: this method has O(n) time complexity over the length of
+  // next-continuations in the chain.
   void SetNextContinuation(nsIFrame* aFrame) final {
     SetNextContinuation(aFrame, false);
   }
@@ -74,6 +77,9 @@ class nsSplittableFrame : public nsIFrame {
   //
   // Note: if this frame has an existing non-null next-in-flow, this method
   // disconnect from it before connecting aFrame.
+  //
+  // WARNING: this method has O(n) time complexity over the length of
+  // next-in-flows in the chain.
   void SetNextInFlow(nsIFrame* aFrame) final {
     SetNextContinuation(aFrame, true);
   }
@@ -155,6 +161,12 @@ class nsSplittableFrame : public nsIFrame {
    * SetNextContinuation().
    */
   void SetNextContinuation(nsIFrame* aFrame, bool aIsFluid);
+
+  /**
+   * Update the first-continuation and first-in-flow cache for this frame and
+   * the next-continuations in the chain.
+   */
+  void UpdateFirstContinuationAndFirstInFlowCache();
 
   nsIFrame* mPrevContinuation = nullptr;
   nsIFrame* mNextContinuation = nullptr;
