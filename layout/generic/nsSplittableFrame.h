@@ -54,7 +54,7 @@ class nsSplittableFrame : public nsIFrame {
   void SetNextContinuation(nsIFrame*) final;
 
   // Get the first/last continuation for this frame.
-  nsIFrame* FirstContinuation() const override;
+  nsIFrame* FirstContinuation() const final;
   nsIFrame* LastContinuation() const final;
 
 #ifdef DEBUG
