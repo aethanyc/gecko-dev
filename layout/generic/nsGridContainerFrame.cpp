@@ -8924,7 +8924,7 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
         return NS_CSS_MINMAX(*containBSize, aReflowInput.ComputedMinBSize(),
                              aReflowInput.ComputedMaxBSize());
       }
-      return computedBSize;
+      return aReflowInput.ApplyMinMaxBSize(computedBSize);
     }();
     const LogicalSize containLogicalSize(wm, computedISize, trackSizingBSize);
     gridReflowInput.CalculateTrackSizes(grid, containLogicalSize,
