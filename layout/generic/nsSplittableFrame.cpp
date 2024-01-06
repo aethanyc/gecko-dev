@@ -24,7 +24,6 @@ void nsSplittableFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
                              nsIFrame* aPrevInFlow) {
   if (aPrevInFlow) {
     // Hook the frame into the flow
-    SetPrevInFlow(aPrevInFlow);
     aPrevInFlow->SetNextInFlow(this);
   }
   nsIFrame::Init(aContent, aParent, aPrevInFlow);
@@ -44,27 +43,31 @@ nsIFrame* nsSplittableFrame::GetPrevContinuation() const {
   return mPrevContinuation;
 }
 
-void nsSplittableFrame::SetPrevContinuation(nsIFrame* aFrame) {
-  NS_ASSERTION(!aFrame || Type() == aFrame->Type(),
-               "setting a prev continuation with incorrect type!");
-  NS_ASSERTION(!IsInPrevContinuationChain(aFrame, this),
-               "creating a loop in continuation chain!");
-  mPrevContinuation = aFrame;
-  RemoveStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
-}
-
 nsIFrame* nsSplittableFrame::GetNextContinuation() const {
   return mNextContinuation;
 }
 
 void nsSplittableFrame::SetNextContinuation(nsIFrame* aFrame) {
-  NS_ASSERTION(!aFrame || Type() == aFrame->Type(),
-               "setting a next continuation with incorrect type!");
-  NS_ASSERTION(!IsInNextContinuationChain(aFrame, this),
-               "creating a loop in continuation chain!");
+  MOZ_ASSERT(!aFrame || Type() == aFrame->Type(),
+             "Setting a next continuation with an incorrect type!");
+  MOZ_ASSERT(!IsInNextContinuationChain(aFrame, this),
+             "We shouldn't be in aFrame's next-continuation chain!");
+  MOZ_ASSERT(!IsInPrevContinuationChain(this, aFrame),
+             "aFrame shouldn't be in our prev-continuation chain!");
+
+  if (mNextContinuation && mNextContinuation != aFrame) {
+    // We have a non-null next-continuation. Break the link.
+    MOZ_ASSERT(mNextContinuation->GetPrevContinuation() == this,
+               "The existing link is wrong!");
+    static_cast<nsSplittableFrame*>(mNextContinuation)->mPrevContinuation =
+        nullptr;
+  }
+
   mNextContinuation = aFrame;
-  if (aFrame) {
-    aFrame->RemoveStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+  if (mNextContinuation) {
+    mNextContinuation->RemoveStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+    static_cast<nsSplittableFrame*>(mNextContinuation)->mPrevContinuation =
+        this;
   }
 }
 
@@ -119,15 +122,6 @@ nsIFrame* nsSplittableFrame::GetPrevInFlow() const {
                                                          : nullptr;
 }
 
-void nsSplittableFrame::SetPrevInFlow(nsIFrame* aFrame) {
-  NS_ASSERTION(!aFrame || Type() == aFrame->Type(),
-               "setting a prev in flow with incorrect type!");
-  NS_ASSERTION(!IsInPrevContinuationChain(aFrame, this),
-               "creating a loop in continuation chain!");
-  mPrevContinuation = aFrame;
-  AddStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
-}
-
 nsIFrame* nsSplittableFrame::GetNextInFlow() const {
   return mNextContinuation && mNextContinuation->HasAnyStateBits(
                                   NS_FRAME_IS_FLUID_CONTINUATION)
@@ -136,13 +130,26 @@ nsIFrame* nsSplittableFrame::GetNextInFlow() const {
 }
 
 void nsSplittableFrame::SetNextInFlow(nsIFrame* aFrame) {
-  NS_ASSERTION(!aFrame || Type() == aFrame->Type(),
-               "setting a next in flow with incorrect type!");
-  NS_ASSERTION(!IsInNextContinuationChain(aFrame, this),
-               "creating a loop in continuation chain!");
+  MOZ_ASSERT(!aFrame || Type() == aFrame->Type(),
+             "Setting a next continuation with an incorrect type!");
+  MOZ_ASSERT(!IsInNextContinuationChain(aFrame, this),
+             "We shouldn't be in aFrame's next-continuation chain!");
+  MOZ_ASSERT(!IsInPrevContinuationChain(this, aFrame),
+             "aFrame shouldn't be in our prev-continuation chain!");
+
+  if (mNextContinuation && mNextContinuation != aFrame) {
+    // We have a non-null next-continuation. Break the link.
+    MOZ_ASSERT(mNextContinuation->GetPrevContinuation() == this,
+               "The existing link is wrong!");
+    static_cast<nsSplittableFrame*>(mNextContinuation)->mPrevContinuation =
+        nullptr;
+  }
+
   mNextContinuation = aFrame;
-  if (aFrame) {
-    aFrame->AddStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+  if (mNextContinuation) {
+    mNextContinuation->AddStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+    static_cast<nsSplittableFrame*>(mNextContinuation)->mPrevContinuation =
+        this;
   }
 }
 
@@ -164,35 +171,28 @@ nsIFrame* nsSplittableFrame::LastInFlow() const {
   return lastInFlow;
 }
 
-// Remove this frame from the flow. Connects prev in flow and next in flow
 void nsSplittableFrame::RemoveFromFlow(nsIFrame* aFrame) {
+  MOZ_ASSERT(aFrame);
+
   nsIFrame* prevContinuation = aFrame->GetPrevContinuation();
   nsIFrame* nextContinuation = aFrame->GetNextContinuation();
+  nsIFrame* prevInFlow = aFrame->GetPrevInFlow();
+  nsIFrame* nextInFlow = aFrame->GetNextInFlow();
 
-  // The new continuation is fluid only if the continuation on both sides
-  // of the removed frame was fluid
-  if (aFrame->GetPrevInFlow() && aFrame->GetNextInFlow()) {
-    if (prevContinuation) {
-      prevContinuation->SetNextInFlow(nextContinuation);
-    }
-    if (nextContinuation) {
-      nextContinuation->SetPrevInFlow(prevContinuation);
-    }
-  } else {
-    if (prevContinuation) {
-      prevContinuation->SetNextContinuation(nextContinuation);
-    }
-    if (nextContinuation) {
-      nextContinuation->SetPrevContinuation(prevContinuation);
-    }
-  }
-
-  // **Note: it is important here that we clear the Next link from aFrame
-  // BEFORE clearing its Prev link, because in nsContinuingTextFrame,
-  // SetPrevInFlow() would follow the Next pointers, wiping out the cached
+  // Note: it is important here that we disconnect aFrame and its
+  // next-continuation BEFORE connecting prevContinuation/prevInFlow and
+  // nextContinuation/nextInFlow, because in nsContinuingTextFrame,
+  // SetNextInFlow() would follow the Next pointers, wiping out the cached
   // mFirstContinuation field from each following frame in the list.
   aFrame->SetNextInFlow(nullptr);
-  aFrame->SetPrevInFlow(nullptr);
+
+  // The new continuation is fluid only if the continuation on both sides of the
+  // removed frame was fluid.
+  if (prevInFlow && nextInFlow) {
+    prevInFlow->SetNextInFlow(nextInFlow);
+  } else if (prevContinuation) {
+    prevContinuation->SetNextContinuation(nextContinuation);
+  }
 }
 
 NS_DECLARE_FRAME_PROPERTY_SMALL_VALUE(ConsumedBSizeProperty, nscoord);
