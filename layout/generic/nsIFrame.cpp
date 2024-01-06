@@ -600,7 +600,7 @@ bool nsIFrame::IsRenderedLegend() const {
 }
 
 void nsIFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
-                    nsIFrame* aPrevInFlow) {
+                    nsIFrame* aPrevContinuation) {
   MOZ_ASSERT(nsQueryFrame::FrameIID(mClass) == GetFrameId());
   MOZ_ASSERT(!mContent, "Double-initing a frame?");
 
@@ -608,15 +608,15 @@ void nsIFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
   mParent = aParent;
   MOZ_DIAGNOSTIC_ASSERT(!mParent || PresShell() == mParent->PresShell());
 
-  if (aPrevInFlow) {
-    mWritingMode = aPrevInFlow->GetWritingMode();
+  if (aPrevContinuation) {
+    mWritingMode = aPrevContinuation->GetWritingMode();
 
     // Copy some state bits from prev-in-flow (the bits that should apply
     // throughout a continuation chain). The bits are sorted according to their
     // order in nsFrameStateBits.h.
 
     // clang-format off
-    AddStateBits(aPrevInFlow->GetStateBits() &
+    AddStateBits(aPrevContinuation->GetStateBits() &
                  (NS_FRAME_GENERATED_CONTENT |
                   NS_FRAME_OUT_OF_FLOW |
                   NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN |
@@ -627,7 +627,7 @@ void nsIFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
     // clang-format on
 
     // Copy other bits in nsIFrame from prev-in-flow.
-    mHasColumnSpanSiblings = aPrevInFlow->HasColumnSpanSiblings();
+    mHasColumnSpanSiblings = aPrevContinuation->HasColumnSpanSiblings();
   } else {
     PresContext()->ConstructedFrame();
   }
@@ -660,9 +660,9 @@ void nsIFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
       IncApproximateVisibleCount();
     }
   }
-  if (aPrevInFlow) {
-    mMayHaveOpacityAnimation = aPrevInFlow->MayHaveOpacityAnimation();
-    mMayHaveTransformAnimation = aPrevInFlow->MayHaveTransformAnimation();
+  if (aPrevContinuation) {
+    mMayHaveOpacityAnimation = aPrevContinuation->MayHaveOpacityAnimation();
+    mMayHaveTransformAnimation = aPrevContinuation->MayHaveTransformAnimation();
   } else if (mContent) {
     // It's fine to fetch the EffectSet for the style frame here because in the
     // following code we take care of the case where animations may target
@@ -740,11 +740,11 @@ void nsIFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
   // the parent has visibility:hidden style. We also don't need to update the
   // state when creating continuations because its visibility is the same as its
   // prev-in-flow, and the animation code cares only primary frames.
-  if (!IsPlaceholderFrame() && !aPrevInFlow) {
+  if (!IsPlaceholderFrame() && !aPrevContinuation) {
     UpdateVisibleDescendantsState();
   }
 
-  if (!aPrevInFlow && HasAnyStateBits(NS_FRAME_IS_NONDISPLAY)) {
+  if (!aPrevContinuation && HasAnyStateBits(NS_FRAME_IS_NONDISPLAY)) {
     // We aren't going to get a reflow, so nothing else will call
     // InvalidateRenderingObservers, we have to do it here.
     SVGObserverUtils::InvalidateRenderingObservers(this);

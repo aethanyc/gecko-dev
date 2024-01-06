@@ -41,7 +41,7 @@ class SVGViewFrame final : public nsIFrame {
 
 #ifdef DEBUG
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
-            nsIFrame* aPrevInFlow) override;
+            nsIFrame* aPrevContinuation) override;
 #endif
 
 #ifdef DEBUG_FRAME_DUMP
@@ -73,11 +73,11 @@ NS_IMPL_FRAMEARENA_HELPERS(SVGViewFrame)
 
 #ifdef DEBUG
 void SVGViewFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
-                        nsIFrame* aPrevInFlow) {
+                        nsIFrame* aPrevContinuation) {
   NS_ASSERTION(aContent->IsSVGElement(nsGkAtoms::view),
                "Content is not an SVG view");
 
-  nsIFrame::Init(aContent, aParent, aPrevInFlow);
+  nsIFrame::Init(aContent, aParent, aPrevContinuation);
 }
 #endif /* DEBUG */
 

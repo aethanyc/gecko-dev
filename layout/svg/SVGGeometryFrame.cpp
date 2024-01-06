@@ -57,9 +57,9 @@ NS_QUERYFRAME_TAIL_INHERITING(nsIFrame)
 // nsIFrame methods
 
 void SVGGeometryFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
-                            nsIFrame* aPrevInFlow) {
+                            nsIFrame* aPrevContinuation) {
   AddStateBits(aParent->GetStateBits() & NS_STATE_SVG_CLIPPATH_CHILD);
-  nsIFrame::Init(aContent, aParent, aPrevInFlow);
+  nsIFrame::Init(aContent, aParent, aPrevContinuation);
 }
 
 nsresult SVGGeometryFrame::AttributeChanged(int32_t aNameSpaceID,

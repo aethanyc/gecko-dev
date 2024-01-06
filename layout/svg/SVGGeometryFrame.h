@@ -63,7 +63,7 @@ class SVGGeometryFrame final : public nsIFrame, public ISVGDisplayableFrame {
 
   // nsIFrame interface:
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
-            nsIFrame* aPrevInFlow) override;
+            nsIFrame* aPrevContinuation) override;
 
   nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                             int32_t aModType) override;

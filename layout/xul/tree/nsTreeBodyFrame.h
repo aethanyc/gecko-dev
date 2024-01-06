@@ -156,7 +156,7 @@ class nsTreeBodyFrame final : public mozilla::SimpleXULLeafFrame,
 
   // Overridden from nsIFrame to cache our pres context.
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
-            nsIFrame* aPrevInFlow) override;
+            nsIFrame* aPrevContinuation) override;
   void Destroy(DestroyContext&) override;
 
   mozilla::Maybe<Cursor> GetCursor(const nsPoint&) override;

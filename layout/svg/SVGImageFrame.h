@@ -80,7 +80,7 @@ class SVGImageFrame final : public nsIFrame,
       const Maybe<OnNonvisible>& aNonvisibleAction = Nothing()) override;
 
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
-            nsIFrame* aPrevInFlow) override;
+            nsIFrame* aPrevContinuation) override;
   void Destroy(DestroyContext&) override;
 
   void DidSetComputedStyle(ComputedStyle* aOldStyle) final;

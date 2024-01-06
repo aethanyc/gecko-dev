@@ -21,13 +21,13 @@ NS_QUERYFRAME_HEAD(nsSplittableFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsIFrame)
 
 void nsSplittableFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
-                             nsIFrame* aPrevInFlow) {
-  if (aPrevInFlow) {
+                             nsIFrame* aPrevContinuation) {
+  if (aPrevContinuation) {
     // Hook the frame into the flow
-    SetPrevInFlow(aPrevInFlow);
-    aPrevInFlow->SetNextInFlow(this);
+    SetPrevInFlow(aPrevContinuation);
+    aPrevContinuation->SetNextInFlow(this);
   }
-  nsIFrame::Init(aContent, aParent, aPrevInFlow);
+  nsIFrame::Init(aContent, aParent, aPrevContinuation);
 }
 
 void nsSplittableFrame::Destroy(DestroyContext& aContext) {

@@ -44,7 +44,7 @@ class nsSplitterFrame final : public mozilla::SimpleXULLeafFrame {
                             int32_t aModType) override;
 
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
-            nsIFrame* aPrevInFlow) override;
+            nsIFrame* aPrevContinuation) override;
 
   NS_IMETHOD HandlePress(nsPresContext* aPresContext,
                          mozilla::WidgetGUIEvent* aEvent,

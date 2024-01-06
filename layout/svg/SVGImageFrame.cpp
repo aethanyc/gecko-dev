@@ -88,12 +88,12 @@ SVGImageFrame::~SVGImageFrame() {
 }
 
 void SVGImageFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
-                         nsIFrame* aPrevInFlow) {
+                         nsIFrame* aPrevContinuation) {
   NS_ASSERTION(aContent->IsSVGElement(nsGkAtoms::image),
                "Content is not an SVG image!");
 
   AddStateBits(aParent->GetStateBits() & NS_STATE_SVG_CLIPPATH_CHILD);
-  nsIFrame::Init(aContent, aParent, aPrevInFlow);
+  nsIFrame::Init(aContent, aParent, aPrevContinuation);
 
   if (HasAnyStateBits(NS_FRAME_IS_NONDISPLAY)) {
     // Non-display frames are likely to be patterns, masks or the like.

@@ -38,7 +38,7 @@ class SVGStopFrame : public nsIFrame {
   // nsIFrame interface:
 #ifdef DEBUG
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
-            nsIFrame* aPrevInFlow) override;
+            nsIFrame* aPrevContinuation) override;
 #endif
 
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
@@ -64,11 +64,11 @@ NS_IMPL_FRAMEARENA_HELPERS(SVGStopFrame)
 
 #ifdef DEBUG
 void SVGStopFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
-                        nsIFrame* aPrevInFlow) {
+                        nsIFrame* aPrevContinuation) {
   NS_ASSERTION(aContent->IsSVGElement(nsGkAtoms::stop),
                "Content is not a stop element");
 
-  nsIFrame::Init(aContent, aParent, aPrevInFlow);
+  nsIFrame::Init(aContent, aParent, aPrevContinuation);
 }
 #endif /* DEBUG */
 

@@ -242,11 +242,11 @@ nsresult nsSplitterFrame::AttributeChanged(int32_t aNameSpaceID,
  * we are
  */
 void nsSplitterFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
-                           nsIFrame* aPrevInFlow) {
+                           nsIFrame* aPrevContinuation) {
   MOZ_ASSERT(!mInner);
   mInner = new nsSplitterFrameInner(this);
 
-  SimpleXULLeafFrame::Init(aContent, aParent, aPrevInFlow);
+  SimpleXULLeafFrame::Init(aContent, aParent, aPrevContinuation);
 
   mInner->AddListener();
   mInner->mParentBox = nullptr;

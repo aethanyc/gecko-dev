@@ -275,8 +275,8 @@ static void AdjustForBorderPadding(ComputedStyle* aStyle, nsRect& aRect) {
 }
 
 void nsTreeBodyFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
-                           nsIFrame* aPrevInFlow) {
-  SimpleXULLeafFrame::Init(aContent, aParent, aPrevInFlow);
+                           nsIFrame* aPrevContinuation) {
+  SimpleXULLeafFrame::Init(aContent, aParent, aPrevContinuation);
 
   mIndentation = GetIndentation();
   mRowHeight = GetRowHeight();

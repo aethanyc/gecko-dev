@@ -4023,8 +4023,8 @@ a11y::AccType nsTextFrame::AccessibleType() {
 
 //-----------------------------------------------------------------------------
 void nsTextFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
-                       nsIFrame* aPrevInFlow) {
-  NS_ASSERTION(!aPrevInFlow, "Can't be a continuation!");
+                       nsIFrame* aPrevContinuation) {
+  NS_ASSERTION(!aPrevContinuation, "Can't be a continuation!");
   MOZ_ASSERT(aContent->IsText(), "Bogus content!");
 
   // Remove any NewlineOffsetProperty or InFlowContentLengthProperty since they
@@ -4043,7 +4043,7 @@ void nsTextFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
 
   // We're not a continuing frame.
   // mContentOffset = 0; not necessary since we get zeroed out at init
-  nsIFrame::Init(aContent, aParent, aPrevInFlow);
+  nsIFrame::Init(aContent, aParent, aPrevContinuation);
 }
 
 void nsTextFrame::ClearFrameOffsetCache() {
@@ -4113,7 +4113,7 @@ class nsContinuingTextFrame final : public nsTextFrame {
                                              ComputedStyle* aStyle);
 
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
-            nsIFrame* aPrevInFlow) final;
+            nsIFrame* aPrevContinuation) final;
 
   void Destroy(DestroyContext&) override;
 
@@ -4222,17 +4222,17 @@ class nsContinuingTextFrame final : public nsTextFrame {
 
 void nsContinuingTextFrame::Init(nsIContent* aContent,
                                  nsContainerFrame* aParent,
-                                 nsIFrame* aPrevInFlow) {
-  NS_ASSERTION(aPrevInFlow, "Must be a continuation!");
+                                 nsIFrame* aPrevContinuation) {
+  NS_ASSERTION(aPrevContinuation, "Must be a continuation!");
 
   // Hook the frame into the flow
-  nsTextFrame* prev = static_cast<nsTextFrame*>(aPrevInFlow);
+  nsTextFrame* prev = static_cast<nsTextFrame*>(aPrevContinuation);
   nsTextFrame* nextContinuation = prev->GetNextContinuation();
-  SetPrevInFlow(aPrevInFlow);
-  aPrevInFlow->SetNextInFlow(this);
+  SetPrevInFlow(aPrevContinuation);
+  aPrevContinuation->SetNextInFlow(this);
 
   // NOTE: bypassing nsTextFrame::Init!!!
-  nsIFrame::Init(aContent, aParent, aPrevInFlow);
+  nsIFrame::Init(aContent, aParent, aPrevContinuation);
 
   mContentOffset = prev->GetContentOffset() + prev->GetContentLengthHint();
   NS_ASSERTION(mContentOffset < int32_t(aContent->GetText()->GetLength()),
@@ -4253,8 +4253,8 @@ void nsContinuingTextFrame::Init(nsIContent* aContent,
       }
     }
   }
-  if (aPrevInFlow->HasAnyStateBits(NS_FRAME_IS_BIDI)) {
-    FrameBidiData bidiData = aPrevInFlow->GetBidiData();
+  if (aPrevContinuation->HasAnyStateBits(NS_FRAME_IS_BIDI)) {
+    FrameBidiData bidiData = aPrevContinuation->GetBidiData();
     bidiData.precedingControl = kBidiLevelNone;
     SetProperty(BidiDataProperty(), bidiData);
 

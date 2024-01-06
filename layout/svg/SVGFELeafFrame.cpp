@@ -38,7 +38,7 @@ class SVGFELeafFrame final : public nsIFrame {
 
 #ifdef DEBUG
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
-            nsIFrame* aPrevInFlow) override;
+            nsIFrame* aPrevContinuation) override;
 #endif
 
 #ifdef DEBUG_FRAME_DUMP
@@ -70,12 +70,12 @@ NS_IMPL_FRAMEARENA_HELPERS(SVGFELeafFrame)
 
 #ifdef DEBUG
 void SVGFELeafFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
-                          nsIFrame* aPrevInFlow) {
+                          nsIFrame* aPrevContinuation) {
   NS_ASSERTION(aContent->IsSVGFilterPrimitiveElement(),
                "Trying to construct an SVGFELeafFrame for a "
                "content element that doesn't support the right interfaces");
 
-  nsIFrame::Init(aContent, aParent, aPrevInFlow);
+  nsIFrame::Init(aContent, aParent, aPrevContinuation);
 }
 #endif /* DEBUG */
 

@@ -41,7 +41,7 @@ class SVGFEImageFrame final : public nsIFrame {
   NS_DECL_FRAMEARENA_HELPERS(SVGFEImageFrame)
 
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
-            nsIFrame* aPrevInFlow) override;
+            nsIFrame* aPrevContinuation) override;
   void Destroy(DestroyContext&) override;
 
 #ifdef DEBUG_FRAME_DUMP
@@ -88,12 +88,12 @@ void SVGFEImageFrame::Destroy(DestroyContext& aContext) {
 }
 
 void SVGFEImageFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
-                           nsIFrame* aPrevInFlow) {
+                           nsIFrame* aPrevContinuation) {
   NS_ASSERTION(aContent->IsSVGElement(nsGkAtoms::feImage),
                "Trying to construct an SVGFEImageFrame for a "
                "content element that doesn't support the right interfaces");
 
-  nsIFrame::Init(aContent, aParent, aPrevInFlow);
+  nsIFrame::Init(aContent, aParent, aPrevContinuation);
 
   // We assume that feImage's are always visible.
   // This call must happen before the FrameCreated. This is because the

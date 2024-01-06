@@ -23,7 +23,7 @@ class nsSplittableFrame : public nsIFrame {
   NS_DECL_QUERYFRAME
 
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
-            nsIFrame* aPrevInFlow) override;
+            nsIFrame* aPrevContinuation) override;
 
   void Destroy(DestroyContext&) override;
 

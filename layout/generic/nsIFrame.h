@@ -682,18 +682,18 @@ class nsIFrame : public nsQueryFrame {
    * Called to initialize the frame. This is called immediately after creating
    * the frame.
    *
-   * If the frame is a continuing frame, then aPrevInFlow indicates the previous
-   * frame (the frame that was split).
+   * If the frame is a continuing frame, then aPrevContinuation indicates the
+   * previous frame (the frame that was split).
    *
    * Each subclass that need a view should override this method and call
    * CreateView() after calling its base class Init().
    *
    * @param   aContent the content object associated with the frame
    * @param   aParent the parent frame
-   * @param   aPrevInFlow the prev-in-flow frame
+   * @param   aPrevContinuation the prev-in-flow frame
    */
   virtual void Init(nsIContent* aContent, nsContainerFrame* aParent,
-                    nsIFrame* aPrevInFlow);
+                    nsIFrame* aPrevContinuation);
 
   void* operator new(size_t, mozilla::PresShell*) MOZ_MUST_OVERRIDE;
 
