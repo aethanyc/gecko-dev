@@ -146,6 +146,13 @@ class nsSplittableFrame : public nsIFrame {
     return GetBlockLevelLogicalSkipSides(false);
   };
 
+  // Update the first-in-flow cache for the next-in-flows in the chain.
+  void UpdateFirstInFlowCache(nsIFrame* aFirstInFlow);
+
+  // Update the first-continuation cache for the next-continuations in the
+  // chain.
+  void UpdateFirstContinuationCache(nsIFrame* aFirstContinuation);
+
   nsIFrame* mPrevContinuation = nullptr;
   nsIFrame* mNextContinuation = nullptr;
 };

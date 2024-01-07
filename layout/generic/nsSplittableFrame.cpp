@@ -78,18 +78,10 @@ void nsSplittableFrame::SetPrevContinuation(nsIFrame* aFrame) {
   }
 
   if (oldFirstInFlow != newFirstInFlow) {
-    // Update the first-in-flow cache for the next-in-flows in the chain.
-    for (nsIFrame* next = GetNextInFlow(); next; next = next->GetNextInFlow()) {
-      next->SetProperty(FirstInFlowProperty(), newFirstInFlow);
-    }
+    UpdateFirstInFlowCache(newFirstInFlow);
   }
   if (oldFirstContinuation != newFirstContinuation) {
-    // Update the first-continuation cache for the next-continuations in the
-    // chain.
-    for (nsIFrame* next = GetNextContinuation(); next;
-         next = next->GetNextContinuation()) {
-      next->SetProperty(FirstContinuationProperty(), newFirstContinuation);
-    }
+    UpdateFirstInFlowCache(newFirstContinuation);
   }
 }
 
@@ -105,6 +97,10 @@ void nsSplittableFrame::SetNextContinuation(nsIFrame* aFrame) {
   mNextContinuation = aFrame;
   if (mNextContinuation) {
     mNextContinuation->RemoveStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+
+    // Our next-continuation joined the non-fluid continuation chain, so remove
+    // its fluid first-in-flow cache.
+    mNextContinuation->RemoveProperty(FirstInFlowProperty());
   }
 }
 
@@ -191,18 +187,10 @@ void nsSplittableFrame::SetPrevInFlow(nsIFrame* aFrame) {
   }
 
   if (oldFirstInFlow != newFirstInFlow) {
-    // Update the first-in-flow cache for the next-in-flows in the chain.
-    for (nsIFrame* next = GetNextInFlow(); next; next = next->GetNextInFlow()) {
-      next->SetProperty(FirstInFlowProperty(), newFirstInFlow);
-    }
+    UpdateFirstInFlowCache(newFirstInFlow);
   }
   if (oldFirstContinuation != newFirstContinuation) {
-    // Update the first-continuation cache for the next-continuations in the
-    // chain.
-    for (nsIFrame* next = GetNextContinuation(); next;
-         next = next->GetNextContinuation()) {
-      next->SetProperty(FirstContinuationProperty(), newFirstContinuation);
-    }
+    UpdateFirstInFlowCache(newFirstContinuation);
   }
 }
 
@@ -365,4 +353,18 @@ LogicalSides nsSplittableFrame::GetBlockLevelLogicalSkipSides(
   }
 
   return skip;
+}
+
+void nsSplittableFrame::UpdateFirstInFlowCache(nsIFrame* aFirstInFlow) {
+  for (nsIFrame* next = GetNextInFlow(); next; next = next->GetNextInFlow()) {
+    next->SetProperty(FirstInFlowProperty(), aFirstInFlow);
+  }
+}
+
+void nsSplittableFrame::UpdateFirstContinuationCache(
+    nsIFrame* aFirstContinuation) {
+  for (nsIFrame* next = GetNextContinuation(); next;
+       next = next->GetNextContinuation()) {
+    next->SetProperty(FirstContinuationProperty(), aFirstContinuation);
+  }
 }
