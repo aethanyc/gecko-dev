@@ -2438,6 +2438,7 @@ class nsIFrame : public nsQueryFrame {
    * Continuation member functions
    */
   virtual nsIFrame* GetPrevContinuation() const;
+  virtual void SetPrevContinuation(nsIFrame*);
   virtual nsIFrame* GetNextContinuation() const;
   virtual void SetNextContinuation(nsIFrame*);
   virtual nsIFrame* FirstContinuation() const {
@@ -2458,6 +2459,8 @@ class nsIFrame : public nsQueryFrame {
    * Flow member functions
    */
   virtual nsIFrame* GetPrevInFlow() const;
+  virtual void SetPrevInFlow(nsIFrame*);
+
   virtual nsIFrame* GetNextInFlow() const;
   virtual void SetNextInFlow(nsIFrame*);
 
