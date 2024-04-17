@@ -641,9 +641,13 @@ bool nsHTMLScrollFrame::TryLayout(ScrollReflowInput& aState,
   const bool blockEndsGutterChanged =
       aState.mScrollbarGutterFromLastReflow.BStartEnd(wm) !=
       logicalScrollbarGutter.BStartEnd(wm);
+  const bool containStickyElements =
+      StickyScrollContainer::GetStickyScrollContainerForScrollFrame(this);
+
   const bool shouldReflowScrolledFrame =
       inlineEndsGutterChanged ||
-      (blockEndsGutterChanged && ScrolledContentDependsOnBSize(aState));
+      (blockEndsGutterChanged && ScrolledContentDependsOnBSize(aState)) ||
+      containStickyElements;
 
   if (shouldReflowScrolledFrame) {
     if (blockEndsGutterChanged) {
@@ -975,6 +979,10 @@ void nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowInput& aState,
   aState.mScrollbarGutterFromLastReflow = scrollbarGutter;
   aState.mReflowedContentsWithHScrollbar = aAssumeHScroll;
   aState.mReflowedContentsWithVScrollbar = aAssumeVScroll;
+
+  // After we reflow the scrolled frame, we know its inline-size and block-size,
+  // so we should update positions for sticky positioned frames.
+  UpdateSticky();
 }
 
 bool nsHTMLScrollFrame::GuessHScrollbarNeeded(const ScrollReflowInput& aState) {
