@@ -965,7 +965,9 @@ void ReflowInput::ApplyRelativePositioning(nsIFrame* aFrame,
     StickyScrollContainer* ssc =
         StickyScrollContainer::GetStickyScrollContainerForFrame(aFrame);
     if (ssc) {
-      *aPosition = ssc->ComputePosition(aFrame);
+      //*aPosition = ssc->ComputePosition(aFrame);
+      printf("%s: position sticky pos %s\n", aFrame->ListTag().get(),
+             ToString(*aPosition).c_str());
     }
   }
 }

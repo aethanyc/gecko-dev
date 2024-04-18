@@ -6,7 +6,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-position/#sticky-pos">
 <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1835705">
 <link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
-<meta name="assert" content="This test verifies that a position:sticky element with 100% top value does not cause the scrollbar to show when shrinking the height of its overflow container.">
+<meta name="assert" content="This test verifies that a position:sticky element with 100% top value does not cause any scrollbar to show when shrinking the height of its overflow container.">
 
 <style>
 #scroll {
@@ -14,22 +14,29 @@
   height: 120px;
   background: green;
   overflow: auto;
+  /*   resize: horizontal; */
+  resize: vertical;
 }
 .sticky {
   position: sticky;
   height: 50px;
-  top: 100%;
+  width: 30px;
+  top: 100px;
+  /*   left: 100px; */
+  background: purple;
 }
 </style>
 
 <p>Test passes if there is a filled green square.</p>
 <div id="scroll">
-  <div class="sticky"></div>
+  <div class="sticky" id="sticky"></div>
 </div>
 
 <script>
 window.onload = () => {
+  setTimeout(()=>{
   document.getElementById("scroll").style.height = "100px";
+  }, 3000);
 };
 </script>
 

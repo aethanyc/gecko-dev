@@ -1346,6 +1346,10 @@ void nsBlockFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
   DO_GLOBAL_REFLOW_COUNT("nsBlockFrame");
   MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
+  printf(
+      "Reflow block frame %s, offset %s\n", ListTag().get(),
+      ToString(aReflowInput.ComputedLogicalOffsets(GetWritingMode())).c_str());
+
 #ifdef DEBUG
   if (gNoisyReflow) {
     IndentBy(stdout, gNoiseIndent);

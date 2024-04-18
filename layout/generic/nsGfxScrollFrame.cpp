@@ -642,8 +642,16 @@ bool nsHTMLScrollFrame::TryLayout(ScrollReflowInput& aState,
       aState.mScrollbarGutterFromLastReflow.BStartEnd(wm) !=
       logicalScrollbarGutter.BStartEnd(wm);
   const bool shouldReflowScrolledFrame =
-      inlineEndsGutterChanged ||
+      true || inlineEndsGutterChanged ||
       (blockEndsGutterChanged && ScrolledContentDependsOnBSize(aState));
+
+  printf(
+      "TryLayout: Last BStartEnd %d, current %d, "
+      "ScrolledContentDependsOnBSize(aState) "
+      "%d\n",
+      aState.mScrollbarGutterFromLastReflow.BStartEnd(wm),
+      logicalScrollbarGutter.BStartEnd(wm),
+      ScrolledContentDependsOnBSize(aState));
 
   if (shouldReflowScrolledFrame) {
     if (blockEndsGutterChanged) {
@@ -879,6 +887,9 @@ void nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowInput& aState,
 
   nsPresContext* presContext = PresContext();
 
+  printf("ReflowScrolledFrame %s, aAssumeHScroll %d, aAssumeVScroll %d\n",
+         mScrolledFrame->ListTag().get(), aAssumeHScroll, aAssumeVScroll);
+
   // Pass InitFlags::CallerWillInit so we can pass in the correct padding.
   ReflowInput kidReflowInput(presContext, aState.mReflowInput, mScrolledFrame,
                              LogicalSize(wm, availISize, NS_UNCONSTRAINEDSIZE),
@@ -912,6 +923,7 @@ void nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowInput& aState,
   // FinishReflowChild, because it's only used there when positioning
   // the frame (i.e. if ReflowChildFlags::NoMoveFrame isn't set)
   const nsSize dummyContainerSize;
+  mScrolledFrame->MarkSubtreeDirty();
   ReflowChild(mScrolledFrame, presContext, *aMetrics, kidReflowInput, wm,
               LogicalPoint(wm), dummyContainerSize,
               ReflowChildFlags::NoMoveFrame, status);
@@ -928,6 +940,10 @@ void nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowInput& aState,
       mScrolledFrame, presContext, *aMetrics, &kidReflowInput, wm,
       LogicalPoint(wm), dummyContainerSize,
       ReflowChildFlags::NoMoveFrame | ReflowChildFlags::NoSizeView);
+
+  printf("After FinishReflowChild, scrollable overflow %s, size %s\n",
+         ToString(aMetrics->ScrollableOverflow()).c_str(),
+         ToString(aMetrics->PhysicalSize()).c_str());
 
   if (mScrolledFrame->HasAnyStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE)) {
     // Propagate NS_FRAME_CONTAINS_RELATIVE_BSIZE from our inner scrolled frame
@@ -975,6 +991,9 @@ void nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowInput& aState,
   aState.mScrollbarGutterFromLastReflow = scrollbarGutter;
   aState.mReflowedContentsWithHScrollbar = aAssumeHScroll;
   aState.mReflowedContentsWithVScrollbar = aAssumeVScroll;
+
+  printf("End of ReflowScrolledFrame: scrolled frame overflow %s\n",
+         ToString(aMetrics->mOverflowAreas.ScrollableOverflow()).c_str());
 }
 
 bool nsHTMLScrollFrame::GuessHScrollbarNeeded(const ScrollReflowInput& aState) {
@@ -1043,10 +1062,12 @@ bool nsHTMLScrollFrame::InInitialReflow() const {
 
 void nsHTMLScrollFrame::ReflowContents(ScrollReflowInput& aState,
                                        const ReflowOutput& aDesiredSize) {
+  printf("ReflowContents!\n");
   const WritingMode desiredWm = aDesiredSize.GetWritingMode();
   ReflowOutput kidDesiredSize(desiredWm);
   ReflowScrolledFrame(aState, GuessHScrollbarNeeded(aState),
                       GuessVScrollbarNeeded(aState), &kidDesiredSize);
+  UpdateSticky();
 
   // There's an important special case ... if the child appears to fit
   // in the inside-border rect (but overflows the scrollport), we
@@ -6442,6 +6463,7 @@ void nsHTMLScrollFrame::UpdateSticky() {
   StickyScrollContainer* ssc =
       StickyScrollContainer::GetStickyScrollContainerForScrollFrame(this);
   if (ssc) {
+    printf("UpdateSticky!\n");
     ssc->UpdatePositions(GetScrollPosition(), this);
   }
 }

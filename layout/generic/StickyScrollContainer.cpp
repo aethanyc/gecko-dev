@@ -120,6 +120,9 @@ void StickyScrollContainer::ComputeStickyOffsets(nsIFrame* aFrame) {
                                    ->GetContentRectRelativeToSelf()
                                    .Size();
 
+  printf("ComputeStickyOffsets: scrollContainerSize %s\n",
+         ToString(scrollContainerSize).c_str());
+
   nsMargin computedOffsets;
   const nsStylePosition* position = aFrame->StylePosition();
 
@@ -140,6 +143,12 @@ void StickyScrollContainer::ComputeStickyOffsets(nsIFrame* aFrame) {
     aFrame->SetProperty(nsIFrame::ComputedOffsetProperty(),
                         new nsMargin(computedOffsets));
   }
+
+  printf(
+      "ComputeStickyOffsets: scrolledFrame %s, size %s, aFrame %s, offset %s\n",
+      scrollableFrame->GetScrolledFrame()->ListTag().get(),
+      ToString(scrollContainerSize).c_str(), aFrame->ListTag().get(),
+      ToString(computedOffsets).c_str());
 }
 
 static constexpr nscoord gUnboundedNegative = nscoord_MIN / 2;
@@ -187,6 +196,8 @@ void StickyScrollContainer::ComputeStickyLimits(nsIFrame* aFrame,
   // Containing block limits for the position of aFrame relative to its parent.
   // The margin box of the sticky element stays within the content box of the
   // containing-block element.
+  // printf("cbFrame %s, scrolledFrame %s\n", cbFrame->ListTag().get(),
+  //        scrolledFrame->ListTag().get());
   if (cbFrame == scrolledFrame) {
     // cbFrame is the scrolledFrame, and it won't have continuations. Unlike the
     // else clause, we consider scrollable overflow rect because the union of
@@ -203,6 +214,8 @@ void StickyScrollContainer::ComputeStickyLimits(nsIFrame* aFrame,
         cbFrame, aFrame->GetParent(), nsLayoutUtils::RECTS_USE_CONTENT_BOX);
   }
 
+  printf("orig aContain %s\n", ToString(*aContain).c_str());
+
   nsRect marginRect = nsLayoutUtils::GetAllInFlowRectsUnion(
       aFrame, aFrame->GetParent(), nsLayoutUtils::RECTS_USE_MARGIN_BOX);
 
@@ -212,9 +225,15 @@ void StickyScrollContainer::ComputeStickyLimits(nsIFrame* aFrame,
   // within the containing block's content box.
   aContain->Deflate(marginRect - rect);
 
+  printf("rect %s, before deflate aContain %s\n", ToString(rect).c_str(),
+         ToString(*aContain).c_str());
+
   // Deflate aContain by the border-box size, to form a constraint on the
   // upper-left corner of aFrame and continuations.
   aContain->Deflate(nsMargin(0, rect.width, rect.height, 0));
+
+  printf("rect %s, after deflate aContain %s\n", ToString(rect).c_str(),
+         ToString(*aContain).c_str());
 
   nsMargin sfPadding = scrolledFrame->GetUsedPadding();
   nsPoint sfOffset = aFrame->GetParent()->GetOffsetTo(scrolledFrame);
@@ -225,6 +244,8 @@ void StickyScrollContainer::ComputeStickyLimits(nsIFrame* aFrame,
                        computedOffsets->top - sfOffset.y);
   }
 
+  printf("After computing top: aStick %s\n", ToString(*aStick).c_str());
+
   nsSize sfSize = scrolledFrame->GetContentRectRelativeToSelf().Size();
 
   // Bottom
@@ -234,6 +255,8 @@ void StickyScrollContainer::ComputeStickyLimits(nsIFrame* aFrame,
     aStick->SetBottomEdge(mScrollPosition.y + sfPadding.top + sfSize.height -
                           computedOffsets->bottom - rect.height - sfOffset.y);
   }
+
+  printf("After computing bottom: aStick %s\n", ToString(*aStick).c_str());
 
   StyleDirection direction = cbFrame->StyleVisibility()->mDirection;
 
@@ -255,11 +278,18 @@ void StickyScrollContainer::ComputeStickyLimits(nsIFrame* aFrame,
                          computedOffsets->right - rect.width - sfOffset.x);
   }
 
+  printf("before frame offset: aStick %s, aContain %s\n",
+         ToString(*aStick).c_str(), ToString(*aContain).c_str());
+
   // These limits are for the bounding box of aFrame's continuations. Convert
   // to limits for aFrame itself.
   nsPoint frameOffset = aFrame->GetPosition() - rect.TopLeft();
   aStick->MoveBy(frameOffset);
   aContain->MoveBy(frameOffset);
+
+  printf("frameOffset %s for %s: aStick %s, aContain %s\n",
+         ToString(frameOffset).c_str(), aFrame->ListTag().get(),
+         ToString(*aStick).c_str(), ToString(*aContain).c_str());
 }
 
 nsPoint StickyScrollContainer::ComputePosition(nsIFrame* aFrame) const {
@@ -269,6 +299,9 @@ nsPoint StickyScrollContainer::ComputePosition(nsIFrame* aFrame) const {
 
   nsPoint position = aFrame->GetNormalPosition();
 
+  printf("Compute position for %s: normal pos %s\n", aFrame->ListTag().get(),
+         ToString(position).c_str());
+
   // For each sticky direction (top, bottom, left, right), move the frame along
   // the appropriate axis, based on the scroll position, but limit this to keep
   // the element's margin box within the containing block.
@@ -276,6 +309,9 @@ nsPoint StickyScrollContainer::ComputePosition(nsIFrame* aFrame) const {
   position.y = std::min(position.y, std::max(stick.YMost(), contain.y));
   position.x = std::max(position.x, std::min(stick.x, contain.XMost()));
   position.x = std::min(position.x, std::max(stick.XMost(), contain.x));
+
+  printf("Compute position for %s: pos %s\n", aFrame->ListTag().get(),
+         ToString(position).c_str());
 
   return position;
 }
@@ -365,6 +401,9 @@ void StickyScrollContainer::PositionContinuations(nsIFrame* aFrame) {
   // Move all continuation frames by the same amount.
   for (nsIFrame* cont = aFrame; cont;
        cont = nsLayoutUtils::GetNextContinuationOrIBSplitSibling(cont)) {
+    printf("SetPosition %s for %s\n",
+           ToString(cont->GetNormalPosition() + translation).c_str(),
+           cont->ListTag().get());
     cont->SetPosition(cont->GetNormalPosition() + translation);
   }
 }
