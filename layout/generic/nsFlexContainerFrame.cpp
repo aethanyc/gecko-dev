@@ -10,6 +10,7 @@
 
 #include <algorithm>
 
+#include "ReflowOutput.h"
 #include "gfxContext.h"
 #include "mozilla/Baseline.h"
 #include "mozilla/ComputedStyle.h"
@@ -4886,8 +4887,14 @@ void nsFlexContainerFrame::UnionInFlowChildOverflow(
   bool anyScrolledContentItem = false;
   // Union of normal-positioned margin boxes for all the items.
   nsRect itemMarginBoxes;
-  // Union of relative-positioned margin boxes for the relpos items only.
-  nsRect relPosItemMarginBoxes;
+  // Overflow areas containing the union of relative-positioned and
+  // stick-positioned margin boxes of relpos items.
+  //
+  // Note for sticky-positioned margin boxes, we only union it with ink overflow
+  // to avid circular dependencies with the scroll container. (The scroll
+  // position and the scroll container's size impact the sticky position, so we
+  // don't want the sticky position to impact them.)
+  OverflowAreas relPosItemMarginBoxes;
   const bool useMozBoxCollapseBehavior =
       StyleVisibility()->UseLegacyCollapseBehavior();
   for (nsIFrame* f : mFrames) {
@@ -4907,8 +4914,11 @@ void nsFlexContainerFrame::UnionInFlowChildOverflow(
       itemMarginBoxes =
           itemMarginBoxes.Union(marginRect + f->GetNormalPosition());
       if (f->IsRelativelyPositioned()) {
-        relPosItemMarginBoxes =
-            relPosItemMarginBoxes.Union(marginRect + f->GetPosition());
+        relPosItemMarginBoxes.UnionAllWith(marginRect + f->GetPosition());
+      } else {
+        MOZ_ASSERT(f->IsStickyPositioned());
+        relPosItemMarginBoxes.UnionWith(
+            OverflowAreas(marginRect + f->GetPosition(), nsRect()));
       }
     } else {
       itemMarginBoxes = itemMarginBoxes.Union(f->GetMarginRect());
