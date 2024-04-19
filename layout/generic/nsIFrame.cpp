@@ -7958,7 +7958,7 @@ OverflowAreas nsIFrame::GetActualAndNormalOverflowAreasRelativeToParent()
     actualAndNormalOverflows.UnionWith(overflows + GetPosition());
   } else {
     // For sticky positioned elements, we only use the normal position for the
-    // scrollable overflow. This avoids circular depencencies between sticky
+    // scrollable overflow. This avoids circular dependencies between sticky
     // positioned elements and their scroll container. (The scroll position and
     // the scroll container's size impact the sticky position, so we don't want
     // the sticky position to impact them.)
