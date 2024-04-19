@@ -11,6 +11,7 @@
 #include <stdarg.h>
 #include <algorithm>
 
+#include "ReflowOutput.h"
 #include "gfx2DGlue.h"
 #include "gfxUtils.h"
 #include "mozilla/Attributes.h"
@@ -7951,23 +7952,21 @@ OverflowAreas nsIFrame::GetActualAndNormalOverflowAreasRelativeToParent()
     return GetOverflowAreasRelativeToParent();
   }
 
+  const OverflowAreas overflows = GetOverflowAreas();
+  OverflowAreas actualAndNormalOverflows = overflows + GetNormalPosition();
   if (IsRelativelyPositioned()) {
-    const OverflowAreas overflows = GetOverflowAreas();
-    OverflowAreas actualAndNormalOverflows = overflows + GetPosition();
-    actualAndNormalOverflows.UnionWith(overflows + GetNormalPosition());
-    return actualAndNormalOverflows;
+    actualAndNormalOverflows.UnionWith(overflows + GetPosition());
+  } else {
+    // For sticky positioned elements, we only use the normal position for the
+    // scrollable overflow. This avoids circular depencencies between sticky
+    // positioned elements and their scroll container. (The scroll position and
+    // the scroll container's size impact the sticky position, so we don't want
+    // the sticky position to impact them.)
+    MOZ_ASSERT(IsStickyPositioned());
+    actualAndNormalOverflows.UnionWith(
+        OverflowAreas(overflows.InkOverflow() + GetPosition(), nsRect()));
   }
-
-  MOZ_ASSERT(IsStickyPositioned());
-  // For ink overflow, we use the actual position, but for scrollable overflow,
-  // we use the normal position. This avoids circular depencencies between
-  // sticky positioned elements and their scroll container. (The scroll position
-  // and the scroll container's size impact the sticky position, so we don't
-  // want the sticky position to impact them.)
-  // OverflowAreas overflows = GetOverflowAreas();
-  // overflows.InkOverflow() += GetPosition();
-  // overflows.ScrollableOverflow() += GetNormalPosition();
-  return GetOverflowAreas() + GetNormalPosition();
+  return actualAndNormalOverflows;
 }
 
 nsRect nsIFrame::ScrollableOverflowRectRelativeToParent() const {
