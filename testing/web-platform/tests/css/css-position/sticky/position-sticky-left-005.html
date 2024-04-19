@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Position Test: Test position:sticky element with 100% left in a flex container</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-position/#sticky-pos">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1755202">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="This test verifies that a position:sticky element with 100% left value does not cause the scrollbar to show when shrinking the width of its overflow container.">
+
+<style>
+#scroll {
+  display: flex;
+  width: 120px;
+  height: 100px;
+  background: green;
+  overflow: auto;
+}
+.sticky {
+  position: sticky;
+  width: 50px;
+  height: 50px;
+  left: 100%;
+}
+</style>
+
+<p>Test passes if there is a filled green square.</p>
+<div id="scroll">
+  <div class="sticky"></div>
+</div>
+
+<script>
+window.onload = () => {
+  document.getElementById("scroll").style.width = "100px";
+};
+</script>
+

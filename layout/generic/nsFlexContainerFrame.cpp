@@ -4906,8 +4906,10 @@ void nsFlexContainerFrame::UnionInFlowChildOverflow(
       const nsRect marginRect = f->GetMarginRectRelativeToSelf();
       itemMarginBoxes =
           itemMarginBoxes.Union(marginRect + f->GetNormalPosition());
-      relPosItemMarginBoxes =
-          relPosItemMarginBoxes.Union(marginRect + f->GetPosition());
+      if (f->IsRelativelyPositioned()) {
+        relPosItemMarginBoxes =
+            relPosItemMarginBoxes.Union(marginRect + f->GetPosition());
+      }
     } else {
       itemMarginBoxes = itemMarginBoxes.Union(f->GetMarginRect());
     }
