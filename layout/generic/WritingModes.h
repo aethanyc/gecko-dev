@@ -162,22 +162,17 @@ class WritingMode {
   };
 
   /**
-   * Unknown writing mode (should never actually be stored or used anywhere).
-   */
-  enum { eUnknownWritingMode = 0xff };
-
-  /**
    * Return the absolute inline flow direction as an InlineDir
    */
   InlineDir GetInlineDir() const {
-    return InlineDir(mWritingMode._0 & eInlineMask);
+    return InlineDir(mWritingMode._0 & kInlineMask);
   }
 
   /**
    * Return the absolute block flow direction as a BlockDir
    */
   BlockDir GetBlockDir() const {
-    return BlockDir(mWritingMode._0 & eBlockMask);
+    return BlockDir(mWritingMode._0 & kBlockMask);
   }
 
   /**
@@ -597,7 +592,7 @@ class WritingMode {
    * Return a WritingMode representing an unknown value.
    */
   static inline WritingMode Unknown() {
-    return WritingMode(eUnknownWritingMode);
+    return WritingMode(kUnknownWritingMode);
   }
 
   /**
@@ -608,11 +603,18 @@ class WritingMode {
 
   StyleWritingMode mWritingMode;
 
-  enum Masks {
-    // Masks for output enums
-    eInlineMask = 0x03,  // VERTICAL | INLINE_REVERSED
-    eBlockMask = 0x05,   // VERTICAL | VERTICAL_LR
-  };
+  /**
+   * Maks values used in GetInlineDir() and GetBlockDir().
+   */
+  static constexpr uint8_t kInlineMask =
+      (StyleWritingMode::VERTICAL | StyleWritingMode::INLINE_REVERSED)._0;
+  static constexpr uint8_t kBlockMask =
+      (StyleWritingMode::VERTICAL | StyleWritingMode::VERTICAL_LR)._0;
+
+  /**
+   * Unknown writing mode (should never actually be stored or used anywhere).
+   */
+  static constexpr uint8_t kUnknownWritingMode = 0xff;
 };
 
 inline std::ostream& operator<<(std::ostream& aStream, const WritingMode& aWM) {
@@ -801,7 +803,7 @@ class LogicalPoint {
   LogicalPoint operator+(const LogicalPoint& aOther) const {
     CHECK_WRITING_MODE(aOther.GetWritingMode());
     // In non-debug builds, LogicalPoint does not store the WritingMode,
-    // so the first parameter here (which will always be eUnknownWritingMode)
+    // so the first parameter here (which will always be WritingMode::Unknown())
     // is ignored.
     return LogicalPoint(GetWritingMode(), mPoint.x + aOther.mPoint.x,
                         mPoint.y + aOther.mPoint.y);
@@ -817,7 +819,7 @@ class LogicalPoint {
   LogicalPoint operator-(const LogicalPoint& aOther) const {
     CHECK_WRITING_MODE(aOther.GetWritingMode());
     // In non-debug builds, LogicalPoint does not store the WritingMode,
-    // so the first parameter here (which will always be eUnknownWritingMode)
+    // so the first parameter here (which will always be WritingMode::Unknown())
     // is ignored.
     return LogicalPoint(GetWritingMode(), mPoint.x - aOther.mPoint.x,
                         mPoint.y - aOther.mPoint.y);
@@ -840,7 +842,7 @@ class LogicalPoint {
 
   /**
    * NOTE that in non-DEBUG builds, GetWritingMode() always returns
-   * eUnknownWritingMode, as the current mode is not stored in the logical-
+   * WritingMode::Unknown(), as the current mode is not stored in the logical-
    * geometry classes. Therefore, this method is private; it is used ONLY
    * by the DEBUG-mode checking macros in this class and its friends;
    * other code is not allowed to ask a logical point for its writing mode,
