@@ -4962,11 +4962,9 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   // FIXME(emilio): For -moz-available it seems we shouldn't need this.
   //
   // https://github.com/w3c/csswg-drafts/issues/5032
-  // FIXME: Bug 1670151: Use GetAspectRatio() to cover replaced elements (and
-  // then we can drop the check of eSupportsAspectRatio).
-  const AspectRatio ar = stylePos->mAspectRatio.ToLayoutRatio();
+  const AspectRatio ar = aFrame->GetAspectRatio();
   if (isInlineAxis && ar && nsIFrame::ToExtremumLength(styleISize) &&
-      aFrame->SupportsAspectRatio() && !inlineSizeFromAspectRatio) {
+      !inlineSizeFromAspectRatio) {
     // This 'B' in |styleBSize| means the block size of |aFrame|. We go into
     // this branch only if |aAxis| is the inline axis of |aFrame|.
     const StyleSize& styleBSize =
