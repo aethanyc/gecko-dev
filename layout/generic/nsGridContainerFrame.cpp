@@ -385,7 +385,7 @@ TrackSize::StateBits nsGridContainerFrame::TrackSize::Initialize(
       break;
     case Tag::Fr:
       mState |= eFlexMaxSizing;
-      mLimit = mBase;
+      mLimit = NS_UNCONSTRAINEDSIZE;
       break;
     default:
       mLimit = ::ResolveToDefiniteSize(max, aPercentageBasis);
