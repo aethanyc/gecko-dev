@@ -228,6 +228,21 @@ class nsContainerFrame : public nsSplittableFrame {
       mozilla::ComputeSizeFlags aFlags) override;
 
   /**
+   * Calculate the used values for 'width' and 'height' for a replaced element.
+   *   http://www.w3.org/TR/CSS21/visudet.html#min-max-widths
+   *
+   * @param aAspectRatio the aspect ratio calculated by GetAspectRatio().
+   */
+  mozilla::LogicalSize ComputeSizeWithIntrinsicDimensions(
+      gfxContext* aRenderingContext, mozilla::WritingMode aWM,
+      const mozilla::IntrinsicSize& aIntrinsicSize,
+      const mozilla::AspectRatio& aAspectRatio,
+      const mozilla::LogicalSize& aCBSize, const mozilla::LogicalSize& aMargin,
+      const mozilla::LogicalSize& aBorderPadding,
+      const mozilla::StyleSizeOverrides& aSizeOverrides,
+      mozilla::ComputeSizeFlags aFlags);
+
+  /**
    * Positions aKidFrame and its view (if requested), and then calls Reflow().
    * If the reflow status after reflowing the child is FullyComplete then any
    * next-in-flows are deleted using DeleteNextInFlowChild().
@@ -848,21 +863,6 @@ class nsContainerFrame : public nsSplittableFrame {
   // Helper used by Progress and Meter frames. Returns true if the bar should
   // be rendered vertically, based on writing-mode and -moz-orient properties.
   bool ResolvedOrientationIsVertical();
-
-  /**
-   * Calculate the used values for 'width' and 'height' for a replaced element.
-   *   http://www.w3.org/TR/CSS21/visudet.html#min-max-widths
-   *
-   * @param aAspectRatio the aspect ratio calculated by GetAspectRatio().
-   */
-  mozilla::LogicalSize ComputeSizeWithIntrinsicDimensions(
-      gfxContext* aRenderingContext, mozilla::WritingMode aWM,
-      const mozilla::IntrinsicSize& aIntrinsicSize,
-      const mozilla::AspectRatio& aAspectRatio,
-      const mozilla::LogicalSize& aCBSize, const mozilla::LogicalSize& aMargin,
-      const mozilla::LogicalSize& aBorderPadding,
-      const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags);
 
   // Compute tight bounds assuming this frame honours its border, background
   // and outline, its children's tight bounds, and nothing else.
