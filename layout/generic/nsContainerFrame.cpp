@@ -2215,8 +2215,9 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
   // a * (b / c) because of its reduced accuracy relative to a * b / c
   // or (a * b) / c (which are equivalent).
 
-  const bool isAutoOrMaxContentISize =
-      styleISize.IsAuto() || styleISize.IsMaxContent();
+  const bool isAutoOrMaxContentISize = styleISize.IsAuto() ||
+                                       styleISize.IsMaxContent() ||
+                                       styleISize.IsMinContent();
   const bool isAutoBSize =
       nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM));
 
