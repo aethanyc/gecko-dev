@@ -2649,10 +2649,7 @@ ViewportFrame* nsCSSFrameConstructor::ConstructRootFrame() {
   ViewportFrame* viewportFrame =
       NS_NewViewportFrame(mPresShell, viewportPseudoStyle);
 
-  // XXXbz do we _have_ to pass a null content pointer to that frame?
-  // Would it really kill us to pass in the root element or something?
-  // What would that break?
-  viewportFrame->Init(nullptr, nullptr, nullptr);
+  viewportFrame->Init(mDocument->GetRootElement(), nullptr, nullptr);
 
   viewportFrame->AddStateBits(NS_FRAME_OWNS_ANON_BOXES);
 
