@@ -1655,8 +1655,7 @@ bool nsDisplayListBuilder::IsAnimatedGeometryRoot(nsIFrame* aFrame,
     }
   }
 
-  if (parent->IsScrollContainerOrSubclass()) {
-    ScrollContainerFrame* sf = do_QueryFrame(parent);
+  if (ScrollContainerFrame* sf = do_QueryFrame(parent)) {
     if (sf->GetScrolledFrame() == aFrame) {
       MOZ_ASSERT(!aFrame->IsTransformed());
       return sf->IsMaybeAsynchronouslyScrolled();
