@@ -642,7 +642,7 @@ class nsBlockFrame : public nsContainerFrame {
   /**
    * Determine if we have any pushed floats from a previous continuation.
    *
-   * @returns true, if any of the floats at the beginning of our mFloats list
+   * @returns true, if any of the floats at the beginning of our floats list
    *          have the NS_FRAME_IS_PUSHED_FLOAT bit set; false otherwise.
    */
   bool HasPushedFloatsFromPrevContinuation() const;
@@ -965,10 +965,26 @@ class nsBlockFrame : public nsContainerFrame {
   // Return the outside ::marker frame list frame property.
   nsFrameList* GetOutsideMarkerList() const;
 
+  // Return true if this frame has floats.
+  bool HasFloats() const { return HasAnyStateBits(NS_BLOCK_HAS_FLOATS); }
+
   // Return true if this frame has pushed floats.
   bool HasPushedFloats() const {
     return HasAnyStateBits(NS_BLOCK_HAS_PUSHED_FLOATS);
   }
+
+  // Get the floats list.
+  nsFrameList* GetFloats() const;
+
+  // Get the floats list, or if there is not currently one, make a new empty
+  // one.
+  nsFrameList* EnsureFloats() MOZ_NONNULL_RETURN;
+
+  // Get the float list and remove the property from this frame.
+  //
+  // The caller is responsible for deleting the returned list and managing the
+  // ownership of all frames in the list.
+  [[nodiscard]] nsFrameList* StealFloats();
 
   // Get the pushed floats list, which is used for *temporary* storage
   // of floats during reflow, between when we decide they don't fit in
@@ -995,10 +1011,6 @@ class nsBlockFrame : public nsContainerFrame {
   nscoord mCachedPrefISize = NS_INTRINSIC_ISIZE_UNKNOWN;
 
   nsLineList mLines;
-
-  // List of all floats in this block
-  // XXXmats blocks rarely have floats, make it a frame property
-  nsFrameList mFloats;
 
   friend class mozilla::BlockReflowState;
   friend class nsBlockInFlowLineIterator;
