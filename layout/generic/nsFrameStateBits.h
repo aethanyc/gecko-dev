@@ -565,7 +565,10 @@ FRAME_STATE_BIT(Block, 27, NS_BLOCK_HAS_FIRST_LETTER_STYLE)
 FRAME_STATE_BIT(Block, 28, NS_BLOCK_HAS_OUTSIDE_MARKER)
 FRAME_STATE_BIT(Block, 29, NS_BLOCK_HAS_INSIDE_MARKER)
 
-// bits 30 and 31 free.
+// NS_BLOCK_HAS_FLOATS indicates that the block has a float list.
+FRAME_STATE_BIT(Block, 30, NS_BLOCK_HAS_FLOATS)
+
+// bits 31 free.
 
 // NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS indicates that exactly one line in this
 // block has the LineClampEllipsis flag set, and that such a line must be found
