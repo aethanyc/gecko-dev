@@ -9169,8 +9169,8 @@ nsBlockFrame* nsLayoutUtils::GetFloatContainingBlock(nsIFrame* aFrame) {
   while (ancestor && !ancestor->IsFloatContainingBlock()) {
     ancestor = ancestor->GetParent();
   }
-  MOZ_ASSERT(!ancestor || ancestor->IsBlockFrameOrSubclass(),
-             "Float containing block can only be block frame");
+  MOZ_ASSERT(!ancestor || ancestor->IsBlockFrame(),
+             "Float containing block can only be a block frame");
   return static_cast<nsBlockFrame*>(ancestor);
 }
 

@@ -730,9 +730,6 @@ void nsBlockFrame::GetChildLists(nsTArray<ChildList>* aLists) const {
   }
 }
 
-/* virtual */
-bool nsBlockFrame::IsFloatContainingBlock() const { return true; }
-
 /**
  * Remove the first line from aFromLines and adjust the associated frame list
  * aFromFrames accordingly.  The removed line is assigned to *aOutLine and

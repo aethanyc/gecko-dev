@@ -3576,9 +3576,11 @@ class nsIFrame : public nsQueryFrame {
 
   /**
    * Is this frame a containing block for floating elements?
-   * Note that very few frames are, so default to false.
+   *
+   * Only nsBlockFrame itself, not its derived classes, can contain float
+   * elements.
    */
-  virtual bool IsFloatContainingBlock() const { return false; }
+  bool IsFloatContainingBlock() const { return IsBlockFrame(); }
 
   /**
    * Marks all display items created by this frame as needing a repaint,
