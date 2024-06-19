@@ -1437,7 +1437,7 @@ void nsBlockFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
   // than keeping it around only during reflow then we should create it
   // only when there are actually floats to manage.  Otherwise things
   // like tables will gain significant bloat.
-  bool needFloatManager = nsBlockFrame::BlockNeedsFloatManager(this);
+  const bool needFloatManager = NeedFloatManager();
   if (needFloatManager) {
     autoFloatManager.CreateFloatManager(aPresContext);
   }
@@ -7445,7 +7445,7 @@ void nsBlockFrame::RecoverFloatsFor(nsIFrame* aFrame,
   // Don't recover any state inside a block that has its own float manager
   // (we don't currently have any blocks like this, though, thanks to our
   // use of extra frames for 'overflow')
-  if (block && !nsBlockFrame::BlockNeedsFloatManager(block)) {
+  if (block && !block->NeedFloatManager()) {
     // If the element is relatively positioned, then adjust x and y
     // accordingly so that we consider relatively positioned frames
     // at their original position.
@@ -8240,14 +8240,12 @@ void nsBlockFrame::IsMarginRoot(bool* aBStartMarginRoot,
   *aBEndMarginRoot = true;
 }
 
-/* static */
-bool nsBlockFrame::BlockNeedsFloatManager(nsIFrame* aBlock) {
-  MOZ_ASSERT(aBlock, "Must have a frame");
-  NS_ASSERTION(aBlock->IsBlockFrameOrSubclass(), "aBlock must be a block");
-
-  nsIFrame* parent = aBlock->GetParent();
-  return aBlock->HasAnyStateBits(NS_BLOCK_BFC) ||
-         (parent && !parent->IsFloatContainingBlock());
+bool nsBlockFrame::NeedFloatManager() const {
+  if (HasAnyStateBits(NS_BLOCK_BFC)) {
+    return true;
+  }
+  const nsIFrame* parent = GetParent();
+  return parent && !parent->IsFloatContainingBlock();
 }
 
 /* static */

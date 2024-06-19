@@ -272,6 +272,9 @@ class nsBlockFrame : public nsContainerFrame {
                                     BaselineSharingGroup aBaselineGroup,
                                     BaselineExportContext aExportContext) const;
 
+  // Return true if we need a float manager.
+  bool NeedFloatManager() const;
+
  public:
   nscoord GetMinISize(gfxContext* aRenderingContext) override;
   nscoord GetPrefISize(gfxContext* aRenderingContext) override;
@@ -337,8 +340,6 @@ class nsBlockFrame : public nsContainerFrame {
    * Determine if this block is a margin root at the top/bottom edges.
    */
   void IsMarginRoot(bool* aBStartMarginRoot, bool* aBEndMarginRoot);
-
-  static bool BlockNeedsFloatManager(nsIFrame* aBlock);
 
   /**
    * Returns whether aFrame is a block frame that will wrap its contents
