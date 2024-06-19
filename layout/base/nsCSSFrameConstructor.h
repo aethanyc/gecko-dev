@@ -1649,11 +1649,12 @@ class nsCSSFrameConstructor final : public nsFrameManager {
    * PushAbsoluteContainingBlock during frame construction should get
    * corresponding logic in these functions.
    */
+  nsContainerFrame* GetFloatContainingBlock(nsIFrame* aFrame);
+
  public:
   enum ContainingBlockType { ABS_POS, FIXED_POS };
   nsContainerFrame* GetAbsoluteContainingBlock(nsIFrame* aFrame,
                                                ContainingBlockType aType);
-  nsContainerFrame* GetFloatContainingBlock(nsIFrame* aFrame);
 
  private:
   // Build a scroll container frame, and wrap the scrolled frame. The

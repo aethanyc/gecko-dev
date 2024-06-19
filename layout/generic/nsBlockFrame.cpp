@@ -5863,8 +5863,10 @@ void nsBlockFrame::DrainSelfPushedFloats() {
       nsIFrame* prevSibling = f->GetPrevSibling();
 
       nsPlaceholderFrame* placeholder = f->GetPlaceholderFrame();
-      nsIFrame* floatOriginalParent =
-          presShell->FrameConstructor()->GetFloatContainingBlock(placeholder);
+      nsBlockFrame* floatOriginalParent =
+          nsLayoutUtils::GetFloatContainingBlock(placeholder);
+      MOZ_ASSERT(floatOriginalParent,
+                 "The placeholder for float should have a parent!");
       if (floatOriginalParent != this) {
         // This is a first continuation that was pushed from one of our
         // previous continuations.  Take it out of the pushed floats
