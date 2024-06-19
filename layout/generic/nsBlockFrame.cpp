@@ -5842,7 +5842,6 @@ void nsBlockFrame::DrainSelfPushedFloats() {
   // placeholders were in earlier blocks (since first-in-flows whose
   // placeholders are in this block will get pulled appropriately by
   // AddFloat, and will then be more likely to be in the correct order).
-  mozilla::PresShell* presShell = PresShell();
   nsFrameList* ourPushedFloats = GetPushedFloats();
   if (ourPushedFloats) {
     nsFrameList* floats = GetFloats();
@@ -5863,13 +5862,19 @@ void nsBlockFrame::DrainSelfPushedFloats() {
       nsIFrame* prevSibling = f->GetPrevSibling();
 
       nsPlaceholderFrame* placeholder = f->GetPlaceholderFrame();
-      nsIFrame* floatOriginalParent =
-          presShell->FrameConstructor()->GetFloatContainingBlock(placeholder);
+      nsBlockFrame* floatOriginalParent;
+      if (placeholder) {
+        floatOriginalParent =
+            nsLayoutUtils::GetFloatContainingBlock(placeholder);
+      } else {
+        // f is a continuation of the original float element, so it has no
+        // placeholder.
+        floatOriginalParent = nullptr;
+      }
       if (floatOriginalParent != this) {
-        // This is a first continuation that was pushed from one of our
-        // previous continuations.  Take it out of the pushed floats
-        // list and put it in our floats list, before any of our
-        // floats, but after other pushed floats.
+        // f was pushed from one of our previous continuations. Take it out of
+        // the pushed floats list and put it in our floats list, before any of
+        // our floats, but after other pushed floats.
         ourPushedFloats->RemoveFrame(f);
         if (!floats) {
           floats = EnsureFloats();
@@ -5881,7 +5886,7 @@ void nsBlockFrame::DrainSelfPushedFloats() {
     }
 
     if (ourPushedFloats->IsEmpty()) {
-      StealPushedFloats()->Delete(presShell);
+      StealPushedFloats()->Delete(PresShell());
     }
   }
 }
