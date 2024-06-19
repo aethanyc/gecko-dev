@@ -138,7 +138,6 @@ class nsBlockFrame : public nsContainerFrame {
   nscoord GetCaretBaseline() const override;
   void Destroy(DestroyContext&) override;
 
-  bool IsFloatContainingBlock() const override;
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         const nsDisplayListSet& aLists) override;
 

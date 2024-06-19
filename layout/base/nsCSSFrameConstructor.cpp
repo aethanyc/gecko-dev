@@ -5516,8 +5516,8 @@ nsContainerFrame* nsCSSFrameConstructor::GetFloatContainingBlock(
        containingBlock && !ShouldSuppressFloatingOfDescendants(containingBlock);
        containingBlock = containingBlock->GetParent()) {
     if (containingBlock->IsFloatContainingBlock()) {
-      MOZ_ASSERT((nsContainerFrame*)do_QueryFrame(containingBlock),
-                 "float containing block must be nsContainerFrame sub-class");
+      MOZ_ASSERT(containingBlock->IsBlockFrame(),
+                 "Float containing block must be a block frame!");
       return static_cast<nsContainerFrame*>(containingBlock);
     }
   }
