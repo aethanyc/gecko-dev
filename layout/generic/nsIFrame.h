@@ -959,12 +959,14 @@ class nsIFrame : public nsQueryFrame {
 
   /**
    * Return the placeholder for this frame (which must be out-of-flow).
-   * @note this will only return non-null if |this| is the first-in-flow
-   * although we don't assert that here for legacy reasons.
+   * @note this will only return non-null if |this| is the first-continuation.
    */
   inline nsPlaceholderFrame* GetPlaceholderFrame() const {
     MOZ_ASSERT(HasAnyStateBits(NS_FRAME_OUT_OF_FLOW));
-    return GetProperty(PlaceholderFrameProperty());
+    nsPlaceholderFrame* placeholder = GetProperty(PlaceholderFrameProperty());
+    MOZ_ASSERT(!GetPrevContinuation() || !placeholder,
+               "Only first-continuation can have a placeholder frame!");
+    return placeholder;
   }
 
   /**

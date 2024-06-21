@@ -3996,7 +3996,7 @@ nsIFrame* nsLayoutUtils::GetParentOrPlaceholderFor(const nsIFrame* aFrame) {
   // UnmarkFrameForDisplayIfVisible in nsDisplayList.cpp
   if (aFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW) &&
       !aFrame->GetPrevInFlow()) {
-    return aFrame->GetProperty(nsIFrame::PlaceholderFrameProperty());
+    return aFrame->GetPlaceholderFrame();
   }
   return aFrame->GetParent();
 }

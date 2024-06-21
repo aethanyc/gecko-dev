@@ -123,8 +123,7 @@ void nsIFrame::PropagateWritingModeToSelfAndAncestors(
 
 nsContainerFrame* nsIFrame::GetInFlowParent() const {
   if (HasAnyStateBits(NS_FRAME_OUT_OF_FLOW)) {
-    nsIFrame* ph =
-        FirstContinuation()->GetProperty(nsIFrame::PlaceholderFrameProperty());
+    nsIFrame* ph = FirstContinuation()->GetPlaceholderFrame();
     return ph->GetParent();
   }
 
