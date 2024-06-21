@@ -83,12 +83,20 @@ nsIFrame* nsSplittableFrame::FirstContinuation() const {
     return const_cast<nsSplittableFrame*>(this);
   }
 
-  nsIFrame* firstContinuation = GetProperty(FirstContinuationProperty());
-  MOZ_ASSERT(firstContinuation,
-             "The property should be set and non-null on all continuations "
-             "after the first!");
-  MOZ_ASSERT(!firstContinuation->GetPrevContinuation(),
-             "First continuation shouldn't have a prev continuation!");
+  if (nsIFrame* firstContinuation = GetProperty(FirstContinuationProperty())) {
+    MOZ_ASSERT(!firstContinuation->GetPrevContinuation(),
+               "First continuation shouldn't have a prev continuation!");
+    return firstContinuation;
+  }
+
+  // We can fall back to the slow path during the frame destruction where our
+  // first-continuation cache was purged.
+  nsSplittableFrame* firstContinuation = const_cast<nsSplittableFrame*>(this);
+  while (firstContinuation->mPrevContinuation) {
+    firstContinuation = static_cast<nsSplittableFrame*>(
+        firstContinuation->GetPrevContinuation());
+  }
+  MOZ_ASSERT(firstContinuation);
   return firstContinuation;
 }
 
@@ -168,12 +176,19 @@ nsIFrame* nsSplittableFrame::FirstInFlow() const {
     return const_cast<nsSplittableFrame*>(this);
   }
 
-  nsIFrame* firstInFlow = GetProperty(FirstInFlowProperty());
-  MOZ_ASSERT(firstInFlow,
-             "The property should be set and non-null on all in-flows after "
-             "the first!");
-  MOZ_ASSERT(!firstInFlow->GetPrevInFlow(),
-             "First-in-flow shouldn't have a prev-in-flow!");
+  if (nsIFrame* firstInFlow = GetProperty(FirstInFlowProperty())) {
+    MOZ_ASSERT(!firstInFlow->GetPrevInFlow(),
+               "First-in-flow shouldn't have a prev-in-flow!");
+    return firstInFlow;
+  }
+
+  // We can fall back to the slow path during the frame destruction where our
+  // first-in-flow cache was purged.
+  nsSplittableFrame* firstInFlow = const_cast<nsSplittableFrame*>(this);
+  while (firstInFlow->mPrevContinuation) {
+    firstInFlow = static_cast<nsSplittableFrame*>(firstInFlow->GetPrevInFlow());
+  }
+  MOZ_ASSERT(firstInFlow);
   return firstInFlow;
 }
 
@@ -225,8 +240,13 @@ void nsSplittableFrame::UpdateFirstContinuationAndFirstInFlowCache() {
     newFirstContinuation = prevContinuation->FirstContinuation();
     SetProperty(FirstContinuationProperty(), newFirstContinuation);
   } else {
-    newFirstContinuation = this;
-    RemoveProperty(FirstContinuationProperty());
+    // We become the new first-continuation due to our prev-continuation being
+    // removed. Made newFirstContinuation nullptr to purge the cache for our
+    // next-continuations.
+    newFirstContinuation = nullptr;
+    if (oldCachedFirstContinuation) {
+      RemoveProperty(FirstContinuationProperty());
+    }
   }
 
   if (oldCachedFirstContinuation != newFirstContinuation) {
@@ -234,7 +254,11 @@ void nsSplittableFrame::UpdateFirstContinuationAndFirstInFlowCache() {
     // chain.
     for (nsIFrame* next = GetNextContinuation(); next;
          next = next->GetNextContinuation()) {
-      next->SetProperty(FirstContinuationProperty(), newFirstContinuation);
+      if (newFirstContinuation) {
+        next->SetProperty(FirstContinuationProperty(), newFirstContinuation);
+      } else {
+        next->RemoveProperty(FirstContinuationProperty());
+      }
     }
   }
 
@@ -244,14 +268,22 @@ void nsSplittableFrame::UpdateFirstContinuationAndFirstInFlowCache() {
     newFirstInFlow = prevInFlow->FirstInFlow();
     SetProperty(FirstInFlowProperty(), newFirstInFlow);
   } else {
-    newFirstInFlow = this;
-    RemoveProperty(FirstInFlowProperty());
+    // We become the new first-in-flow due to our prev-in-flow being removed.
+    // Made newFirstInFlow nullptr to purge the cache for our next-in-flows.
+    newFirstInFlow = nullptr;
+    if (oldCachedFirstInFlow) {
+      RemoveProperty(FirstInFlowProperty());
+    }
   }
 
   if (oldCachedFirstInFlow != newFirstInFlow) {
     // Update the first-in-flow cache for our next-in-flows in the chain.
     for (nsIFrame* next = GetNextInFlow(); next; next = next->GetNextInFlow()) {
-      next->SetProperty(FirstInFlowProperty(), newFirstInFlow);
+      if (newFirstInFlow) {
+        next->SetProperty(FirstInFlowProperty(), newFirstInFlow);
+      } else {
+        next->RemoveProperty(FirstInFlowProperty());
+      }
     }
   }
 }
