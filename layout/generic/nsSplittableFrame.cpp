@@ -96,6 +96,7 @@ nsIFrame* nsSplittableFrame::FirstContinuation() const {
 
   // We fall back to the slow path during the frame destruction where our
   // first-continuation cache was purged.
+  MOZ_ASSERT_UNREACHABLE("we are in first-continuation slow path!");
   auto* firstContinuation = const_cast<nsSplittableFrame*>(this);
   while (nsIFrame* prev = firstContinuation->GetPrevContinuation()) {
     firstContinuation = static_cast<nsSplittableFrame*>(prev);
@@ -193,6 +194,7 @@ nsIFrame* nsSplittableFrame::FirstInFlow() const {
 
   // We fall back to the slow path during the frame destruction where our
   // first-in-flow cache was purged.
+  MOZ_ASSERT_UNREACHABLE("we are in first-in-flow slow path!");
   auto* firstInFlow = const_cast<nsSplittableFrame*>(this);
   while (nsIFrame* prev = firstInFlow->GetPrevInFlow()) {
     firstInFlow = static_cast<nsSplittableFrame*>(prev);
