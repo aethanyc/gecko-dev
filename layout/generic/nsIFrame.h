@@ -4420,11 +4420,11 @@ class nsIFrame : public nsQueryFrame {
                             bool aConstrainBSize = true);
 
  private:
-  Maybe<nscoord> ComputeISizeValueFromAspectRatio(
+  nscoord ComputeISizeValueFromAspectRatio(
       mozilla::WritingMode aWM, const mozilla::LogicalSize& aCBSize,
       const mozilla::LogicalSize& aContentEdgeToBoxSizing,
-      const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags) const;
+      const LengthPercentage& aBSize,
+      const mozilla::AspectRatio& aAspectRatio) const;
 
  public:
   /**

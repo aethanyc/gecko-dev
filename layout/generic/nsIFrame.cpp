@@ -6446,11 +6446,9 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
       // width/height are auto. The default ratio-dependent axis is block axis
       // in this case, so we can simply get the block size from the non-auto
       // |styleBSize|.
-      auto bSize = nsLayoutUtils::ComputeBSizeValue(
-          aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
-          styleBSize.AsLengthPercentage());
-      result.ISize(aWM) = aspectRatio.ComputeRatioDependentSize(
-          LogicalAxis::Inline, aWM, bSize, boxSizingAdjust);
+      result.ISize(aWM) = ComputeISizeValueFromAspectRatio(
+          aWM, aCBSize, boxSizingAdjust, styleBSize.AsLengthPercentage(),
+          aspectRatio);
       aspectRatioUsage = AspectRatioUsage::ToComputeISize;
     }
 
@@ -6463,11 +6461,9 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
       }
     }
   } else if (aspectRatio && !isAutoBSize) {
-    auto bSize = nsLayoutUtils::ComputeBSizeValue(
-        aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
-        styleBSize.AsLengthPercentage());
-    result.ISize(aWM) = aspectRatio.ComputeRatioDependentSize(
-        LogicalAxis::Inline, aWM, bSize, boxSizingAdjust);
+    result.ISize(aWM) = ComputeISizeValueFromAspectRatio(
+        aWM, aCBSize, boxSizingAdjust, styleBSize.AsLengthPercentage(),
+        aspectRatio);
     aspectRatioUsage = AspectRatioUsage::ToComputeISize;
   }
 
@@ -6760,30 +6756,15 @@ nscoord nsIFrame::ShrinkISizeToFit(gfxContext* aRenderingContext,
   return result;
 }
 
-Maybe<nscoord> nsIFrame::ComputeISizeValueFromAspectRatio(
+nscoord nsIFrame::ComputeISizeValueFromAspectRatio(
     WritingMode aWM, const LogicalSize& aCBSize,
-    const LogicalSize& aContentEdgeToBoxSizing,
-    const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags) const {
-  const AspectRatio aspectRatio = aSizeOverrides.mAspectRatio
-                                      ? *aSizeOverrides.mAspectRatio
-                                      : GetAspectRatio();
-  if (!aspectRatio) {
-    return Nothing();
-  }
-
-  const StyleSize& styleBSize = aSizeOverrides.mStyleBSize
-                                    ? *aSizeOverrides.mStyleBSize
-                                    : StylePosition()->BSize(aWM);
-  if (nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM))) {
-    return Nothing();
-  }
-
-  MOZ_ASSERT(styleBSize.IsLengthPercentage());
+    const LogicalSize& aContentEdgeToBoxSizing, const LengthPercentage& aBSize,
+    const AspectRatio& aAspectRatio) const {
+  MOZ_ASSERT(aAspectRatio, "Must have a valid AspectRatio!");
   nscoord bSize = nsLayoutUtils::ComputeBSizeValue(
-      aCBSize.BSize(aWM), aContentEdgeToBoxSizing.BSize(aWM),
-      styleBSize.AsLengthPercentage());
-  return Some(aspectRatio.ComputeRatioDependentSize(
-      LogicalAxis::Inline, aWM, bSize, aContentEdgeToBoxSizing));
+      aCBSize.BSize(aWM), aContentEdgeToBoxSizing.BSize(aWM), aBSize);
+  return aAspectRatio.ComputeRatioDependentSize(LogicalAxis::Inline, aWM, bSize,
+                                                aContentEdgeToBoxSizing);
 }
 
 nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
@@ -6798,12 +6779,28 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
   // If we have an aspect-ratio and a definite block size, we should use them to
   // resolve the sizes with intrinsic keywords.
   // https://github.com/w3c/csswg-drafts/issues/5032
-  Maybe<nscoord> iSizeFromAspectRatio =
-      aSize == ExtremumLength::MozAvailable
-          ? Nothing()
-          : ComputeISizeValueFromAspectRatio(aWM, aContainingBlockSize,
-                                             aContentEdgeToBoxSizing,
-                                             aSizeOverrides, aFlags);
+  Maybe<nscoord> iSizeFromAspectRatio = [&]() -> Maybe<nscoord> {
+    if (aSize == ExtremumLength::MozAvailable) {
+      return Nothing();
+    }
+    const AspectRatio& aspectRatio = aSizeOverrides.mAspectRatio
+                                         ? *aSizeOverrides.mAspectRatio
+                                         : GetAspectRatio();
+    if (!aspectRatio) {
+      return Nothing();
+    }
+    const StyleSize& styleBSize = aSizeOverrides.mStyleBSize
+                                      ? *aSizeOverrides.mStyleBSize
+                                      : StylePosition()->BSize(aWM);
+    if (nsLayoutUtils::IsAutoBSize(styleBSize,
+                                   aContainingBlockSize.BSize(aWM))) {
+      return Nothing();
+    }
+    return Some(ComputeISizeValueFromAspectRatio(
+        aWM, aContainingBlockSize, aContentEdgeToBoxSizing,
+        styleBSize.AsLengthPercentage(), aspectRatio));
+  }();
+
   nscoord result;
   switch (aSize) {
     case ExtremumLength::MaxContent:
