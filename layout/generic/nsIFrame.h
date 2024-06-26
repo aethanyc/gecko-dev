@@ -4433,13 +4433,6 @@ class nsIFrame : public nsQueryFrame {
                             nsReflowStatus& aStatus,
                             bool aConstrainBSize = true);
 
- private:
-  Maybe<nscoord> ComputeISizeValueFromAspectRatio(
-      mozilla::WritingMode aWM, const mozilla::LogicalSize& aCBSize,
-      const mozilla::LogicalSize& aContentEdgeToBoxSizing,
-      const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags) const;
-
  public:
   /**
    * @return true if this text frame ends with a newline character.  It
@@ -4821,8 +4814,8 @@ class nsIFrame : public nsQueryFrame {
       const mozilla::LogicalSize& aContainingBlockSize,
       const mozilla::LogicalSize& aContentEdgeToBoxSizing,
       nscoord aBoxSizingToMarginEdge, ExtremumLength aSize,
-      Maybe<nscoord> aAvailableISizeOverride,
-      const mozilla::StyleSizeOverrides& aSizeOverrides,
+      Maybe<nscoord> aAvailableISizeOverride, const Maybe<nscoord>& aBSize,
+      const mozilla::AspectRatio& aAspectRatio,
       mozilla::ComputeSizeFlags aFlags);
 
   /**
@@ -4834,13 +4827,25 @@ class nsIFrame : public nsQueryFrame {
                             const mozilla::LogicalSize& aContentEdgeToBoxSizing,
                             const LengthPercentage& aSize);
 
+  /**
+   * Compute content-box inline size for aSize.
+   *
+   * This method doesn't handle 'auto' when aSize is of type StyleSize,
+   * nor does it handle 'none' when aSize is of type StyleMaxSize.
+   *
+   * @param aBSize the resolved block size of the frame, used to compute
+   * intrinsic inline size with aAspectRatio. Caller can pass Nothing() if the
+   * block size is indefinite or if this frame doesn't support aspect-ratio.
+   *
+   * @param aAspectRatio the preferred aspect-ratio of the frame.
+   */
   template <typename SizeOrMaxSize>
   ISizeComputationResult ComputeISizeValue(
       gfxContext* aRenderingContext, const mozilla::WritingMode aWM,
       const mozilla::LogicalSize& aContainingBlockSize,
       const mozilla::LogicalSize& aContentEdgeToBoxSizing,
       nscoord aBoxSizingToMarginEdge, const SizeOrMaxSize& aSize,
-      const mozilla::StyleSizeOverrides& aSizeOverrides = {},
+      const Maybe<nscoord>& aBSize, const mozilla::AspectRatio& aAspectRatio,
       mozilla::ComputeSizeFlags aFlags = {}) {
     if (aSize.IsLengthPercentage()) {
       return {ComputeISizeValue(aWM, aContainingBlockSize,
@@ -4854,10 +4859,10 @@ class nsIFrame : public nsQueryFrame {
       availbleISizeOverride.emplace(aSize.AsFitContentFunction().Resolve(
           aContainingBlockSize.ISize(aWM)));
     }
-    return ComputeISizeValue(aRenderingContext, aWM, aContainingBlockSize,
-                             aContentEdgeToBoxSizing, aBoxSizingToMarginEdge,
-                             length.valueOr(ExtremumLength::MinContent),
-                             availbleISizeOverride, aSizeOverrides, aFlags);
+    return ComputeISizeValue(
+        aRenderingContext, aWM, aContainingBlockSize, aContentEdgeToBoxSizing,
+        aBoxSizingToMarginEdge, length.valueOr(ExtremumLength::MinContent),
+        availbleISizeOverride, aBSize, aAspectRatio, aFlags);
   }
 
   DisplayItemArray& DisplayItems() { return mDisplayItems; }

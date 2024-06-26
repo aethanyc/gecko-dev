@@ -162,10 +162,13 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
   // it separately on the columns.
   const LogicalSize zeroSize(aWM);
   if (maxISize.ConvertsToLength() || nsIFrame::ToExtremumLength(maxISize)) {
-    nscoord c = aFrame
-                    ->ComputeISizeValue(aRenderingContext, aWM, zeroSize,
-                                        zeroSize, 0, maxISize)
-                    .mISize;
+    MOZ_ASSERT(!aFrame->GetAspectRatio(),
+               "Table boxes do not support aspect-ratio!");
+    nscoord c =
+        aFrame
+            ->ComputeISizeValue(aRenderingContext, aWM, zeroSize, zeroSize, 0,
+                                maxISize, Nothing(), AspectRatio())
+            .mISize;
     minCoord = std::min(c, minCoord);
     prefCoord = std::min(c, prefCoord);
   } else if (maxISize.ConvertsToPercentage()) {
@@ -187,10 +190,13 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
   }
 
   if (minISize.ConvertsToLength() || nsIFrame::ToExtremumLength(minISize)) {
-    nscoord c = aFrame
-                    ->ComputeISizeValue(aRenderingContext, aWM, zeroSize,
-                                        zeroSize, 0, minISize)
-                    .mISize;
+    MOZ_ASSERT(!aFrame->GetAspectRatio(),
+               "Table boxes do not support aspect-ratio!");
+    nscoord c =
+        aFrame
+            ->ComputeISizeValue(aRenderingContext, aWM, zeroSize, zeroSize, 0,
+                                minISize, Nothing(), AspectRatio())
+            .mISize;
     minCoord = std::max(c, minCoord);
     prefCoord = std::max(c, prefCoord);
   } else if (minISize.ConvertsToPercentage()) {

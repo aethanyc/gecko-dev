@@ -6404,6 +6404,12 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   const bool isAutoBSize =
       nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM));
 
+  const Maybe<nscoord> definiteBSize =
+      isAutoBSize ? Nothing()
+                  : Some(nsLayoutUtils::ComputeBSizeValue(
+                        aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
+                        styleBSize.AsLengthPercentage()));
+
   // Compute inline-axis size
   const bool isSubgriddedInInlineAxis =
       isSubgrid && static_cast<nsGridContainerFrame*>(this)->IsColSubgrid();
@@ -6413,9 +6419,10 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   // fill the CB.
   const bool shouldComputeISize = !isAutoISize && !isSubgriddedInInlineAxis;
   if (shouldComputeISize) {
-    auto iSizeResult = ComputeISizeValue(
-        aRenderingContext, aWM, aCBSize, boxSizingAdjust,
-        boxSizingToMarginEdgeISize, styleISize, aSizeOverrides, aFlags);
+    auto iSizeResult =
+        ComputeISizeValue(aRenderingContext, aWM, aCBSize, boxSizingAdjust,
+                          boxSizingToMarginEdgeISize, styleISize, definiteBSize,
+                          aspectRatio, aFlags);
     result.ISize(aWM) = iSizeResult.mISize;
     aspectRatioUsage = iSizeResult.mAspectRatioUsage;
   } else if (MOZ_UNLIKELY(isGridItem) && !IsTrueOverflowContainer()) {
@@ -6446,11 +6453,8 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
       // width/height are auto. The default ratio-dependent axis is block axis
       // in this case, so we can simply get the block size from the non-auto
       // |styleBSize|.
-      auto bSize = nsLayoutUtils::ComputeBSizeValue(
-          aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
-          styleBSize.AsLengthPercentage());
       result.ISize(aWM) = aspectRatio.ComputeRatioDependentSize(
-          LogicalAxis::Inline, aWM, bSize, boxSizingAdjust);
+          LogicalAxis::Inline, aWM, *definiteBSize, boxSizingAdjust);
       aspectRatioUsage = AspectRatioUsage::ToComputeISize;
     }
 
@@ -6463,11 +6467,8 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
       }
     }
   } else if (aspectRatio && !isAutoBSize) {
-    auto bSize = nsLayoutUtils::ComputeBSizeValue(
-        aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
-        styleBSize.AsLengthPercentage());
     result.ISize(aWM) = aspectRatio.ComputeRatioDependentSize(
-        LogicalAxis::Inline, aWM, bSize, boxSizingAdjust);
+        LogicalAxis::Inline, aWM, *definiteBSize, boxSizingAdjust);
     aspectRatioUsage = AspectRatioUsage::ToComputeISize;
   }
 
@@ -6530,20 +6531,22 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   const auto& maxISizeCoord = stylePos->MaxISize(aWM);
   nscoord maxISize = NS_UNCONSTRAINEDSIZE;
   if (!maxISizeCoord.IsNone() && !shouldIgnoreMinMaxISize) {
-    maxISize = ComputeISizeValue(aRenderingContext, aWM, aCBSize,
-                                 boxSizingAdjust, boxSizingToMarginEdgeISize,
-                                 maxISizeCoord, aSizeOverrides, aFlags)
-                   .mISize;
+    maxISize =
+        ComputeISizeValue(aRenderingContext, aWM, aCBSize, boxSizingAdjust,
+                          boxSizingToMarginEdgeISize, maxISizeCoord,
+                          definiteBSize, aspectRatio, aFlags)
+            .mISize;
     result.ISize(aWM) = std::min(maxISize, result.ISize(aWM));
   }
 
   const auto& minISizeCoord = stylePos->MinISize(aWM);
   nscoord minISize;
   if (!minISizeCoord.IsAuto() && !shouldIgnoreMinMaxISize) {
-    minISize = ComputeISizeValue(aRenderingContext, aWM, aCBSize,
-                                 boxSizingAdjust, boxSizingToMarginEdgeISize,
-                                 minISizeCoord, aSizeOverrides, aFlags)
-                   .mISize;
+    minISize =
+        ComputeISizeValue(aRenderingContext, aWM, aCBSize, boxSizingAdjust,
+                          boxSizingToMarginEdgeISize, minISizeCoord,
+                          definiteBSize, aspectRatio, aFlags)
+            .mISize;
   } else if (MOZ_UNLIKELY(
                  aFlags.contains(ComputeSizeFlag::IApplyAutoMinSize))) {
     // This implements "Implied Minimum Size of Grid Items".
@@ -6595,9 +6598,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   // fill the CB.
   const bool shouldComputeBSize = !isAutoBSize && !isSubgriddedInBlockAxis;
   if (shouldComputeBSize) {
-    result.BSize(aWM) = nsLayoutUtils::ComputeBSizeValue(
-        aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
-        styleBSize.AsLengthPercentage());
+    result.BSize(aWM) = *definiteBSize;
   } else if (MOZ_UNLIKELY(isGridItem) && styleBSize.IsAuto() &&
              !aFlags.contains(ComputeSizeFlag::IsGridMeasuringReflow) &&
              !IsTrueOverflowContainer() &&
@@ -6760,50 +6761,30 @@ nscoord nsIFrame::ShrinkISizeToFit(gfxContext* aRenderingContext,
   return result;
 }
 
-Maybe<nscoord> nsIFrame::ComputeISizeValueFromAspectRatio(
-    WritingMode aWM, const LogicalSize& aCBSize,
-    const LogicalSize& aContentEdgeToBoxSizing,
-    const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags) const {
-  const AspectRatio aspectRatio = aSizeOverrides.mAspectRatio
-                                      ? *aSizeOverrides.mAspectRatio
-                                      : GetAspectRatio();
-  if (!aspectRatio) {
-    return Nothing();
-  }
-
-  const StyleSize& styleBSize = aSizeOverrides.mStyleBSize
-                                    ? *aSizeOverrides.mStyleBSize
-                                    : StylePosition()->BSize(aWM);
-  if (nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM))) {
-    return Nothing();
-  }
-
-  MOZ_ASSERT(styleBSize.IsLengthPercentage());
-  nscoord bSize = nsLayoutUtils::ComputeBSizeValue(
-      aCBSize.BSize(aWM), aContentEdgeToBoxSizing.BSize(aWM),
-      styleBSize.AsLengthPercentage());
-  return Some(aspectRatio.ComputeRatioDependentSize(
-      LogicalAxis::Inline, aWM, bSize, aContentEdgeToBoxSizing));
-}
-
 nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
     gfxContext* aRenderingContext, const WritingMode aWM,
     const LogicalSize& aContainingBlockSize,
     const LogicalSize& aContentEdgeToBoxSizing, nscoord aBoxSizingToMarginEdge,
     ExtremumLength aSize, Maybe<nscoord> aAvailableISizeOverride,
-    const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags) {
+    const Maybe<nscoord>& aBSize, const mozilla::AspectRatio& aAspectRatio,
+    ComputeSizeFlags aFlags) {
   // If 'this' is a container for font size inflation, then shrink
   // wrapping inside of it should not apply font size inflation.
   AutoMaybeDisableFontInflation an(this);
   // If we have an aspect-ratio and a definite block size, we should use them to
   // resolve the sizes with intrinsic keywords.
   // https://github.com/w3c/csswg-drafts/issues/5032
-  Maybe<nscoord> iSizeFromAspectRatio =
-      aSize == ExtremumLength::MozAvailable
-          ? Nothing()
-          : ComputeISizeValueFromAspectRatio(aWM, aContainingBlockSize,
-                                             aContentEdgeToBoxSizing,
-                                             aSizeOverrides, aFlags);
+  Maybe<nscoord> iSizeFromAspectRatio = [&]() -> Maybe<nscoord> {
+    if (aSize == ExtremumLength::MozAvailable) {
+      return Nothing();
+    }
+    if (!aAspectRatio || !aBSize) {
+      return Nothing();
+    }
+    return Some(aAspectRatio.ComputeRatioDependentSize(
+        LogicalAxis::Inline, aWM, *aBSize, aContentEdgeToBoxSizing));
+  }();
+
   nscoord result;
   switch (aSize) {
     case ExtremumLength::MaxContent:

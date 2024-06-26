@@ -2254,10 +2254,16 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
   const bool hasIntrinsicBSize = maybeIntrinsicBSize.isSome();
   nscoord intrinsicBSize = std::max(0, maybeIntrinsicBSize.valueOr(0));
 
+  const Maybe<nscoord> definiteBSize =
+      isAutoBSize ? Nothing()
+                  : Some(nsLayoutUtils::ComputeBSizeValue(
+                        aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM),
+                        styleBSize.AsLengthPercentage()));
+
   if (!isAutoOrMaxContentISize) {
     iSize = ComputeISizeValue(aRenderingContext, aWM, aCBSize, boxSizingAdjust,
                               boxSizingToMarginEdgeISize, styleISize,
-                              aSizeOverrides, aFlags)
+                              definiteBSize, aspectRatio, aFlags)
                 .mISize;
   } else if (MOZ_UNLIKELY(isGridItem) &&
              !parentFrame->IsMasonry(isOrthogonal ? LogicalAxis::Block
@@ -2289,10 +2295,11 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
 
   if (!maxISizeCoord.IsNone() &&
       !(isFlexItem && flexMainAxis == LogicalAxis::Inline)) {
-    maxISize = ComputeISizeValue(aRenderingContext, aWM, aCBSize,
-                                 boxSizingAdjust, boxSizingToMarginEdgeISize,
-                                 maxISizeCoord, aSizeOverrides, aFlags)
-                   .mISize;
+    maxISize =
+        ComputeISizeValue(aRenderingContext, aWM, aCBSize, boxSizingAdjust,
+                          boxSizingToMarginEdgeISize, maxISizeCoord,
+                          definiteBSize, aspectRatio, aFlags)
+            .mISize;
   } else {
     maxISize = nscoord_MAX;
   }
@@ -2305,10 +2312,11 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
 
   if (!minISizeCoord.IsAuto() &&
       !(isFlexItem && flexMainAxis == LogicalAxis::Inline)) {
-    minISize = ComputeISizeValue(aRenderingContext, aWM, aCBSize,
-                                 boxSizingAdjust, boxSizingToMarginEdgeISize,
-                                 minISizeCoord, aSizeOverrides, aFlags)
-                   .mISize;
+    minISize =
+        ComputeISizeValue(aRenderingContext, aWM, aCBSize, boxSizingAdjust,
+                          boxSizingToMarginEdgeISize, minISizeCoord,
+                          definiteBSize, aspectRatio, aFlags)
+            .mISize;
   } else {
     // Treat "min-width: auto" as 0.
     // NOTE: Technically, "auto" is supposed to behave like "min-content" on

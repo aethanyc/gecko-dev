@@ -271,7 +271,7 @@ nscoord SizeComputationInput::ComputeISizeValue(
   return mFrame
       ->ComputeISizeValue(mRenderingContext, wm, aContainingBlockSize,
                           contentEdgeToBoxSizing, boxSizingToMarginEdgeISize,
-                          aSize)
+                          aSize, Nothing(), AspectRatio())
       .mISize;
 }
 
@@ -1284,12 +1284,20 @@ void ReflowInput::CalculateHypotheticalPosition(
                                    blockContentSize.ISize(wm),
                                    &contentEdgeToBoxSizingBSize, &dummy);
 
+      const auto& styleBSize = mStylePosition->BSize(wm);
+      const Maybe<nscoord> bSize =
+          nsLayoutUtils::IsAutoBSize(styleBSize, blockContentSize.BSize(wm))
+              ? Nothing()
+              : Some(nsLayoutUtils::ComputeBSizeValue(
+                    blockContentSize.BSize(wm), contentEdgeToBoxSizingBSize,
+                    styleBSize.AsLengthPercentage()));
       const auto contentISize =
           mFrame
               ->ComputeISizeValue(mRenderingContext, wm, blockContentSize,
                                   LogicalSize(wm, contentEdgeToBoxSizingISize,
                                               contentEdgeToBoxSizingBSize),
-                                  boxSizingToMarginEdgeISize, styleISize)
+                                  boxSizingToMarginEdgeISize, styleISize, bSize,
+                                  mFrame->GetAspectRatio())
               .mISize;
       boxISize.emplace(contentISize + contentEdgeToBoxSizingISize +
                        boxSizingToMarginEdgeISize);
