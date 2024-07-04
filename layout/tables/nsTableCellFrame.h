@@ -103,7 +103,8 @@ class nsTableCellFrame : public nsContainerFrame,
                               const nsDisplayListSet& aLists);
 
   nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext,
+                       const mozilla::LogicalSize& aCBSize) override;
   IntrinsicSizeOffsetData IntrinsicISizeOffsets(
       nscoord aPercentageBasis = NS_UNCONSTRAINEDSIZE) override;
 

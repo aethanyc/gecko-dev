@@ -48,7 +48,8 @@ class nsComboboxControlFrame final : public nsHTMLButtonControlFrame,
 #endif
 
   nscoord GetMinISize(gfxContext* aRenderingContext) final;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) final;
+  nscoord GetPrefISize(gfxContext* aRenderingContext,
+                       const mozilla::LogicalSize& aCBSize) final;
 
   // We're a leaf, so we need to report ourselves as the content insertion
   // frame.

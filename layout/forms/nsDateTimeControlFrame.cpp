@@ -43,7 +43,8 @@ nscoord nsDateTimeControlFrame::GetMinISize(gfxContext* aRenderingContext) {
                                               IntrinsicISizeType::MinISize);
 }
 
-nscoord nsDateTimeControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsDateTimeControlFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                             const LogicalSize& aCBSize) {
   nsIFrame* kid = mFrames.FirstChild();
   if (!kid) {
     return 0;

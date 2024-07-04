@@ -40,7 +40,8 @@ class nsColumnSetFrame final : public nsContainerFrame {
 #endif
 
   nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext,
+                       const mozilla::LogicalSize& aCBSize) override;
 
   nsContainerFrame* GetContentInsertionFrame() override {
     nsIFrame* frame = PrincipalChildList().FirstChild();

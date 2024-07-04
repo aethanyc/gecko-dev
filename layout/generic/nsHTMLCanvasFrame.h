@@ -52,7 +52,8 @@ class nsHTMLCanvasFrame final : public nsContainerFrame {
   nsIntSize GetCanvasSize() const;
 
   virtual nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  virtual nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  virtual nscoord GetPrefISize(gfxContext* aRenderingContext,
+                               const mozilla::LogicalSize& aCBSize) override;
   virtual mozilla::IntrinsicSize GetIntrinsicSize() override;
   mozilla::AspectRatio GetIntrinsicRatio() const override;
 

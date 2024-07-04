@@ -895,10 +895,11 @@ nscoord nsBlockFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord nsBlockFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsBlockFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                   const LogicalSize& aCBSize) {
   nsIFrame* firstInFlow = FirstContinuation();
   if (firstInFlow != this) {
-    return firstInFlow->GetPrefISize(aRenderingContext);
+    return firstInFlow->GetPrefISize(aRenderingContext, aCBSize);
   }
 
   CheckIntrinsicCacheAgainstShrinkWrapState();

@@ -32,7 +32,8 @@ class nsLeafFrame : public nsIFrame {
    * returns.
    */
   virtual nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  virtual nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  virtual nscoord GetPrefISize(gfxContext* aRenderingContext,
+                               const mozilla::LogicalSize& aCBSize) override;
 
   /**
    * Our auto size is just intrinsic width and intrinsic height.

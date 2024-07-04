@@ -496,8 +496,9 @@ nscoord nsMenuPopupFrame::GetMinISize(gfxContext* aRC) {
   return result;
 }
 
-nscoord nsMenuPopupFrame::GetPrefISize(gfxContext* aRC) {
-  nscoord result = nsBlockFrame::GetPrefISize(aRC);
+nscoord nsMenuPopupFrame::GetPrefISize(gfxContext* aRC,
+                                       const LogicalSize& aCBSize) {
+  nscoord result = nsBlockFrame::GetPrefISize(aRC, aCBSize);
   TweakMinPrefISize(result);
   return result;
 }

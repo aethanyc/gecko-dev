@@ -191,7 +191,8 @@ nscoord ColumnSetWrapperFrame::GetMinISize(gfxContext* aRenderingContext) {
   return iSize;
 }
 
-nscoord ColumnSetWrapperFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord ColumnSetWrapperFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                            const LogicalSize& aCBSize) {
   nscoord iSize = 0;
 
   if (Maybe<nscoord> containISize =
@@ -220,7 +221,8 @@ nscoord ColumnSetWrapperFrame::GetPrefISize(gfxContext* aRenderingContext) {
     iSize = ColumnUtils::IntrinsicISize(numColumns, colGap, colISize);
   } else {
     for (nsIFrame* f : PrincipalChildList()) {
-      iSize = std::max(iSize, f->GetPrefISize(aRenderingContext));
+      LogicalSize cbSize(GetWritingMode());  // FIXME
+      iSize = std::max(iSize, f->GetPrefISize(aRenderingContext, cbSize));
     }
   }
 

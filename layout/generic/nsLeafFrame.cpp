@@ -28,7 +28,8 @@ nscoord nsLeafFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord nsLeafFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsLeafFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                  const LogicalSize& aCBSize) {
   return GetIntrinsicISize();
 }
 

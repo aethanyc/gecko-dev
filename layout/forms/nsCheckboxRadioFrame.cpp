@@ -52,7 +52,8 @@ nscoord nsCheckboxRadioFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord nsCheckboxRadioFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsCheckboxRadioFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                           const LogicalSize& aCBSize) {
   return StyleDisplay()->HasAppearance() ? DefaultSize() : 0;
 }
 

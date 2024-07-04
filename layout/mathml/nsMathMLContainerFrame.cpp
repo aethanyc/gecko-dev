@@ -853,7 +853,8 @@ nscoord nsMathMLContainerFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord nsMathMLContainerFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsMathMLContainerFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                             const LogicalSize& aCBSize) {
   UpdateIntrinsicISize(aRenderingContext);
   return mIntrinsicISize;
 }

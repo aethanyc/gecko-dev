@@ -33,6 +33,7 @@
 #include "mozilla/BasicEvents.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/DisplayPortUtils.h"
+#include "mozilla/WritingModes.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/dom/AnonymousContent.h"
 #include "mozilla/dom/BrowserChild.h"
@@ -4392,7 +4393,8 @@ static Maybe<nscoord> GetIntrinsicSize(nsIFrame::ExtremumLength aLength,
   if (aISizeFromAspectRatio) {
     result = *aISizeFromAspectRatio;
   } else if (aLength == nsIFrame::ExtremumLength::MaxContent) {
-    result = aFrame->GetPrefISize(aRenderingContext);
+    LogicalSize cbSize(aFrame->GetWritingMode());
+    result = aFrame->GetPrefISize(aRenderingContext, cbSize);
   } else {
     result = aFrame->GetMinISize(aRenderingContext);
   }
@@ -4521,7 +4523,8 @@ static nscoord AddIntrinsicSizeOffset(
       minContent = maxContent = *aISizeFromAspectRatio;
     } else {
       minContent = aFrame->GetMinISize(aRenderingContext);
-      maxContent = aFrame->GetPrefISize(aRenderingContext);
+      maxContent = aFrame->GetPrefISize(aRenderingContext,
+                                        LogicalSize(aFrame->GetWritingMode()));
     }
     minContent += contentBoxToBoxSizingDiff;
     maxContent += contentBoxToBoxSizingDiff;
@@ -4814,9 +4817,13 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         result = aFrame->BSize();
       }
     } else {
-      result = aType == IntrinsicISizeType::MinISize
-                   ? aFrame->GetMinISize(aRenderingContext)
-                   : aFrame->GetPrefISize(aRenderingContext);
+      result =
+          aType == IntrinsicISizeType::MinISize
+              ? aFrame->GetMinISize(aRenderingContext)
+              : aFrame->GetPrefISize(
+                    aRenderingContext,
+                    aPercentageBasis ? *aPercentageBasis
+                                     : LogicalSize(aFrame->GetWritingMode()));
     }
 #ifdef DEBUG_INTRINSIC_WIDTH
     --gNoiseIndent;

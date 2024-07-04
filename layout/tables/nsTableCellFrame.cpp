@@ -603,7 +603,8 @@ nscoord nsTableCellFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord nsTableCellFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsTableCellFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                       const LogicalSize& aCBSize) {
   nsIFrame* inner = mFrames.FirstChild();
   return nsLayoutUtils::IntrinsicForContainer(aRenderingContext, inner,
                                               IntrinsicISizeType::PrefISize,

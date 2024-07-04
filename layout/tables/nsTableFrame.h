@@ -272,7 +272,8 @@ class nsTableFrame : public nsContainerFrame {
   // For border-collapse tables, the caller must not add padding and
   // border to the results of these functions.
   nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext,
+                       const mozilla::LogicalSize& aCBSize) override;
   IntrinsicSizeOffsetData IntrinsicISizeOffsets(
       nscoord aPercentageBasis = NS_UNCONSTRAINEDSIZE) override;
 

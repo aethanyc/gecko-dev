@@ -12,6 +12,7 @@
 #include "mozilla/TouchEvents.h"
 
 #include "gfxContext.h"
+#include "mozilla/WritingModes.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsCSSRendering.h"
 #include "nsDisplayList.h"
@@ -633,10 +634,12 @@ nscoord nsRangeFrame::GetMinISize(gfxContext* aRenderingContext) {
     return nsLayoutUtils::ResolveToLength<true>(
         pos->ISize(wm).AsLengthPercentage(), nscoord(0));
   }
-  return GetPrefISize(aRenderingContext);
+  LogicalSize cbSize(wm);
+  return GetPrefISize(aRenderingContext, cbSize);
 }
 
-nscoord nsRangeFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsRangeFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                   const LogicalSize& aCBSize) {
   if (IsInlineOriented()) {
     return OneEmInAppUnits() * MAIN_AXIS_EM_SIZE;
   }

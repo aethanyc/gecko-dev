@@ -559,7 +559,8 @@ nscoord nsSubDocumentFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord nsSubDocumentFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsSubDocumentFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                         const LogicalSize& aCBSize) {
   // If the subdocument is an SVG document, then in theory we want to return
   // the same thing that SVGOuterSVGFrame::GetPrefISize does.  That method
   // has some special handling of percentage values to avoid unhelpful zero

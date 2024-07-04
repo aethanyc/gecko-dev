@@ -43,7 +43,8 @@ class nsMeterFrame final : public nsContainerFrame,
                             int32_t aModType) override;
 
   nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext,
+                       const mozilla::LogicalSize& aCBSize) override;
 
   /**
    * Returns whether the frame and its child should use the native style.

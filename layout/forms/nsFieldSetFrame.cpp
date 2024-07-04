@@ -351,7 +351,8 @@ nscoord nsFieldSetFrame::GetMinISize(gfxContext* aRenderingContext) {
   return GetIntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
 }
 
-nscoord nsFieldSetFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsFieldSetFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                      const LogicalSize& aCBSize) {
   return GetIntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
 }
 

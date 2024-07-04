@@ -130,7 +130,8 @@ nscoord SVGOuterSVGFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord SVGOuterSVGFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord SVGOuterSVGFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                       const LogicalSize& aCBSize) {
   nscoord result;
 
   SVGSVGElement* svg = static_cast<SVGSVGElement*>(GetContent());

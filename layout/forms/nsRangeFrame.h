@@ -73,7 +73,8 @@ class nsRangeFrame final : public nsContainerFrame,
                             int32_t aModType) override;
 
   nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext,
+                       const mozilla::LogicalSize& aCBSize) override;
 
   /**
    * Returns true if the slider's thumb moves horizontally, or else false if it

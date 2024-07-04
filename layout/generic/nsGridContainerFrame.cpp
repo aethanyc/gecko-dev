@@ -9525,10 +9525,11 @@ nscoord nsGridContainerFrame::GetMinISize(gfxContext* aRC) {
   return mCachedMinISize;
 }
 
-nscoord nsGridContainerFrame::GetPrefISize(gfxContext* aRC) {
+nscoord nsGridContainerFrame::GetPrefISize(gfxContext* aRC,
+                                           const LogicalSize& aCBSize) {
   auto* f = static_cast<nsGridContainerFrame*>(FirstContinuation());
   if (f != this) {
-    return f->GetPrefISize(aRC);
+    return f->GetPrefISize(aRC, aCBSize);
   }
 
   if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {

@@ -277,10 +277,11 @@ nscoord ViewportFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord ViewportFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord ViewportFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                    const LogicalSize& aCBSize) {
   return mFrames.IsEmpty()
              ? 0
-             : mFrames.FirstChild()->GetPrefISize(aRenderingContext);
+             : mFrames.FirstChild()->GetPrefISize(aRenderingContext, aCBSize);
 }
 
 nsPoint ViewportFrame::AdjustReflowInputForScrollbars(

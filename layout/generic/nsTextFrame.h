@@ -394,7 +394,8 @@ class nsTextFrame : public nsIFrame {
 
   void MarkIntrinsicISizesDirty() final;
   nscoord GetMinISize(gfxContext* aRenderingContext) final;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) final;
+  nscoord GetPrefISize(gfxContext* aRenderingContext,
+                       const mozilla::LogicalSize& aCBSize) final;
   void AddInlineMinISize(gfxContext* aRenderingContext,
                          InlineMinISizeData* aData) override;
   void AddInlinePrefISize(gfxContext* aRenderingContext,

@@ -1355,7 +1355,8 @@ nscoord nsTableFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord nsTableFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsTableFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                   const LogicalSize& aCBSize) {
   if (NeedToCalcBCBorders()) CalcBCBorders();
 
   ReflowColGroups(aRenderingContext);

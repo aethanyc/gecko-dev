@@ -130,7 +130,8 @@ nscoord nsFirstLetterFrame::GetMinISize(gfxContext* aRenderingContext) {
 
 // Needed for floating first-letter frames.
 /* virtual */
-nscoord nsFirstLetterFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsFirstLetterFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                         const LogicalSize& aCBSize) {
   return nsLayoutUtils::PrefISizeFromInline(this, aRenderingContext);
 }
 

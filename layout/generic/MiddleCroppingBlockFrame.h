@@ -35,7 +35,7 @@ class MiddleCroppingBlockFrame : public nsBlockFrame,
               nsReflowStatus&) override;
 
   nscoord GetMinISize(gfxContext*) override;
-  nscoord GetPrefISize(gfxContext*) override;
+  nscoord GetPrefISize(gfxContext*, const LogicalSize& aCBSize) override;
 
   /**
    * Crop aText to fit inside aWidth using the styles of aFrame.

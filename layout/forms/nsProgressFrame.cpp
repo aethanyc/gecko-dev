@@ -215,7 +215,8 @@ nscoord nsProgressFrame::GetMinISize(gfxContext* aRenderingContext) {
   return minISize;
 }
 
-nscoord nsProgressFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsProgressFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                      const LogicalSize& aCBSize) {
   return GetMinISize(aRenderingContext);
 }
 

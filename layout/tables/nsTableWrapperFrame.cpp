@@ -254,7 +254,8 @@ nscoord nsTableWrapperFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord nsTableWrapperFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsTableWrapperFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                          const LogicalSize& aCBSize) {
   nscoord maxISize = nsLayoutUtils::IntrinsicForContainer(
       aRenderingContext, InnerTableFrame(), IntrinsicISizeType::PrefISize);
   if (mCaptionFrames.NotEmpty()) {

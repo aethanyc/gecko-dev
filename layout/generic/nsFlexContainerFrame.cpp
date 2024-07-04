@@ -6489,7 +6489,8 @@ nscoord nsFlexContainerFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord nsFlexContainerFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsFlexContainerFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                           const LogicalSize& aCBSize) {
   if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
     if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
       mCachedPrefISize = *containISize;

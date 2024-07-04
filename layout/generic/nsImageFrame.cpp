@@ -1473,7 +1473,8 @@ nscoord nsImageFrame::GetMinISize(gfxContext* aRenderingContext) {
   return mIntrinsicSize.ISize(GetWritingMode()).valueOr(0);
 }
 
-nscoord nsImageFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsImageFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                   const LogicalSize& aCBSize) {
   // XXX The caller doesn't account for constraints of the block-size,
   // min-block-size, and max-block-size properties.
   EnsureIntrinsicSizeAndRatio();

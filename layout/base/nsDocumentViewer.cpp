@@ -2618,7 +2618,7 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP nsDocumentViewer::GetContentSize(
     if (aPrefWidth) {
       prefISize = std::max(root->GetMinISize(rcx.get()), aPrefWidth);
     } else {
-      prefISize = root->GetPrefISize(rcx.get());
+      prefISize = root->GetPrefISize(rcx.get(), LogicalSize(wm));
     }
     prefISize = nsPresContext::RoundUpAppUnitsToCSSPixel(
         std::max(minISize, std::min(prefISize, maxISize)));

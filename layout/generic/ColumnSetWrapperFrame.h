@@ -57,7 +57,8 @@ class ColumnSetWrapperFrame final : public nsBlockFrame {
 
   nscoord GetMinISize(gfxContext* aRenderingContext) override;
 
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext,
+                       const LogicalSize& aCBSize) override;
 
   Maybe<nscoord> GetNaturalBaselineBOffset(
       WritingMode aWM, BaselineSharingGroup aBaselineGroup,

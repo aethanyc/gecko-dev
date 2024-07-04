@@ -379,7 +379,8 @@ nscoord nsVideoFrame::GetMinISize(gfxContext* aRenderingContext) {
   return GetWritingMode().IsVertical() ? size.height : size.width;
 }
 
-nscoord nsVideoFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsVideoFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                   const mozilla::LogicalSize& aCBSize) {
   // <audio> / <video> has the same min / pref ISize.
   return GetMinISize(aRenderingContext);
 }

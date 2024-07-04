@@ -6001,7 +6001,10 @@ void nsIFrame::MarkSubtreeDirty() {
 nscoord nsIFrame::GetMinISize(gfxContext* aRenderingContext) { return 0; }
 
 /* virtual */
-nscoord nsIFrame::GetPrefISize(gfxContext* aRenderingContext) { return 0; }
+nscoord nsIFrame::GetPrefISize(gfxContext* aRenderingContext,
+                               const LogicalSize& aCBSize) {
+  return 0;
+}
 
 /* virtual */
 void nsIFrame::AddInlineMinISize(gfxContext* aRenderingContext,
@@ -6719,7 +6722,8 @@ nscoord nsIFrame::ShrinkISizeToFit(gfxContext* aRenderingContext,
     const bool clamp = aFlags.contains(ComputeSizeFlag::IClampMarginBoxMinSize);
     result = MOZ_UNLIKELY(clamp) ? aISizeInCB : minISize;
   } else {
-    nscoord prefISize = GetPrefISize(aRenderingContext);
+    LogicalSize cbSize(GetWritingMode());  // FIXME
+    nscoord prefISize = GetPrefISize(aRenderingContext, cbSize);
     if (prefISize > aISizeInCB) {
       result = aISizeInCB;
     } else {
@@ -6776,7 +6780,7 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
   switch (aSize) {
     case ExtremumLength::MaxContent:
       result = iSizeFromAspectRatio ? *iSizeFromAspectRatio
-                                    : GetPrefISize(aRenderingContext);
+                                    : GetPrefISize(aRenderingContext, aCBSize);
       NS_ASSERTION(result >= 0, "inline-size less than zero");
       return {result, iSizeFromAspectRatio ? AspectRatioUsage::ToComputeISize
                                            : AspectRatioUsage::None};
@@ -6799,7 +6803,7 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
         // size computed from the block size and the aspect ratio.
         pref = min = *iSizeFromAspectRatio;
       } else {
-        pref = GetPrefISize(aRenderingContext);
+        pref = GetPrefISize(aRenderingContext, aCBSize);
         min = GetMinISize(aRenderingContext);
       }
 

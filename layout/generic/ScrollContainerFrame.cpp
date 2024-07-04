@@ -1288,11 +1288,12 @@ nscoord ScrollContainerFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord ScrollContainerFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord ScrollContainerFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                           const LogicalSize& aCBSize) {
   const Maybe<nscoord> containISize = ContainIntrinsicISize();
-  nscoord result = containISize
-                       ? *containISize
-                       : mScrolledFrame->GetPrefISize(aRenderingContext);
+  nscoord result =
+      containISize ? *containISize
+                   : mScrolledFrame->GetPrefISize(aRenderingContext, aCBSize);
   return NSCoordSaturatingAdd(result,
                               IntrinsicScrollbarGutterSizeAtInlineEdges());
 }

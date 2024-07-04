@@ -27,7 +27,8 @@ class nsFieldSetFrame final : public nsContainerFrame {
   nscoord GetIntrinsicISize(gfxContext* aRenderingContext,
                             mozilla::IntrinsicISizeType);
   nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext,
+                       const mozilla::LogicalSize& aCBSize) override;
 
   /**
    * The area to paint box-shadows around.  It's the border rect except

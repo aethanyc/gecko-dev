@@ -2583,7 +2583,8 @@ class nsIFrame : public nsQueryFrame {
    *
    * Otherwise, all the comments for |GetMinISize| above apply.
    */
-  virtual nscoord GetPrefISize(gfxContext* aRenderingContext);
+  virtual nscoord GetPrefISize(gfxContext* aRenderingContext,
+                               const mozilla::LogicalSize& aCBSize);
 
   /**
    * |InlineIntrinsicISize| represents the intrinsic inline size information

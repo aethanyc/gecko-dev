@@ -247,7 +247,8 @@ nscoord nsHTMLButtonControlFrame::GetMinISize(gfxContext* aRenderingContext) {
                                               IntrinsicISizeType::MinISize);
 }
 
-nscoord nsHTMLButtonControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsHTMLButtonControlFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                               const LogicalSize& aCBSize) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }

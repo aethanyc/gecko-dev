@@ -4380,7 +4380,8 @@ nscoord nsTextFrame::GetMinISize(gfxContext* aRenderingContext) {
 
 // Needed for text frames in XUL.
 /* virtual */
-nscoord nsTextFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsTextFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                  const LogicalSize& aCBSize) {
   return nsLayoutUtils::PrefISizeFromInline(this, aRenderingContext);
 }
 

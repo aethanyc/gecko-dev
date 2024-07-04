@@ -77,7 +77,8 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
    * returned by GetIntrinsicMetrics, including ink overflow.
    */
   nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext,
+                       const LogicalSize& aCBSize) override;
 
   /**
    * Return the intrinsic horizontal metrics of the frame's content area.

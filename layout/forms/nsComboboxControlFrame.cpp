@@ -193,7 +193,8 @@ nscoord nsComboboxControlFrame::GetMinISize(gfxContext* aRenderingContext) {
   return minISize;
 }
 
-nscoord nsComboboxControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsComboboxControlFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                             const LogicalSize& aCBSize) {
   nscoord prefISize;
   prefISize =
       GetIntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);

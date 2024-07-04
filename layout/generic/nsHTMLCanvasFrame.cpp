@@ -382,7 +382,8 @@ nscoord nsHTMLCanvasFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord nsHTMLCanvasFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsHTMLCanvasFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                        const LogicalSize& aCBSize) {
   // XXX The caller doesn't account for constraints of the height,
   // min-height, and max-height properties.
   nscoord result;

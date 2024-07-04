@@ -33,7 +33,8 @@ class nsCheckboxRadioFrame final : public nsAtomicContainerFrame,
    * returns.
    */
   nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext,
+                       const LogicalSize& aCBSize) override;
 
   /**
    * Our auto size is just intrinsic width and intrinsic height.

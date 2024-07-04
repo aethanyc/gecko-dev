@@ -187,7 +187,8 @@ nscoord nsMeterFrame::GetMinISize(gfxContext* aRenderingContext) {
   return minISize;
 }
 
-nscoord nsMeterFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsMeterFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                   const LogicalSize& aCBSize) {
   return GetMinISize(aRenderingContext);
 }
 

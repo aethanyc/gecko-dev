@@ -119,7 +119,8 @@ class nsGridContainerFrame final : public nsContainerFrame,
             nsIFrame* aPrevInFlow) override;
   void DidSetComputedStyle(ComputedStyle* aOldStyle) override;
   nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext,
+                       const mozilla::LogicalSize& aCBSize) override;
   void MarkIntrinsicISizesDirty() override;
 
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,

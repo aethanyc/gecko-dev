@@ -609,10 +609,11 @@ nscoord nsCanvasFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord nsCanvasFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsCanvasFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                    const LogicalSize& aCBSize) {
   return mFrames.IsEmpty()
              ? 0
-             : mFrames.FirstChild()->GetPrefISize(aRenderingContext);
+             : mFrames.FirstChild()->GetPrefISize(aRenderingContext, aCBSize);
 }
 
 void nsCanvasFrame::Reflow(nsPresContext* aPresContext,

@@ -84,8 +84,9 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
     // wrapping inside of it should not apply font size inflation.
     AutoMaybeDisableFontInflation an(aFrame);
 
+    LogicalSize cbSize(aWM);
     minCoord = aFrame->GetMinISize(aRenderingContext);
-    prefCoord = aFrame->GetPrefISize(aRenderingContext);
+    prefCoord = aFrame->GetPrefISize(aRenderingContext, cbSize);
     // Until almost the end of this function, minCoord and prefCoord
     // represent the box-sizing based isize values (which mean they
     // should include inline padding and border width when

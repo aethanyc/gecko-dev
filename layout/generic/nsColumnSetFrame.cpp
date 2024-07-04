@@ -443,7 +443,8 @@ nscoord nsColumnSetFrame::GetMinISize(gfxContext* aRenderingContext) {
   return iSize;
 }
 
-nscoord nsColumnSetFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsColumnSetFrame::GetPrefISize(gfxContext* aRenderingContext,
+                                       const LogicalSize& aCBSize) {
   // Our preferred width is our desired column width, if specified, otherwise
   // the child's preferred width, times the number of columns, plus the width
   // of any required column gaps
@@ -458,7 +459,7 @@ nscoord nsColumnSetFrame::GetPrefISize(gfxContext* aRenderingContext) {
     // We want to ignore this in the case that we're size contained
     // because our children should not contribute to our
     // intrinsic size.
-    colISize = mFrames.FirstChild()->GetPrefISize(aRenderingContext);
+    colISize = mFrames.FirstChild()->GetPrefISize(aRenderingContext, aCBSize);
   } else {
     colISize = 0;
   }
