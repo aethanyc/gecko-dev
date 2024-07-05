@@ -5113,8 +5113,10 @@ class nsIFrame : public nsQueryFrame {
   mozilla::WritingMode mWritingMode;
 
   /** The ClassID of the concrete class of this instance. */
+ public:
   ClassID mClass;  // 1 byte
 
+ protected:
   bool mMayHaveRoundedCorners : 1;
 
   /**

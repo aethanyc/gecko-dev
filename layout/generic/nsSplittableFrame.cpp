@@ -51,7 +51,7 @@ nsIFrame* nsSplittableFrame::GetPrevContinuation() const {
 }
 
 void nsSplittableFrame::SetPrevContinuation(nsIFrame* aFrame) {
-  NS_ASSERTION(!aFrame || Type() == aFrame->Type(),
+  NS_ASSERTION(!aFrame || mClass == aFrame->mClass,
                "setting a prev continuation with incorrect type!");
   NS_ASSERTION(!IsInPrevContinuationChain(aFrame, this),
                "creating a loop in continuation chain!");
@@ -65,7 +65,7 @@ nsIFrame* nsSplittableFrame::GetNextContinuation() const {
 }
 
 void nsSplittableFrame::SetNextContinuation(nsIFrame* aFrame) {
-  NS_ASSERTION(!aFrame || Type() == aFrame->Type(),
+  NS_ASSERTION(!aFrame || mClass == aFrame->mClass,
                "setting a next continuation with incorrect type!");
   NS_ASSERTION(!IsInNextContinuationChain(aFrame, this),
                "creating a loop in continuation chain!");
@@ -146,7 +146,7 @@ nsIFrame* nsSplittableFrame::GetPrevInFlow() const {
 }
 
 void nsSplittableFrame::SetPrevInFlow(nsIFrame* aFrame) {
-  NS_ASSERTION(!aFrame || Type() == aFrame->Type(),
+  NS_ASSERTION(!aFrame || mClass == aFrame->mClass,
                "setting a prev in flow with incorrect type!");
   NS_ASSERTION(!IsInPrevContinuationChain(aFrame, this),
                "creating a loop in continuation chain!");
@@ -163,7 +163,7 @@ nsIFrame* nsSplittableFrame::GetNextInFlow() const {
 }
 
 void nsSplittableFrame::SetNextInFlow(nsIFrame* aFrame) {
-  NS_ASSERTION(!aFrame || Type() == aFrame->Type(),
+  NS_ASSERTION(!aFrame || mClass == aFrame->mClass,
                "setting a next in flow with incorrect type!");
   NS_ASSERTION(!IsInNextContinuationChain(aFrame, this),
                "creating a loop in continuation chain!");
