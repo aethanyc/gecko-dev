@@ -36,21 +36,22 @@ BasicTableLayoutStrategy::BasicTableLayoutStrategy(nsTableFrame* aTableFrame)
 BasicTableLayoutStrategy::~BasicTableLayoutStrategy() = default;
 
 /* virtual */
-nscoord BasicTableLayoutStrategy::GetMinISize(gfxContext* aRenderingContext) {
+nscoord BasicTableLayoutStrategy::GetMinISize(
+    const IntrinsicISizeInput& aInput) {
   if (mMinISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    ComputeIntrinsicISizes(aRenderingContext);
+    ComputeIntrinsicISizes(aInput.mContext);
   }
   return mMinISize;
 }
 
 /* virtual */
-nscoord BasicTableLayoutStrategy::GetPrefISize(gfxContext* aRenderingContext,
-                                               bool aComputingSize) {
+nscoord BasicTableLayoutStrategy::GetPrefISize(
+    const IntrinsicISizeInput& aInput, bool aComputingSize) {
   NS_ASSERTION((mPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) ==
                    (mPrefISizePctExpand == NS_INTRINSIC_ISIZE_UNKNOWN),
                "dirtyness out of sync");
   if (mPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    ComputeIntrinsicISizes(aRenderingContext);
+    ComputeIntrinsicISizes(aInput.mContext);
   }
   return aComputingSize ? mPrefISizePctExpand : mPrefISize;
 }
@@ -84,8 +85,9 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
     // wrapping inside of it should not apply font size inflation.
     AutoMaybeDisableFontInflation an(aFrame);
 
-    minCoord = aFrame->GetMinISize(aRenderingContext);
-    prefCoord = aFrame->GetPrefISize(aRenderingContext);
+    const IntrinsicISizeInput input{aRenderingContext};
+    minCoord = aFrame->GetMinISize(input);
+    prefCoord = aFrame->GetPrefISize(input);
     // Until almost the end of this function, minCoord and prefCoord
     // represent the box-sizing based isize values (which mean they
     // should include inline padding and border width when

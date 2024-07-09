@@ -624,7 +624,7 @@ nscoord nsRangeFrame::AutoCrossSize() {
                   NSToCoordRound(OneEmInAppUnits() * CROSS_AXIS_EM_SIZE));
 }
 
-nscoord nsRangeFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord nsRangeFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   const auto* pos = StylePosition();
   auto wm = GetWritingMode();
   if (pos->ISize(wm).HasPercent()) {
@@ -633,10 +633,10 @@ nscoord nsRangeFrame::GetMinISize(gfxContext* aRenderingContext) {
     return nsLayoutUtils::ResolveToLength<true>(
         pos->ISize(wm).AsLengthPercentage(), nscoord(0));
   }
-  return GetPrefISize(aRenderingContext);
+  return GetPrefISize(aInput);
 }
 
-nscoord nsRangeFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsRangeFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
   if (IsInlineOriented()) {
     return OneEmInAppUnits() * MAIN_AXIS_EM_SIZE;
   }

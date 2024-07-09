@@ -4249,9 +4249,9 @@ class nsContinuingTextFrame final : public nsTextFrame {
     return mFirstContinuation;
   };
 
-  void AddInlineMinISize(gfxContext* aRenderingContext,
+  void AddInlineMinISize(const IntrinsicISizeInput& aInput,
                          InlineMinISizeData* aData) final;
-  void AddInlinePrefISize(gfxContext* aRenderingContext,
+  void AddInlinePrefISize(const IntrinsicISizeInput& aInput,
                           InlinePrefISizeData* aData) final;
 
  protected:
@@ -4374,25 +4374,25 @@ nsIFrame* nsContinuingTextFrame::FirstInFlow() const {
 
 // Needed for text frames in XUL.
 /* virtual */
-nscoord nsTextFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return nsLayoutUtils::MinISizeFromInline(this, aRenderingContext);
+nscoord nsTextFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
+  return nsLayoutUtils::MinISizeFromInline(this, aInput);
 }
 
 // Needed for text frames in XUL.
 /* virtual */
-nscoord nsTextFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return nsLayoutUtils::PrefISizeFromInline(this, aRenderingContext);
+nscoord nsTextFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
+  return nsLayoutUtils::PrefISizeFromInline(this, aInput);
 }
 
 /* virtual */
-void nsContinuingTextFrame::AddInlineMinISize(gfxContext* aRenderingContext,
+void nsContinuingTextFrame::AddInlineMinISize(const IntrinsicISizeInput& aInput,
                                               InlineMinISizeData* aData) {
   // Do nothing, since the first-in-flow accounts for everything.
 }
 
 /* virtual */
-void nsContinuingTextFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
-                                               InlinePrefISizeData* aData) {
+void nsContinuingTextFrame::AddInlinePrefISize(
+    const IntrinsicISizeInput& aInput, InlinePrefISizeData* aData) {
   // Do nothing, since the first-in-flow accounts for everything.
 }
 
@@ -8609,12 +8609,12 @@ void nsTextFrame::MarkIntrinsicISizesDirty() {
 
 // XXX this doesn't handle characters shaped by line endings. We need to
 // temporarily override the "current line ending" settings.
-void nsTextFrame::AddInlineMinISizeForFlow(gfxContext* aRenderingContext,
-                                           nsIFrame::InlineMinISizeData* aData,
+void nsTextFrame::AddInlineMinISizeForFlow(const IntrinsicISizeInput& aInput,
+                                           InlineMinISizeData* aData,
                                            TextRunType aTextRunType) {
   uint32_t flowEndInTextRun;
   gfxSkipCharsIterator iter =
-      EnsureTextRun(aTextRunType, aRenderingContext->GetDrawTarget(),
+      EnsureTextRun(aTextRunType, aInput.mContext->GetDrawTarget(),
                     aData->LineContainer(), aData->mLine, &flowEndInTextRun);
   gfxTextRun* textRun = GetTextRun(aTextRunType);
   if (!textRun) {
@@ -8851,7 +8851,7 @@ static bool IsUnreflowedLetterFrame(nsIFrame* aFrame) {
 // XXX Need to do something here to avoid incremental reflow bugs due to
 // first-line changing min-width
 /* virtual */
-void nsTextFrame::AddInlineMinISize(gfxContext* aRenderingContext,
+void nsTextFrame::AddInlineMinISize(const IntrinsicISizeInput& aInput,
                                     nsIFrame::InlineMinISizeData* aData) {
   // Check if this textframe belongs to a first-letter frame that has not yet
   // been reflowed; if so, we need to deal with splitting off a continuation
@@ -8890,7 +8890,7 @@ void nsTextFrame::AddInlineMinISize(gfxContext* aRenderingContext,
       }
 
       // This will process all the text frames that share the same textrun as f.
-      f->AddInlineMinISizeForFlow(aRenderingContext, aData, trtype);
+      f->AddInlineMinISizeForFlow(aInput, aData, trtype);
       lastTextRun = f->GetTextRun(trtype);
     }
   }
@@ -8899,7 +8899,7 @@ void nsTextFrame::AddInlineMinISize(gfxContext* aRenderingContext,
 // XXX this doesn't handle characters shaped by line endings. We need to
 // temporarily override the "current line ending" settings.
 void nsTextFrame::AddInlinePrefISizeForFlow(
-    gfxContext* aRenderingContext, nsIFrame::InlinePrefISizeData* aData,
+    const IntrinsicISizeInput& aInput, nsIFrame::InlinePrefISizeData* aData,
     TextRunType aTextRunType) {
   if (IsUnreflowedLetterFrame(GetParent())) {
     MaybeSplitFramesForFirstLetter();
@@ -8907,7 +8907,7 @@ void nsTextFrame::AddInlinePrefISizeForFlow(
 
   uint32_t flowEndInTextRun;
   gfxSkipCharsIterator iter =
-      EnsureTextRun(aTextRunType, aRenderingContext->GetDrawTarget(),
+      EnsureTextRun(aTextRunType, aInput.mContext->GetDrawTarget(),
                     aData->LineContainer(), aData->mLine, &flowEndInTextRun);
   gfxTextRun* textRun = GetTextRun(aTextRunType);
   if (!textRun) {
@@ -9018,7 +9018,7 @@ void nsTextFrame::AddInlinePrefISizeForFlow(
 // XXX Need to do something here to avoid incremental reflow bugs due to
 // first-line and first-letter changing pref-width
 /* virtual */
-void nsTextFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
+void nsTextFrame::AddInlinePrefISize(const IntrinsicISizeInput& aInput,
                                      nsIFrame::InlinePrefISizeData* aData) {
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   TextRunType trtype = (inflation == 1.0f) ? eNotInflated : eInflated;
@@ -9050,7 +9050,7 @@ void nsTextFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
       }
 
       // This will process all the text frames that share the same textrun as f.
-      f->AddInlinePrefISizeForFlow(aRenderingContext, aData, trtype);
+      f->AddInlinePrefISizeForFlow(aInput, aData, trtype);
       lastTextRun = f->GetTextRun(trtype);
     }
   }

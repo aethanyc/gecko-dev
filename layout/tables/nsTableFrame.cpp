@@ -1346,21 +1346,25 @@ void nsTableFrame::MarkIntrinsicISizesDirty() {
 }
 
 /* virtual */
-nscoord nsTableFrame::GetMinISize(gfxContext* aRenderingContext) {
-  if (NeedToCalcBCBorders()) CalcBCBorders();
+nscoord nsTableFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
+  if (NeedToCalcBCBorders()) {
+    CalcBCBorders();
+  }
 
-  ReflowColGroups(aRenderingContext);
+  ReflowColGroups(aInput.mContext);
 
-  return LayoutStrategy()->GetMinISize(aRenderingContext);
+  return LayoutStrategy()->GetMinISize(aInput);
 }
 
 /* virtual */
-nscoord nsTableFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  if (NeedToCalcBCBorders()) CalcBCBorders();
+nscoord nsTableFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
+  if (NeedToCalcBCBorders()) {
+    CalcBCBorders();
+  }
 
-  ReflowColGroups(aRenderingContext);
+  ReflowColGroups(aInput.mContext);
 
-  return LayoutStrategy()->GetPrefISize(aRenderingContext, false);
+  return LayoutStrategy()->GetPrefISize(aInput, false);
 }
 
 /* virtual */ nsIFrame::IntrinsicSizeOffsetData
@@ -1408,7 +1412,8 @@ nsIFrame::SizeComputationResult nsTableFrame::ComputeSize(
   AutoMaybeDisableFontInflation an(this);
 
   // Tables never shrink below their min inline-size.
-  nscoord minISize = GetMinISize(aRenderingContext);
+  const IntrinsicISizeInput input{aRenderingContext};
+  nscoord minISize = GetMinISize(input);
   if (minISize > result.mLogicalSize.ISize(aWM)) {
     result.mLogicalSize.ISize(aWM) = minISize;
   }
@@ -1423,7 +1428,8 @@ nscoord nsTableFrame::TableShrinkISizeToFit(gfxContext* aRenderingContext,
   AutoMaybeDisableFontInflation an(this);
 
   nscoord result;
-  nscoord minISize = GetMinISize(aRenderingContext);
+  const IntrinsicISizeInput input{aRenderingContext};
+  nscoord minISize = GetMinISize(input);
   if (minISize > aISizeInCB) {
     result = minISize;
   } else {
@@ -1434,7 +1440,7 @@ nscoord nsTableFrame::TableShrinkISizeToFit(gfxContext* aRenderingContext,
     // following line.
     // Since we've already called GetMinISize, we don't need to do any
     // of the other stuff GetPrefISize does.
-    nscoord prefISize = LayoutStrategy()->GetPrefISize(aRenderingContext, true);
+    nscoord prefISize = LayoutStrategy()->GetPrefISize(input, true);
     if (prefISize > aISizeInCB) {
       result = aISizeInCB;
     } else {

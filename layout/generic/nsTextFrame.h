@@ -393,11 +393,11 @@ class nsTextFrame : public nsIFrame {
   void SetFontSizeInflation(float aInflation);
 
   void MarkIntrinsicISizesDirty() final;
-  nscoord GetMinISize(gfxContext* aRenderingContext) final;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) final;
-  void AddInlineMinISize(gfxContext* aRenderingContext,
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) final;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) final;
+  void AddInlineMinISize(const mozilla::IntrinsicISizeInput& aInput,
                          InlineMinISizeData* aData) override;
-  void AddInlinePrefISize(gfxContext* aRenderingContext,
+  void AddInlinePrefISize(const mozilla::IntrinsicISizeInput& aInput,
                           InlinePrefISizeData* aData) override;
   SizeComputationResult ComputeSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,
@@ -442,10 +442,10 @@ class nsTextFrame : public nsIFrame {
     eNotInflated
   };
 
-  void AddInlineMinISizeForFlow(gfxContext* aRenderingContext,
-                                nsIFrame::InlineMinISizeData* aData,
+  void AddInlineMinISizeForFlow(const mozilla::IntrinsicISizeInput& aInput,
+                                InlineMinISizeData* aData,
                                 TextRunType aTextRunType);
-  void AddInlinePrefISizeForFlow(gfxContext* aRenderingContext,
+  void AddInlinePrefISizeForFlow(const mozilla::IntrinsicISizeInput& aInput,
                                  InlinePrefISizeData* aData,
                                  TextRunType aTextRunType);
 

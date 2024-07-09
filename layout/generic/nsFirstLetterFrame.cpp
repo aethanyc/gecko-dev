@@ -109,29 +109,29 @@ nsresult nsFirstLetterFrame::GetChildFrameContainingOffset(
 // Needed for non-floating first-letter frames and for the continuations
 // following the first-letter that we also use nsFirstLetterFrame for.
 /* virtual */
-void nsFirstLetterFrame::AddInlineMinISize(
-    gfxContext* aRenderingContext, nsIFrame::InlineMinISizeData* aData) {
-  DoInlineMinISize(aRenderingContext, aData);
+void nsFirstLetterFrame::AddInlineMinISize(const IntrinsicISizeInput& aInput,
+                                           InlineMinISizeData* aData) {
+  DoInlineMinISize(aInput, aData);
 }
 
 // Needed for non-floating first-letter frames and for the continuations
 // following the first-letter that we also use nsFirstLetterFrame for.
 /* virtual */
-void nsFirstLetterFrame::AddInlinePrefISize(
-    gfxContext* aRenderingContext, nsIFrame::InlinePrefISizeData* aData) {
-  DoInlinePrefISize(aRenderingContext, aData);
+void nsFirstLetterFrame::AddInlinePrefISize(const IntrinsicISizeInput& aInput,
+                                            InlinePrefISizeData* aData) {
+  DoInlinePrefISize(aInput, aData);
 }
 
 // Needed for floating first-letter frames.
 /* virtual */
-nscoord nsFirstLetterFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return nsLayoutUtils::MinISizeFromInline(this, aRenderingContext);
+nscoord nsFirstLetterFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
+  return nsLayoutUtils::MinISizeFromInline(this, aInput);
 }
 
 // Needed for floating first-letter frames.
 /* virtual */
-nscoord nsFirstLetterFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return nsLayoutUtils::PrefISizeFromInline(this, aRenderingContext);
+nscoord nsFirstLetterFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
+  return nsLayoutUtils::PrefISizeFromInline(this, aInput);
 }
 
 /* virtual */

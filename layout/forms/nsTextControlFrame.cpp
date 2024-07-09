@@ -15,6 +15,7 @@
 #include "nsCSSPseudoElements.h"
 #include "nsDisplayList.h"
 #include "nsGenericHTMLElement.h"
+#include "nsIFrame.h"
 #include "nsTextFragment.h"
 #include "nsNameSpaceManager.h"
 
@@ -174,8 +175,8 @@ void nsTextControlFrame::Destroy(DestroyContext& aContext) {
   nsContainerFrame::Destroy(aContext);
 }
 
-LogicalSize nsTextControlFrame::CalcIntrinsicSize(gfxContext* aRenderingContext,
-                                                  WritingMode aWM) const {
+LogicalSize nsTextControlFrame::CalcIntrinsicSize(
+    const IntrinsicISizeInput& aInput, WritingMode aWM) const {
   LogicalSize intrinsicSize(aWM);
   const float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   RefPtr<nsFontMetrics> fontMet =
@@ -253,8 +254,8 @@ LogicalSize nsTextControlFrame::CalcIntrinsicSize(gfxContext* aRenderingContext,
   // Add the inline size of the button if our char size is explicit, so as to
   // make sure to make enough space for it.
   if (maybeCols.isSome() && mButton && mButton->GetPrimaryFrame()) {
-    intrinsicSize.ISize(aWM) +=
-        mButton->GetPrimaryFrame()->GetMinISize(aRenderingContext);
+    const IntrinsicISizeInput input{aInput.mContext};
+    intrinsicSize.ISize(aWM) += mButton->GetPrimaryFrame()->GetMinISize(input);
   }
 
   return intrinsicSize;
@@ -577,15 +578,15 @@ void nsTextControlFrame::AppendAnonymousContentTo(
   aElements.AppendElement(mRootNode);
 }
 
-nscoord nsTextControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsTextControlFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
   WritingMode wm = GetWritingMode();
-  return CalcIntrinsicSize(aRenderingContext, wm).ISize(wm);
+  return CalcIntrinsicSize(aInput, wm).ISize(wm);
 }
 
-nscoord nsTextControlFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord nsTextControlFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   // Our min inline size is just our preferred inline-size if we have auto
   // inline size.
-  return GetPrefISize(aRenderingContext);
+  return GetPrefISize(aInput);
 }
 
 Maybe<nscoord> nsTextControlFrame::ComputeBaseline(
@@ -619,7 +620,8 @@ void nsTextControlFrame::Reflow(nsPresContext* aPresContext,
   // set values of reflow's out parameters
   WritingMode wm = aReflowInput.GetWritingMode();
   const auto contentBoxSize = aReflowInput.ComputedSizeWithBSizeFallback([&] {
-    return CalcIntrinsicSize(aReflowInput.mRenderingContext, wm).BSize(wm);
+    const IntrinsicISizeInput input{aReflowInput.mRenderingContext};
+    return CalcIntrinsicSize(input, wm).BSize(wm);
   });
   aDesiredSize.SetSize(
       wm,

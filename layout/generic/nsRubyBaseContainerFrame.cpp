@@ -130,6 +130,7 @@ static nscoord CalculateColumnPrefISize(
     nsIFrame::InlineIntrinsicISizeData* aBaseISizeData) {
   nscoord max = 0;
   uint32_t levelCount = aEnumerator.GetLevelCount();
+  const IntrinsicISizeInput input{aRenderingContext};
   for (uint32_t i = 0; i < levelCount; i++) {
     nsIFrame* frame = aEnumerator.GetFrameAtLevel(i);
     if (frame) {
@@ -143,7 +144,7 @@ static nscoord CalculateColumnPrefISize(
         // ruby text container frame.
         data.SetLineContainer(frame->GetParent());
       }
-      frame->AddInlinePrefISize(aRenderingContext, &data);
+      frame->AddInlinePrefISize(input, &data);
       MOZ_ASSERT(data.mPrevLines == 0, "Shouldn't have prev lines");
       max = std::max(max, data.mCurrentLine);
       if (i == 0) {
@@ -160,7 +161,7 @@ static nscoord CalculateColumnPrefISize(
 //       See bug 1134945.
 /* virtual */
 void nsRubyBaseContainerFrame::AddInlineMinISize(
-    gfxContext* aRenderingContext, nsIFrame::InlineMinISizeData* aData) {
+    const IntrinsicISizeInput& aInput, nsIFrame::InlineMinISizeData* aData) {
   AutoRubyTextContainerArray textContainers(this);
 
   for (uint32_t i = 0, iend = textContainers.Length(); i < iend; i++) {
@@ -171,7 +172,7 @@ void nsRubyBaseContainerFrame::AddInlineMinISize(
       data.SetLineContainer(aData->LineContainer());
       data.mSkipWhitespace = aData->mSkipWhitespace;
       data.mTrailingWhitespace = aData->mTrailingWhitespace;
-      AddInlinePrefISize(aRenderingContext, &data);
+      AddInlinePrefISize(aInput, &data);
       aData->mCurrentLine += data.mCurrentLine;
       if (data.mCurrentLine > 0) {
         aData->mAtStartOfLine = false;
@@ -194,7 +195,7 @@ void nsRubyBaseContainerFrame::AddInlineMinISize(
         nsIFrame* baseFrame = enumerator.GetFrameAtLevel(0);
         if (baseFrame) {
           gfxBreakPriority breakPriority = LineBreakBefore(
-              baseFrame, aRenderingContext->GetDrawTarget(), nullptr, nullptr);
+              baseFrame, aInput.mContext->GetDrawTarget(), nullptr, nullptr);
           if (breakPriority != gfxBreakPriority::eNoBreak) {
             aData->OptionallyBreak();
           }
@@ -202,7 +203,7 @@ void nsRubyBaseContainerFrame::AddInlineMinISize(
       }
       firstFrame = false;
       nscoord isize =
-          CalculateColumnPrefISize(aRenderingContext, enumerator, aData);
+          CalculateColumnPrefISize(aInput.mContext, enumerator, aData);
       aData->mCurrentLine += isize;
       if (isize > 0) {
         aData->mAtStartOfLine = false;
@@ -213,7 +214,7 @@ void nsRubyBaseContainerFrame::AddInlineMinISize(
 
 /* virtual */
 void nsRubyBaseContainerFrame::AddInlinePrefISize(
-    gfxContext* aRenderingContext, nsIFrame::InlinePrefISizeData* aData) {
+    const IntrinsicISizeInput& aInput, InlinePrefISizeData* aData) {
   AutoRubyTextContainerArray textContainers(this);
 
   nscoord sum = 0;
@@ -221,14 +222,14 @@ void nsRubyBaseContainerFrame::AddInlinePrefISize(
     RubyColumnEnumerator enumerator(
         static_cast<nsRubyBaseContainerFrame*>(frame), textContainers);
     for (; !enumerator.AtEnd(); enumerator.Next()) {
-      sum += CalculateColumnPrefISize(aRenderingContext, enumerator, aData);
+      sum += CalculateColumnPrefISize(aInput.mContext, enumerator, aData);
     }
   }
   for (uint32_t i = 0, iend = textContainers.Length(); i < iend; i++) {
     if (textContainers[i]->IsSpanContainer()) {
       nsIFrame* frame = textContainers[i]->PrincipalChildList().FirstChild();
       nsIFrame::InlinePrefISizeData data;
-      frame->AddInlinePrefISize(aRenderingContext, &data);
+      frame->AddInlinePrefISize(aInput, &data);
       MOZ_ASSERT(data.mPrevLines == 0, "Shouldn't have prev lines");
       sum = std::max(sum, data.mCurrentLine);
     }

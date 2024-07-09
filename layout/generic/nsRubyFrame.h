@@ -29,10 +29,10 @@ class nsRubyFrame final : public nsInlineFrame {
   NS_DECL_QUERYFRAME
 
   // nsIFrame overrides
-  virtual void AddInlineMinISize(gfxContext* aRenderingContext,
-                                 InlineMinISizeData* aData) override;
-  virtual void AddInlinePrefISize(gfxContext* aRenderingContext,
-                                  InlinePrefISizeData* aData) override;
+  void AddInlineMinISize(const mozilla::IntrinsicISizeInput& aInput,
+                         InlineMinISizeData* aData) override;
+  void AddInlinePrefISize(const mozilla::IntrinsicISizeInput& aInput,
+                          InlinePrefISizeData* aData) override;
   virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
                       const ReflowInput& aReflowInput,
                       nsReflowStatus& aStatus) override;

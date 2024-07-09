@@ -87,6 +87,7 @@ enum class StyleImageOrientation : uint8_t;
 enum class StyleSystemFont : uint8_t;
 enum class StyleScrollbarWidth : uint8_t;
 struct OverflowAreas;
+struct IntrinsicISizeInput;
 namespace dom {
 class CanvasRenderingContext2D;
 class DOMRectList;
@@ -1588,12 +1589,12 @@ class nsLayoutUtils {
       nscoord tentWidth, nscoord tentHeight);
 
   // Implement nsIFrame::GetPrefISize in terms of nsIFrame::AddInlinePrefISize
-  static nscoord PrefISizeFromInline(nsIFrame* aFrame,
-                                     gfxContext* aRenderingContext);
+  static nscoord PrefISizeFromInline(
+      nsIFrame* aFrame, const mozilla::IntrinsicISizeInput& aInput);
 
   // Implement nsIFrame::GetMinISize in terms of nsIFrame::AddInlineMinISize
   static nscoord MinISizeFromInline(nsIFrame* aFrame,
-                                    gfxContext* aRenderingContext);
+                                    const mozilla::IntrinsicISizeInput& aInput);
 
   // Get a suitable foreground color for painting aColor for aFrame.
   static nscolor DarkenColorIfNeeded(nsIFrame* aFrame, nscolor aColor);

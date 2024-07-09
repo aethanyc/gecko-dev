@@ -62,11 +62,10 @@ class nsInlineFrame : public nsContainerFrame {
 
   void StealFrame(nsIFrame* aChild) override;
 
-  // nsIHTMLReflow overrides
-  virtual void AddInlineMinISize(gfxContext* aRenderingContext,
-                                 InlineMinISizeData* aData) override;
-  virtual void AddInlinePrefISize(gfxContext* aRenderingContext,
-                                  InlinePrefISizeData* aData) override;
+  void AddInlineMinISize(const mozilla::IntrinsicISizeInput& aInput,
+                         InlineMinISizeData* aData) override;
+  void AddInlinePrefISize(const mozilla::IntrinsicISizeInput& aInput,
+                          InlinePrefISizeData* aData) override;
   SizeComputationResult ComputeSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,
       const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,

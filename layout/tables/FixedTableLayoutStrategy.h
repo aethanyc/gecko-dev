@@ -23,9 +23,9 @@ class FixedTableLayoutStrategy : public nsITableLayoutStrategy {
   virtual ~FixedTableLayoutStrategy();
 
   // nsITableLayoutStrategy implementation
-  virtual nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  virtual nscoord GetPrefISize(gfxContext* aRenderingContext,
-                               bool aComputingSize) override;
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) override;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput,
+                       bool aComputingSize) override;
   virtual void MarkIntrinsicISizesDirty() override;
   virtual void ComputeColumnISizes(const ReflowInput& aReflowInput) override;
 

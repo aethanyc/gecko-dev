@@ -602,17 +602,13 @@ void nsCanvasFrame::PaintFocus(DrawTarget* aDrawTarget, nsPoint aPt) {
 }
 
 /* virtual */
-nscoord nsCanvasFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return mFrames.IsEmpty()
-             ? 0
-             : mFrames.FirstChild()->GetMinISize(aRenderingContext);
+nscoord nsCanvasFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
+  return mFrames.IsEmpty() ? 0 : mFrames.FirstChild()->GetMinISize(aInput);
 }
 
 /* virtual */
-nscoord nsCanvasFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return mFrames.IsEmpty()
-             ? 0
-             : mFrames.FirstChild()->GetPrefISize(aRenderingContext);
+nscoord nsCanvasFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
+  return mFrames.IsEmpty() ? 0 : mFrames.FirstChild()->GetPrefISize(aInput);
 }
 
 void nsCanvasFrame::Reflow(nsPresContext* aPresContext,

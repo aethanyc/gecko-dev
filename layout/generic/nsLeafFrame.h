@@ -27,8 +27,8 @@ class nsLeafFrame : public nsIFrame {
   /**
    * Both GetMinISize and GetPrefISize will return our intrinsic inline size.
    */
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) override;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) override;
 
   /**
    * Our auto size is just the intrinsic size.

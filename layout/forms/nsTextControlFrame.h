@@ -61,8 +61,8 @@ class nsTextControlFrame : public nsContainerFrame,
 
   mozilla::ScrollContainerFrame* GetScrollTargetFrame() const override;
 
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) override;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) override;
 
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
               const ReflowInput& aReflowInput,
@@ -276,8 +276,9 @@ class nsTextControlFrame : public nsContainerFrame,
   // Compute our intrinsic size.  This does not include any borders, paddings,
   // etc.  Just the size of our actual area for the text (and the scrollbars,
   // for <textarea>).
-  mozilla::LogicalSize CalcIntrinsicSize(gfxContext* aRenderingContext,
-                                         mozilla::WritingMode aWM) const;
+  mozilla::LogicalSize CalcIntrinsicSize(
+      const mozilla::IntrinsicISizeInput& aInput,
+      mozilla::WritingMode aWM) const;
 
  private:
   // helper methods

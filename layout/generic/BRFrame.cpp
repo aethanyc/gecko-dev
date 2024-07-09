@@ -53,12 +53,12 @@ class BRFrame final : public nsIFrame {
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
               const ReflowInput& aReflowInput,
               nsReflowStatus& aStatus) override;
-  void AddInlineMinISize(gfxContext* aRenderingContext,
+  void AddInlineMinISize(const IntrinsicISizeInput& aInput,
                          InlineMinISizeData* aData) override;
-  void AddInlinePrefISize(gfxContext* aRenderingContext,
+  void AddInlinePrefISize(const IntrinsicISizeInput& aInput,
                           InlinePrefISizeData* aData) override;
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetMinISize(const IntrinsicISizeInput& aInput) override { return 0; }
+  nscoord GetPrefISize(const IntrinsicISizeInput& aInput) override { return 0; }
 
   Maybe<nscoord> GetNaturalBaselineBOffset(
       WritingMode aWM, BaselineSharingGroup aBaselineGroup,
@@ -167,7 +167,7 @@ void BRFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
 }
 
 /* virtual */
-void BRFrame::AddInlineMinISize(gfxContext* aRenderingContext,
+void BRFrame::AddInlineMinISize(const IntrinsicISizeInput& aInput,
                                 nsIFrame::InlineMinISizeData* aData) {
   if (!GetParent()->Style()->ShouldSuppressLineBreak()) {
     aData->ForceBreak();
@@ -175,7 +175,7 @@ void BRFrame::AddInlineMinISize(gfxContext* aRenderingContext,
 }
 
 /* virtual */
-void BRFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
+void BRFrame::AddInlinePrefISize(const IntrinsicISizeInput& aInput,
                                  nsIFrame::InlinePrefISizeData* aData) {
   if (!GetParent()->Style()->ShouldSuppressLineBreak()) {
     // Match the 1 appunit width assigned in the Reflow method above
@@ -183,12 +183,6 @@ void BRFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
     aData->ForceBreak();
   }
 }
-
-/* virtual */
-nscoord BRFrame::GetMinISize(gfxContext* aRenderingContext) { return 0; }
-
-/* virtual */
-nscoord BRFrame::GetPrefISize(gfxContext* aRenderingContext) { return 0; }
 
 Maybe<nscoord> BRFrame::GetNaturalBaselineBOffset(
     WritingMode aWM, BaselineSharingGroup aBaselineGroup,

@@ -178,7 +178,7 @@ nsresult nsMeterFrame::AttributeChanged(int32_t aNameSpaceID,
   return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }
 
-nscoord nsMeterFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord nsMeterFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   nscoord minISize = OneEmInAppUnits();
   if (ResolvedOrientationIsVertical() == GetWritingMode().IsVertical()) {
     // The orientation is inline
@@ -187,8 +187,8 @@ nscoord nsMeterFrame::GetMinISize(gfxContext* aRenderingContext) {
   return minISize;
 }
 
-nscoord nsMeterFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return GetMinISize(aRenderingContext);
+nscoord nsMeterFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
+  return GetMinISize(aInput);
 }
 
 bool nsMeterFrame::ShouldUseNativeStyle() const {

@@ -416,6 +416,12 @@ struct FrameBidiData {
   mozilla::intl::BidiEmbeddingLevel precedingControl;
 };
 
+// A struct collects data required for nsIFrame::GetMinISize() and
+// nsIFrame::GetPrefISize().
+struct MOZ_STACK_CLASS IntrinsicISizeInput final {
+  gfxContext* mContext = nullptr;
+};
+
 }  // namespace mozilla
 
 /// Generic destructor for frame properties. Calls delete.
@@ -2575,7 +2581,7 @@ class nsIFrame : public nsQueryFrame {
    *
    * This method must not return a negative value.
    */
-  virtual nscoord GetMinISize(gfxContext* aRenderingContext);
+  virtual nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput);
 
   /**
    * Get the max-content intrinsic inline size of the frame.  This must be
@@ -2583,7 +2589,7 @@ class nsIFrame : public nsQueryFrame {
    *
    * Otherwise, all the comments for |GetMinISize| above apply.
    */
-  virtual nscoord GetPrefISize(gfxContext* aRenderingContext);
+  virtual nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput);
 
   /**
    * |InlineIntrinsicISize| represents the intrinsic inline size information
@@ -2704,13 +2710,13 @@ class nsIFrame : public nsQueryFrame {
   };
 
   /**
-   * Add the intrinsic minimum width of a frame in a way suitable for
-   * use in inline layout to an |InlineIntrinsicISizeData| object that
-   * represents the intrinsic width information of all the previous
+   * Add the intrinsic minimum inline size of a frame in a way suitable for
+   * use in inline layout to an |InlineMinISizeData| object that
+   * represents the intrinsic inline size information of all the previous
    * frames in the inline layout region.
    *
    * All *allowed* breakpoints within the frame determine what counts as
-   * a line for the |InlineIntrinsicISizeData|.  This means that
+   * a line for the |InlineMinISizeData|.  This means that
    * |aData->mTrailingWhitespace| will always be zero (unlike for
    * AddInlinePrefISize).
    *
@@ -2719,23 +2725,23 @@ class nsIFrame : public nsQueryFrame {
    * considering the effects of 'width', 'min-width', and 'max-width'.
    *
    * This may be called on any frame.  Frames that do not participate in
-   * line breaking can inherit the default implementation on nsFrame,
+   * line breaking can inherit the default implementation on nsIFrame,
    * which calls |GetMinISize|.
    */
-  virtual void AddInlineMinISize(gfxContext* aRenderingContext,
+  virtual void AddInlineMinISize(const mozilla::IntrinsicISizeInput& aInput,
                                  InlineMinISizeData* aData);
 
   /**
-   * Add the intrinsic preferred width of a frame in a way suitable for
-   * use in inline layout to an |InlineIntrinsicISizeData| object that
-   * represents the intrinsic width information of all the previous
+   * Add the intrinsic preferred inline size of a frame in a way suitable for
+   * use in inline layout to an |InlinePrefISizeData| object that
+   * represents the intrinsic inline size information of all the previous
    * frames in the inline layout region.
    *
    * All the comments for |AddInlineMinISize| and |GetPrefISize| apply,
-   * except that this fills in an |InlineIntrinsicISizeData| structure
+   * except that this fills in an |InlinePrefISizeData| structure
    * based on using all *mandatory* breakpoints within the frame.
    */
-  virtual void AddInlinePrefISize(gfxContext* aRenderingContext,
+  virtual void AddInlinePrefISize(const mozilla::IntrinsicISizeInput& aInput,
                                   InlinePrefISizeData* aData);
 
   /**
