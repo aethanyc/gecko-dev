@@ -788,21 +788,35 @@ void nsContainerFrame::SyncFrameViewAfterReflow(nsPresContext* aPresContext,
   }
 }
 
-void nsContainerFrame::DoInlineMinISize(gfxContext* aRenderingContext,
-                                        InlineMinISizeData* aData) {
-  auto handleChildren = [aRenderingContext](auto frame, auto data) {
-    for (nsIFrame* kid : frame->mFrames) {
-      kid->AddInlineMinISize(aRenderingContext, data);
+void nsContainerFrame::DoInlineMinISize(
+    gfxContext* aRenderingContext, const Maybe<LogicalSize>& aPercentageBasis,
+    InlineMinISizeData* aData) {
+  auto handleChildren = [&](auto frame, auto data) {
+    const auto wm = GetWritingMode();
+    for (nsIFrame* child : frame->mFrames) {
+      const Maybe<LogicalSize> percentageBasisInChildWM =
+          aPercentageBasis.map([&](const LogicalSize& aPercentageBasis) {
+            return aPercentageBasis.ConvertTo(child->GetWritingMode(), wm);
+          });
+      child->AddInlineMinISize(aRenderingContext, percentageBasisInChildWM,
+                               data);
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);
 }
 
-void nsContainerFrame::DoInlinePrefISize(gfxContext* aRenderingContext,
-                                         InlinePrefISizeData* aData) {
-  auto handleChildren = [aRenderingContext](auto frame, auto data) {
-    for (nsIFrame* kid : frame->mFrames) {
-      kid->AddInlinePrefISize(aRenderingContext, data);
+void nsContainerFrame::DoInlinePrefISize(
+    gfxContext* aRenderingContext, const Maybe<LogicalSize>& aPercentageBasis,
+    InlinePrefISizeData* aData) {
+  auto handleChildren = [&](auto frame, auto data) {
+    const auto wm = GetWritingMode();
+    for (nsIFrame* child : frame->mFrames) {
+      const Maybe<LogicalSize> percentageBasisInChildWM =
+          aPercentageBasis.map([&](const LogicalSize& aPercentageBasis) {
+            return aPercentageBasis.ConvertTo(child->GetWritingMode(), wm);
+          });
+      child->AddInlinePrefISize(aRenderingContext, percentageBasisInChildWM,
+                                data);
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);
@@ -820,12 +834,25 @@ LogicalSize nsContainerFrame::ComputeAutoSize(
       aAvailableISize - aMargin.ISize(aWM) - aBorderPadding.ISize(aWM);
   if (aFlags.contains(ComputeSizeFlag::ShrinkWrap)) {
     // Only bother computing our 'auto' ISize if the result will be used.
+    const nsStylePosition* stylePos = StylePosition();
     const auto& styleISize = aSizeOverrides.mStyleISize
                                  ? *aSizeOverrides.mStyleISize
-                                 : StylePosition()->ISize(aWM);
+                                 : stylePos->ISize(aWM);
     if (styleISize.IsAuto()) {
+      const auto& styleBSize = aSizeOverrides.mStyleBSize
+                                   ? *aSizeOverrides.mStyleBSize
+                                   : stylePos->BSize(aWM);
+      const LogicalSize contentEdgeToBoxSizing =
+          stylePos->mBoxSizing == StyleBoxSizing::Border ? aBorderPadding
+                                                         : LogicalSize(aWM);
+      const nscoord bSize =
+          nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM))
+              ? NS_UNCONSTRAINEDSIZE
+              : nsLayoutUtils::ComputeBSizeValue(
+                    aCBSize.BSize(aWM), contentEdgeToBoxSizing.BSize(aWM),
+                    styleBSize.AsLengthPercentage());
       result.ISize(aWM) =
-          ShrinkISizeToFit(aRenderingContext, availBased, aFlags);
+          ShrinkISizeToFit(aRenderingContext, availBased, bSize, aFlags);
     }
   } else {
     result.ISize(aWM) = availBased;

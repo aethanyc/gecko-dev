@@ -844,6 +844,7 @@ nscoord nsBlockFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
     ResolveBidi();
   }
 
+  const auto wm = GetWritingMode();
   const bool whiteSpaceCanWrap = StyleText()->WhiteSpaceCanWrapStyle();
   InlineMinISizeData data;
   for (nsBlockFrame* curFrame = this; curFrame;
@@ -861,8 +862,13 @@ nscoord nsBlockFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
 #endif
       if (line->IsBlock()) {
         data.ForceBreak();
+        const auto childWM = line->mFirstChild->GetWritingMode();
+        const auto percentageBasis =
+            LogicalSize(wm, NS_UNCONSTRAINEDSIZE, aInput.mBSize)
+                .ConvertTo(childWM, wm);
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            aInput.mContext, line->mFirstChild, IntrinsicISizeType::MinISize);
+            aInput.mContext, line->mFirstChild, IntrinsicISizeType::MinISize,
+            Some(percentageBasis));
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -874,7 +880,11 @@ nscoord nsBlockFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          kid->AddInlineMinISize(input.mContext, &data);
+          const auto childWM = kid->GetWritingMode();
+          const auto percentageBasis =
+              LogicalSize(wm, NS_UNCONSTRAINEDSIZE, aInput.mBSize)
+                  .ConvertTo(childWM, wm);
+          kid->AddInlineMinISize(input.mContext, Some(percentageBasis), &data);
           if (whiteSpaceCanWrap && data.mTrailingWhitespace) {
             data.OptionallyBreak();
           }
@@ -931,6 +941,7 @@ nscoord nsBlockFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
       PresContext()->BidiEnabled()) {
     ResolveBidi();
   }
+  const auto wm = GetWritingMode();
   InlinePrefISizeData data;
   for (nsBlockFrame* curFrame = this; curFrame;
        curFrame = static_cast<nsBlockFrame*>(curFrame->GetNextContinuation())) {
@@ -953,8 +964,13 @@ nscoord nsBlockFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
           clearType = line->mFirstChild->StyleDisplay()->mClear;
         }
         data.ForceBreak(clearType);
+        const auto childWM = line->mFirstChild->GetWritingMode();
+        const auto percentageBasis =
+            LogicalSize(wm, NS_UNCONSTRAINEDSIZE, aInput.mBSize)
+                .ConvertTo(childWM, wm);
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            aInput.mContext, line->mFirstChild, IntrinsicISizeType::PrefISize);
+            aInput.mContext, line->mFirstChild, IntrinsicISizeType::PrefISize,
+            Some(percentageBasis));
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -971,7 +987,11 @@ nscoord nsBlockFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          kid->AddInlinePrefISize(input.mContext, &data);
+          const auto childWM = kid->GetWritingMode();
+          const auto percentageBasis =
+              LogicalSize(wm, NS_UNCONSTRAINEDSIZE, aInput.mBSize)
+                  .ConvertTo(childWM, wm);
+          kid->AddInlinePrefISize(input.mContext, Some(percentageBasis), &data);
         }
       }
 #ifdef DEBUG
@@ -1037,7 +1057,8 @@ nsresult nsBlockFrame::GetPrefWidthTightBounds(gfxContext* aRenderingContext,
           NS_ENSURE_SUCCESS(rv, rv);
           *aX = std::min(*aX, data.mCurrentLine + childX);
           *aXMost = std::max(*aXMost, data.mCurrentLine + childXMost);
-          kid->AddInlinePrefISize(aRenderingContext, &data);
+          // XXX: Should we pass a percentage basis?
+          kid->AddInlinePrefISize(aRenderingContext, Nothing(), &data);
         }
       }
     }

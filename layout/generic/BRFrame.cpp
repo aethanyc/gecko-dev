@@ -53,10 +53,14 @@ class BRFrame final : public nsIFrame {
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
               const ReflowInput& aReflowInput,
               nsReflowStatus& aStatus) override;
-  void AddInlineMinISize(gfxContext* aRenderingContext,
-                         InlineMinISizeData* aData) override;
-  void AddInlinePrefISize(gfxContext* aRenderingContext,
-                          InlinePrefISizeData* aData) override;
+  void AddInlineMinISize(
+      gfxContext* aRenderingContext,
+      const mozilla::Maybe<mozilla::LogicalSize>& aPercentageBasis,
+      InlineMinISizeData* aData) override;
+  void AddInlinePrefISize(
+      gfxContext* aRenderingContext,
+      const mozilla::Maybe<mozilla::LogicalSize>& aPercentageBasis,
+      InlinePrefISizeData* aData) override;
   nscoord GetMinISize(const IntrinsicISizeInput& aInput) override { return 0; }
   nscoord GetPrefISize(const IntrinsicISizeInput& aInput) override { return 0; }
 
@@ -168,7 +172,8 @@ void BRFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
 
 /* virtual */
 void BRFrame::AddInlineMinISize(gfxContext* aRenderingContext,
-                                nsIFrame::InlineMinISizeData* aData) {
+                                const Maybe<LogicalSize>& aPercentageBasis,
+                                InlineMinISizeData* aData) {
   if (!GetParent()->Style()->ShouldSuppressLineBreak()) {
     aData->ForceBreak();
   }
@@ -176,7 +181,8 @@ void BRFrame::AddInlineMinISize(gfxContext* aRenderingContext,
 
 /* virtual */
 void BRFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
-                                 nsIFrame::InlinePrefISizeData* aData) {
+                                 const Maybe<LogicalSize>& aPercentageBasis,
+                                 InlinePrefISizeData* aData) {
   if (!GetParent()->Style()->ShouldSuppressLineBreak()) {
     // Match the 1 appunit width assigned in the Reflow method above
     aData->mCurrentLine += 1;

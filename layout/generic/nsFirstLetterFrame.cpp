@@ -110,16 +110,18 @@ nsresult nsFirstLetterFrame::GetChildFrameContainingOffset(
 // following the first-letter that we also use nsFirstLetterFrame for.
 /* virtual */
 void nsFirstLetterFrame::AddInlineMinISize(
-    gfxContext* aRenderingContext, nsIFrame::InlineMinISizeData* aData) {
-  DoInlineMinISize(aRenderingContext, aData);
+    gfxContext* aRenderingContext, const Maybe<LogicalSize>& aPercentageBasis,
+    InlineMinISizeData* aData) {
+  DoInlineMinISize(aRenderingContext, aPercentageBasis, aData);
 }
 
 // Needed for non-floating first-letter frames and for the continuations
 // following the first-letter that we also use nsFirstLetterFrame for.
 /* virtual */
 void nsFirstLetterFrame::AddInlinePrefISize(
-    gfxContext* aRenderingContext, nsIFrame::InlinePrefISizeData* aData) {
-  DoInlinePrefISize(aRenderingContext, aData);
+    gfxContext* aRenderingContext, const Maybe<LogicalSize>& aPercentageBasis,
+    InlinePrefISizeData* aData) {
+  DoInlinePrefISize(aRenderingContext, aPercentageBasis, aData);
 }
 
 // Needed for floating first-letter frames.

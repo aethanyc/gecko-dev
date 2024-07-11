@@ -6003,17 +6003,19 @@ nscoord nsIFrame::GetPrefISize(const IntrinsicISizeInput& aInput) { return 0; }
 
 /* virtual */
 void nsIFrame::AddInlineMinISize(gfxContext* aRenderingContext,
-                                 nsIFrame::InlineMinISizeData* aData) {
+                                 const Maybe<LogicalSize>& aPercentageBasis,
+                                 InlineMinISizeData* aData) {
   nscoord isize = nsLayoutUtils::IntrinsicForContainer(
-      aRenderingContext, this, IntrinsicISizeType::MinISize);
+      aRenderingContext, this, IntrinsicISizeType::MinISize, aPercentageBasis);
   aData->DefaultAddInlineMinISize(this, isize);
 }
 
 /* virtual */
 void nsIFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
-                                  nsIFrame::InlinePrefISizeData* aData) {
+                                  const Maybe<LogicalSize>& aPercentageBasis,
+                                  InlinePrefISizeData* aData) {
   nscoord isize = nsLayoutUtils::IntrinsicForContainer(
-      aRenderingContext, this, IntrinsicISizeType::PrefISize);
+      aRenderingContext, this, IntrinsicISizeType::PrefISize, aPercentageBasis);
   aData->DefaultAddInlinePrefISize(isize);
 }
 
@@ -6695,26 +6697,55 @@ LogicalSize nsIFrame::ComputeAutoSize(
   LogicalSize result(aWM, 0xdeadbeef, NS_UNCONSTRAINEDSIZE);
 
   // don't bother setting it if the result won't be used
+  const nsStylePosition* stylePos = StylePosition();
   const auto& styleISize = aSizeOverrides.mStyleISize
                                ? *aSizeOverrides.mStyleISize
-                               : StylePosition()->ISize(aWM);
+                               : stylePos->ISize(aWM);
   if (styleISize.IsAuto()) {
     nscoord availBased =
         aAvailableISize - aMargin.ISize(aWM) - aBorderPadding.ISize(aWM);
-    result.ISize(aWM) = ShrinkISizeToFit(aRenderingContext, availBased, aFlags);
+    const auto& styleBSize = aSizeOverrides.mStyleBSize
+                                 ? *aSizeOverrides.mStyleBSize
+                                 : stylePos->BSize(aWM);
+    const LogicalSize contentEdgeToBoxSizing =
+        stylePos->mBoxSizing == StyleBoxSizing::Border ? aBorderPadding
+                                                       : LogicalSize(aWM);
+    nscoord bSize =
+        nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM))
+            ? NS_UNCONSTRAINEDSIZE
+            : nsLayoutUtils::ComputeBSizeValue(
+                  aCBSize.BSize(aWM), contentEdgeToBoxSizing.BSize(aWM),
+                  styleBSize.AsLengthPercentage());
+    const auto& styleMaxBSize = stylePos->MaxBSize(aWM);
+    if (!nsLayoutUtils::IsAutoBSize(styleMaxBSize, aCBSize.BSize(aWM))) {
+      const nscoord maxBSize = nsLayoutUtils::ComputeBSizeValue(
+          aCBSize.BSize(aWM), contentEdgeToBoxSizing.BSize(aWM),
+          styleMaxBSize.AsLengthPercentage());
+      bSize = std::min(bSize, maxBSize);
+    }
+    const auto styleMinBSize = stylePos->MinBSize(aWM);
+    if (!nsLayoutUtils::IsAutoBSize(styleMinBSize, aCBSize.BSize(aWM))) {
+      const nscoord minBSize = nsLayoutUtils::ComputeBSizeValue(
+          aCBSize.BSize(aWM), contentEdgeToBoxSizing.BSize(aWM),
+          styleMinBSize.AsLengthPercentage());
+      bSize = std::max(bSize, minBSize);
+    }
+
+    result.ISize(aWM) =
+        ShrinkISizeToFit(aRenderingContext, availBased, bSize, aFlags);
   }
   return result;
 }
 
 nscoord nsIFrame::ShrinkISizeToFit(gfxContext* aRenderingContext,
-                                   nscoord aISizeInCB,
+                                   nscoord aISizeInCB, nscoord aBSize,
                                    ComputeSizeFlags aFlags) {
   // If we're a container for font size inflation, then shrink
   // wrapping inside of us should not apply font size inflation.
   AutoMaybeDisableFontInflation an(this);
 
   nscoord result;
-  const IntrinsicISizeInput input{aRenderingContext};
+  const IntrinsicISizeInput input{aRenderingContext, aBSize};
   nscoord minISize = GetMinISize(input);
   if (minISize > aISizeInCB) {
     const bool clamp = aFlags.contains(ComputeSizeFlag::IClampMarginBoxMinSize);
@@ -6773,7 +6804,29 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
         aAspectRatio));
   }();
 
-  const IntrinsicISizeInput input{aRenderingContext};
+  nscoord bSize =
+      nsLayoutUtils::IsAutoBSize(aStyleBSize, aCBSize.BSize(aWM))
+          ? NS_UNCONSTRAINEDSIZE
+          : nsLayoutUtils::ComputeBSizeValue(aCBSize.BSize(aWM),
+                                             aContentEdgeToBoxSizing.BSize(aWM),
+                                             aStyleBSize.AsLengthPercentage());
+  const nsStylePosition* stylePos = StylePosition();
+  const auto& styleMaxBSize = stylePos->MaxBSize(aWM);
+  if (!nsLayoutUtils::IsAutoBSize(styleMaxBSize, aCBSize.BSize(aWM))) {
+    const nscoord maxBSize = nsLayoutUtils::ComputeBSizeValue(
+        aCBSize.BSize(aWM), aContentEdgeToBoxSizing.BSize(aWM),
+        styleMaxBSize.AsLengthPercentage());
+    bSize = std::min(bSize, maxBSize);
+  }
+  const auto styleMinBSize = stylePos->MinBSize(aWM);
+  if (!nsLayoutUtils::IsAutoBSize(styleMinBSize, aCBSize.BSize(aWM))) {
+    const nscoord minBSize = nsLayoutUtils::ComputeBSizeValue(
+        aCBSize.BSize(aWM), aContentEdgeToBoxSizing.BSize(aWM),
+        styleMinBSize.AsLengthPercentage());
+    bSize = std::max(bSize, minBSize);
+  }
+
+  const IntrinsicISizeInput input{aRenderingContext, bSize};
   nscoord result;
   switch (aSize) {
     case ExtremumLength::MaxContent:
