@@ -341,7 +341,8 @@ nscoord nsFieldSetFrame::IntrinsicISize(const IntrinsicISizeInput& aInput,
     // outer instead, and the padding computed for the inner is wrong
     // for percentage padding.
     contentWidth = nsLayoutUtils::IntrinsicForContainer(
-        aInput.mContext, inner, aType, nsLayoutUtils::IGNORE_PADDING);
+        aInput.mContext, inner, aType, Nothing(),
+        nsLayoutUtils::IGNORE_PADDING);
   }
 
   return std::max(legendWidth, contentWidth);

@@ -597,17 +597,17 @@ ScrollContainerFrame* nsTableCellFrame::GetScrollTargetFrame() const {
 /* virtual */
 nscoord nsTableCellFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   nsIFrame* inner = mFrames.FirstChild();
-  return nsLayoutUtils::IntrinsicForContainer(aInput.mContext, inner,
-                                              IntrinsicISizeType::MinISize,
-                                              nsLayoutUtils::IGNORE_PADDING);
+  return nsLayoutUtils::IntrinsicForContainer(
+      aInput.mContext, inner, IntrinsicISizeType::MinISize, Nothing(),
+      nsLayoutUtils::IGNORE_PADDING);
 }
 
 /* virtual */
 nscoord nsTableCellFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
   nsIFrame* inner = mFrames.FirstChild();
-  return nsLayoutUtils::IntrinsicForContainer(aInput.mContext, inner,
-                                              IntrinsicISizeType::PrefISize,
-                                              nsLayoutUtils::IGNORE_PADDING);
+  return nsLayoutUtils::IntrinsicForContainer(
+      aInput.mContext, inner, IntrinsicISizeType::PrefISize, Nothing(),
+      nsLayoutUtils::IGNORE_PADDING);
 }
 
 /* virtual */ nsIFrame::IntrinsicSizeOffsetData
