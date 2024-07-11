@@ -28,12 +28,8 @@ class nsCheckboxRadioFrame final : public nsAtomicContainerFrame,
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         const nsDisplayListSet& aLists) override;
 
-  /**
-   * Both GetMinISize and GetPrefISize will return whatever GetIntrinsicISize
-   * returns.
-   */
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) override;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) override;
 
   /**
    * Our auto size is just intrinsic width and intrinsic height.

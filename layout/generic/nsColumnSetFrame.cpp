@@ -411,14 +411,14 @@ static void MoveChildTo(nsIFrame* aChild, LogicalPoint aOrigin, WritingMode aWM,
   nsContainerFrame::PlaceFrameView(aChild);
 }
 
-nscoord nsColumnSetFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord nsColumnSetFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   nscoord iSize = 0;
 
   if (mFrames.FirstChild()) {
     // We want to ignore this in the case that we're size contained
     // because our children should not contribute to our
     // intrinsic size.
-    iSize = mFrames.FirstChild()->GetMinISize(aRenderingContext);
+    iSize = mFrames.FirstChild()->GetMinISize(aInput);
   }
   const nsStyleColumn* colStyle = StyleColumn();
   if (colStyle->mColumnWidth.IsLength()) {
@@ -443,7 +443,7 @@ nscoord nsColumnSetFrame::GetMinISize(gfxContext* aRenderingContext) {
   return iSize;
 }
 
-nscoord nsColumnSetFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsColumnSetFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
   // Our preferred width is our desired column width, if specified, otherwise
   // the child's preferred width, times the number of columns, plus the width
   // of any required column gaps
@@ -458,7 +458,7 @@ nscoord nsColumnSetFrame::GetPrefISize(gfxContext* aRenderingContext) {
     // We want to ignore this in the case that we're size contained
     // because our children should not contribute to our
     // intrinsic size.
-    colISize = mFrames.FirstChild()->GetPrefISize(aRenderingContext);
+    colISize = mFrames.FirstChild()->GetPrefISize(aInput);
   } else {
     colISize = 0;
   }

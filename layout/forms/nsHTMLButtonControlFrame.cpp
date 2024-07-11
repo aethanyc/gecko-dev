@@ -239,20 +239,22 @@ void nsHTMLButtonControlFrame::BuildDisplayList(
 }
 
 nscoord nsHTMLButtonControlFrame::IntrinsicISize(
-    gfxContext* aRenderingContext, mozilla::IntrinsicISizeType aType) {
+    const IntrinsicISizeInput& aInput, IntrinsicISizeType aType) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }
-  return nsLayoutUtils::IntrinsicForContainer(aRenderingContext,
+  return nsLayoutUtils::IntrinsicForContainer(aInput.mContext,
                                               mFrames.FirstChild(), aType);
 }
 
-nscoord nsHTMLButtonControlFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
+nscoord nsHTMLButtonControlFrame::GetMinISize(
+    const IntrinsicISizeInput& aInput) {
+  return IntrinsicISize(aInput, IntrinsicISizeType::MinISize);
 }
 
-nscoord nsHTMLButtonControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
+nscoord nsHTMLButtonControlFrame::GetPrefISize(
+    const IntrinsicISizeInput& aInput) {
+  return IntrinsicISize(aInput, IntrinsicISizeType::PrefISize);
 }
 
 void nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,

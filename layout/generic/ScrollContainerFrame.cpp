@@ -1273,7 +1273,7 @@ static bool IsMarqueeScrollbox(const nsIFrame& aScrollFrame) {
 }
 
 /* virtual */
-nscoord ScrollContainerFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord ScrollContainerFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   nscoord result = [&] {
     if (const Maybe<nscoord> containISize = ContainIntrinsicISize()) {
       return *containISize;
@@ -1281,18 +1281,17 @@ nscoord ScrollContainerFrame::GetMinISize(gfxContext* aRenderingContext) {
     if (MOZ_UNLIKELY(IsMarqueeScrollbox(*this))) {
       return 0;
     }
-    return mScrolledFrame->GetMinISize(aRenderingContext);
+    return mScrolledFrame->GetMinISize(aInput);
   }();
 
   return result + IntrinsicScrollbarGutterSizeAtInlineEdges();
 }
 
 /* virtual */
-nscoord ScrollContainerFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord ScrollContainerFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
   const Maybe<nscoord> containISize = ContainIntrinsicISize();
-  nscoord result = containISize
-                       ? *containISize
-                       : mScrolledFrame->GetPrefISize(aRenderingContext);
+  nscoord result =
+      containISize ? *containISize : mScrolledFrame->GetPrefISize(aInput);
   return NSCoordSaturatingAdd(result,
                               IntrinsicScrollbarGutterSizeAtInlineEdges());
 }

@@ -60,8 +60,8 @@ class nsVideoFrame : public nsContainerFrame,
       mozilla::ComputeSizeFlags aFlags,
       const mozilla::ReflowInput* aReflowInput = nullptr) final;
 
-  nscoord GetMinISize(gfxContext* aRenderingContext) final;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) final;
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) final;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) final;
   void Destroy(DestroyContext&) final;
 
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,

@@ -847,14 +847,15 @@ void nsMathMLContainerFrame::UpdateIntrinsicISize(
 }
 
 /* virtual */
-nscoord nsMathMLContainerFrame::GetMinISize(gfxContext* aRenderingContext) {
-  UpdateIntrinsicISize(aRenderingContext);
+nscoord nsMathMLContainerFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
+  UpdateIntrinsicISize(aInput.mContext);
   return mIntrinsicISize;
 }
 
 /* virtual */
-nscoord nsMathMLContainerFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  UpdateIntrinsicISize(aRenderingContext);
+nscoord nsMathMLContainerFrame::GetPrefISize(
+    const IntrinsicISizeInput& aInput) {
+  UpdateIntrinsicISize(aInput.mContext);
   return mIntrinsicISize;
 }
 

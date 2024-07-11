@@ -118,8 +118,8 @@ class nsGridContainerFrame final : public nsContainerFrame,
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
             nsIFrame* aPrevInFlow) override;
   void DidSetComputedStyle(ComputedStyle* aOldStyle) override;
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) override;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) override;
   void MarkIntrinsicISizesDirty() override;
 
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
@@ -371,7 +371,7 @@ class nsGridContainerFrame final : public nsContainerFrame,
   /**
    * Helper for GetMinISize / GetPrefISize.
    */
-  nscoord IntrinsicISize(gfxContext* aRenderingContext,
+  nscoord IntrinsicISize(const mozilla::IntrinsicISizeInput& aInput,
                          mozilla::IntrinsicISizeType aConstraint);
 
   nscoord GetBBaseline(BaselineSharingGroup aBaselineGroup) const {

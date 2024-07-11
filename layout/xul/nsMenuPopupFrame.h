@@ -165,8 +165,8 @@ class nsMenuPopupFrame final : public nsBlockFrame {
 
   mozilla::dom::XULPopupElement& PopupElement() const;
 
-  nscoord GetPrefISize(gfxContext*) final;
-  nscoord GetMinISize(gfxContext*) final;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) final;
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) final;
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
               const ReflowInput& aReflowInput,
               nsReflowStatus& aStatus) override;

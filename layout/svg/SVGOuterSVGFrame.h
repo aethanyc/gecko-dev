@@ -46,8 +46,8 @@ class SVGOuterSVGFrame final : public SVGDisplayContainerFrame,
   NS_DECL_FRAMEARENA_HELPERS(SVGOuterSVGFrame)
 
   // nsIFrame:
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetMinISize(const IntrinsicISizeInput& aInput) override;
+  nscoord GetPrefISize(const IntrinsicISizeInput& aInput) override;
 
   IntrinsicSize GetIntrinsicSize() override;
   AspectRatio GetIntrinsicRatio() const override;
