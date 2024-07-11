@@ -55,8 +55,8 @@ class nsListControlFrame final : public mozilla::ScrollContainerFrame,
 
   void SetInitialChildList(ChildListID aListID, nsFrameList&& aChildList) final;
 
-  nscoord GetPrefISize(gfxContext* aRenderingContext) final;
-  nscoord GetMinISize(gfxContext* aRenderingContext) final;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) final;
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) final;
 
   void Reflow(nsPresContext* aCX, ReflowOutput& aDesiredSize,
               const ReflowInput& aReflowInput, nsReflowStatus& aStatus) final;
@@ -265,7 +265,7 @@ class nsListControlFrame final : public mozilla::ScrollContainerFrame,
   nscoord CalcIntrinsicBSize(nscoord aBSizeOfARow, int32_t aNumberOfOptions);
 
   // Helper for GetMinISize/GetPrefISize.
-  nscoord IntrinsicISize(gfxContext* aRenderingContext,
+  nscoord IntrinsicISize(const mozilla::IntrinsicISizeInput& aInput,
                          mozilla::IntrinsicISizeType aType);
 
   // Dropped down stuff

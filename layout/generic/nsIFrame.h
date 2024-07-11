@@ -416,6 +416,12 @@ struct FrameBidiData {
   mozilla::intl::BidiEmbeddingLevel precedingControl;
 };
 
+// A struct collects data required for nsIFrame::GetMinISize() and
+// nsIFrame::GetPrefISize().
+struct MOZ_STACK_CLASS IntrinsicISizeInput final {
+  gfxContext* mContext = nullptr;
+};
+
 }  // namespace mozilla
 
 /// Generic destructor for frame properties. Calls delete.
@@ -2575,7 +2581,7 @@ class nsIFrame : public nsQueryFrame {
    *
    * This method must not return a negative value.
    */
-  virtual nscoord GetMinISize(gfxContext* aRenderingContext);
+  virtual nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput);
 
   /**
    * Get the max-content intrinsic inline size of the frame.  This must be
@@ -2583,7 +2589,7 @@ class nsIFrame : public nsQueryFrame {
    *
    * Otherwise, all the comments for |GetMinISize| above apply.
    */
-  virtual nscoord GetPrefISize(gfxContext* aRenderingContext);
+  virtual nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput);
 
   /**
    * |InlineIntrinsicISize| represents the intrinsic inline size information

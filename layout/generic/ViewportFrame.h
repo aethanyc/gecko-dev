@@ -55,8 +55,8 @@ class ViewportFrame : public nsContainerFrame {
   nsDisplayWrapList* BuildDisplayListForTopLayer(nsDisplayListBuilder* aBuilder,
                                                  bool* aIsOpaque = nullptr);
 
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetMinISize(const IntrinsicISizeInput& aInput) override;
+  nscoord GetPrefISize(const IntrinsicISizeInput& aInput) override;
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
               const ReflowInput& aReflowInput,
               nsReflowStatus& aStatus) override;

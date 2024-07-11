@@ -207,7 +207,7 @@ nsresult nsProgressFrame::AttributeChanged(int32_t aNameSpaceID,
   return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }
 
-nscoord nsProgressFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord nsProgressFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   nscoord minISize = OneEmInAppUnits();
   if (ResolvedOrientationIsVertical() == GetWritingMode().IsVertical()) {
     minISize *= 10;
@@ -215,8 +215,8 @@ nscoord nsProgressFrame::GetMinISize(gfxContext* aRenderingContext) {
   return minISize;
 }
 
-nscoord nsProgressFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return GetMinISize(aRenderingContext);
+nscoord nsProgressFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
+  return GetMinISize(aInput);
 }
 
 bool nsProgressFrame::ShouldUseNativeStyle() const {

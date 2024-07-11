@@ -147,8 +147,8 @@ class nsFlexContainerFrame final : public nsContainerFrame,
               const ReflowInput& aReflowInput,
               nsReflowStatus& aStatus) override;
 
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) override;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) override;
 
 #ifdef DEBUG_FRAME_DUMP
   nsresult GetFrameName(nsAString& aResult) const override;
@@ -649,7 +649,7 @@ class nsFlexContainerFrame final : public nsContainerFrame,
   /**
    * Helper for GetMinISize / GetPrefISize.
    */
-  nscoord IntrinsicISize(gfxContext* aRenderingContext,
+  nscoord IntrinsicISize(const mozilla::IntrinsicISizeInput& aInput,
                          mozilla::IntrinsicISizeType aType);
 
   /**

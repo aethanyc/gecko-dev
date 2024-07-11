@@ -149,7 +149,7 @@ void ColumnSetWrapperFrame::MarkIntrinsicISizesDirty() {
   }
 }
 
-nscoord ColumnSetWrapperFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord ColumnSetWrapperFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   nscoord iSize = 0;
 
   if (Maybe<nscoord> containISize =
@@ -184,14 +184,15 @@ nscoord ColumnSetWrapperFrame::GetMinISize(gfxContext* aRenderingContext) {
     }
   } else {
     for (nsIFrame* f : PrincipalChildList()) {
-      iSize = std::max(iSize, f->GetMinISize(aRenderingContext));
+      const IntrinsicISizeInput input{aInput.mContext};
+      iSize = std::max(iSize, f->GetMinISize(input));
     }
   }
 
   return iSize;
 }
 
-nscoord ColumnSetWrapperFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord ColumnSetWrapperFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
   nscoord iSize = 0;
 
   if (Maybe<nscoord> containISize =
@@ -220,7 +221,8 @@ nscoord ColumnSetWrapperFrame::GetPrefISize(gfxContext* aRenderingContext) {
     iSize = ColumnUtils::IntrinsicISize(numColumns, colGap, colISize);
   } else {
     for (nsIFrame* f : PrincipalChildList()) {
-      iSize = std::max(iSize, f->GetPrefISize(aRenderingContext));
+      const IntrinsicISizeInput input{aInput.mContext};
+      iSize = std::max(iSize, f->GetPrefISize(input));
     }
   }
 

@@ -29,9 +29,9 @@ class nsHTMLButtonControlFrame : public nsContainerFrame,
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         const nsDisplayListSet& aLists) override;
 
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) override;
 
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) override;
 
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
               const ReflowInput& aReflowInput,
@@ -107,7 +107,7 @@ class nsHTMLButtonControlFrame : public nsContainerFrame,
                             nsIFrame* aFirstKid);
 
   // Helper for GetMinISize/GetPrefISize.
-  nscoord IntrinsicISize(gfxContext* aRenderingContext,
+  nscoord IntrinsicISize(const mozilla::IntrinsicISizeInput& aInput,
                          mozilla::IntrinsicISizeType aType);
 
   BaselineSharingGroup GetDefaultBaselineSharingGroup() const override;

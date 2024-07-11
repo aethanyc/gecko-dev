@@ -47,8 +47,8 @@ class nsComboboxControlFrame final : public nsHTMLButtonControlFrame,
   mozilla::a11y::AccType AccessibleType() final;
 #endif
 
-  nscoord GetMinISize(gfxContext* aRenderingContext) final;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) final;
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) final;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) final;
 
   // We're a leaf, so we need to report ourselves as the content insertion
   // frame.
@@ -117,7 +117,7 @@ class nsComboboxControlFrame final : public nsHTMLButtonControlFrame,
   nscoord GetLongestOptionISize(gfxContext*) const;
 
   // Helper for GetMinISize/GetPrefISize
-  nscoord IntrinsicISize(gfxContext* aRenderingContext,
+  nscoord IntrinsicISize(const mozilla::IntrinsicISizeInput& aInput,
                          mozilla::IntrinsicISizeType aType);
 
   class RedisplayTextEvent : public mozilla::Runnable {

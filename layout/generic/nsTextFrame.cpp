@@ -4374,14 +4374,14 @@ nsIFrame* nsContinuingTextFrame::FirstInFlow() const {
 
 // Needed for text frames in XUL.
 /* virtual */
-nscoord nsTextFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return nsLayoutUtils::MinISizeFromInline(this, aRenderingContext);
+nscoord nsTextFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
+  return nsLayoutUtils::MinISizeFromInline(this, aInput.mContext);
 }
 
 // Needed for text frames in XUL.
 /* virtual */
-nscoord nsTextFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return nsLayoutUtils::PrefISizeFromInline(this, aRenderingContext);
+nscoord nsTextFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
+  return nsLayoutUtils::PrefISizeFromInline(this, aInput.mContext);
 }
 
 /* virtual */

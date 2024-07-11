@@ -595,18 +595,18 @@ ScrollContainerFrame* nsTableCellFrame::GetScrollTargetFrame() const {
 }
 
 /* virtual */
-nscoord nsTableCellFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord nsTableCellFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   nsIFrame* inner = mFrames.FirstChild();
   return nsLayoutUtils::IntrinsicForContainer(
-      aRenderingContext, inner, IntrinsicISizeType::MinISize, Nothing(),
+      aInput.mContext, inner, IntrinsicISizeType::MinISize, Nothing(),
       nsLayoutUtils::IGNORE_PADDING);
 }
 
 /* virtual */
-nscoord nsTableCellFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsTableCellFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
   nsIFrame* inner = mFrames.FirstChild();
   return nsLayoutUtils::IntrinsicForContainer(
-      aRenderingContext, inner, IntrinsicISizeType::PrefISize, Nothing(),
+      aInput.mContext, inner, IntrinsicISizeType::PrefISize, Nothing(),
       nsLayoutUtils::IGNORE_PADDING);
 }
 

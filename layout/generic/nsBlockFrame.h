@@ -274,8 +274,8 @@ class nsBlockFrame : public nsContainerFrame {
                                     BaselineExportContext aExportContext) const;
 
  public:
-  nscoord GetMinISize(gfxContext* aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) override;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) override;
 
   nsRect ComputeTightBounds(DrawTarget* aDrawTarget) const override;
 

@@ -34,21 +34,22 @@ nsDateTimeControlFrame::nsDateTimeControlFrame(ComputedStyle* aStyle,
                                                nsPresContext* aPresContext)
     : nsContainerFrame(aStyle, aPresContext, kClassID) {}
 
-nscoord nsDateTimeControlFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord nsDateTimeControlFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   nsIFrame* kid = mFrames.FirstChild();
   if (!kid) {
     return 0;
   }
-  return nsLayoutUtils::IntrinsicForContainer(aRenderingContext, kid,
+  return nsLayoutUtils::IntrinsicForContainer(aInput.mContext, kid,
                                               IntrinsicISizeType::MinISize);
 }
 
-nscoord nsDateTimeControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsDateTimeControlFrame::GetPrefISize(
+    const IntrinsicISizeInput& aInput) {
   nsIFrame* kid = mFrames.FirstChild();
   if (!kid) {
     return 0;
   }
-  return nsLayoutUtils::IntrinsicForContainer(aRenderingContext, kid,
+  return nsLayoutUtils::IntrinsicForContainer(aInput.mContext, kid,
                                               IntrinsicISizeType::PrefISize);
 }
 
