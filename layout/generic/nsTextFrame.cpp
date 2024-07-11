@@ -4249,10 +4249,18 @@ class nsContinuingTextFrame final : public nsTextFrame {
     return mFirstContinuation;
   };
 
-  void AddInlineMinISize(gfxContext* aRenderingContext,
-                         InlineMinISizeData* aData) final;
-  void AddInlinePrefISize(gfxContext* aRenderingContext,
-                          InlinePrefISizeData* aData) final;
+  void AddInlineMinISize(
+      gfxContext* aRenderingContext,
+      const mozilla::Maybe<mozilla::LogicalSize>& aPercentageBasis,
+      InlineMinISizeData* aData) final {
+    // Do nothing, since the first-in-flow accounts for everything.
+  }
+  void AddInlinePrefISize(
+      gfxContext* aRenderingContext,
+      const mozilla::Maybe<mozilla::LogicalSize>& aPercentageBasis,
+      InlinePrefISizeData* aData) final {
+    // Do nothing, since the first-in-flow accounts for everything.
+  }
 
  protected:
   explicit nsContinuingTextFrame(ComputedStyle* aStyle,
@@ -4382,18 +4390,6 @@ nscoord nsTextFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
 /* virtual */
 nscoord nsTextFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
   return nsLayoutUtils::PrefISizeFromInline(this, aInput.mContext);
-}
-
-/* virtual */
-void nsContinuingTextFrame::AddInlineMinISize(gfxContext* aRenderingContext,
-                                              InlineMinISizeData* aData) {
-  // Do nothing, since the first-in-flow accounts for everything.
-}
-
-/* virtual */
-void nsContinuingTextFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
-                                               InlinePrefISizeData* aData) {
-  // Do nothing, since the first-in-flow accounts for everything.
 }
 
 //----------------------------------------------------------------------
@@ -8852,7 +8848,8 @@ static bool IsUnreflowedLetterFrame(nsIFrame* aFrame) {
 // first-line changing min-width
 /* virtual */
 void nsTextFrame::AddInlineMinISize(gfxContext* aRenderingContext,
-                                    nsIFrame::InlineMinISizeData* aData) {
+                                    const Maybe<LogicalSize>& aPercentageBasis,
+                                    InlineMinISizeData* aData) {
   // Check if this textframe belongs to a first-letter frame that has not yet
   // been reflowed; if so, we need to deal with splitting off a continuation
   // before we can measure the advance correctly.
@@ -9019,7 +9016,8 @@ void nsTextFrame::AddInlinePrefISizeForFlow(
 // first-line and first-letter changing pref-width
 /* virtual */
 void nsTextFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
-                                     nsIFrame::InlinePrefISizeData* aData) {
+                                     const Maybe<LogicalSize>& aPercentageBasis,
+                                     InlinePrefISizeData* aData) {
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   TextRunType trtype = (inflation == 1.0f) ? eNotInflated : eInflated;
 

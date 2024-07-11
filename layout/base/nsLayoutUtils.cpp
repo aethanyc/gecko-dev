@@ -5294,9 +5294,12 @@ nscoord nsLayoutUtils::MinISizeFromInline(nsIFrame* aFrame,
                                           gfxContext* aRenderingContext) {
   NS_ASSERTION(!aFrame->IsContainerForFontSizeInflation(),
                "should not be container for font size inflation");
-
+  MOZ_ASSERT(!aFrame->SupportsAspectRatio(),
+             "This helper doesn't work on frames that supports aspect-ratio!");
   nsIFrame::InlineMinISizeData data;
-  aFrame->AddInlineMinISize(aRenderingContext, &data);
+  // It is fine to pass Nothing() as a percentage basis this helper doesn't work
+  // on frames that supports aspect-ratio.
+  aFrame->AddInlineMinISize(aRenderingContext, Nothing(), &data);
   data.ForceBreak();
   return data.mPrevLines;
 }
@@ -5306,9 +5309,12 @@ nscoord nsLayoutUtils::PrefISizeFromInline(nsIFrame* aFrame,
                                            gfxContext* aRenderingContext) {
   NS_ASSERTION(!aFrame->IsContainerForFontSizeInflation(),
                "should not be container for font size inflation");
-
+  MOZ_ASSERT(!aFrame->SupportsAspectRatio(),
+             "This helper doesn't work on frames that supports aspect-ratio!");
   nsIFrame::InlinePrefISizeData data;
-  aFrame->AddInlinePrefISize(aRenderingContext, &data);
+  // It is fine to pass Nothing() as a percentage basis this helper doesn't work
+  // on frames that supports aspect-ratio.
+  aFrame->AddInlinePrefISize(aRenderingContext, Nothing(), &data);
   data.ForceBreak();
   return data.mPrevLines;
 }

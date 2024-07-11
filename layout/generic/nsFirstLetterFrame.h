@@ -37,10 +37,14 @@ class nsFirstLetterFrame : public nsContainerFrame {
 
   nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) final;
   nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) final;
-  void AddInlineMinISize(gfxContext* aRenderingContext,
-                         InlineMinISizeData* aData) final;
-  void AddInlinePrefISize(gfxContext* aRenderingContext,
-                          InlinePrefISizeData* aData) final;
+  void AddInlineMinISize(
+      gfxContext* aRenderingContext,
+      const mozilla::Maybe<mozilla::LogicalSize>& aPercentageBasis,
+      InlineMinISizeData* aData) final;
+  void AddInlinePrefISize(
+      gfxContext* aRenderingContext,
+      const mozilla::Maybe<mozilla::LogicalSize>& aPercentageBasis,
+      InlinePrefISizeData* aData) final;
 
   SizeComputationResult ComputeSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,

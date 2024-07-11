@@ -395,10 +395,14 @@ class nsTextFrame : public nsIFrame {
   void MarkIntrinsicISizesDirty() final;
   nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) final;
   nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) final;
-  void AddInlineMinISize(gfxContext* aRenderingContext,
-                         InlineMinISizeData* aData) override;
-  void AddInlinePrefISize(gfxContext* aRenderingContext,
-                          InlinePrefISizeData* aData) override;
+  void AddInlineMinISize(
+      gfxContext* aRenderingContext,
+      const mozilla::Maybe<mozilla::LogicalSize>& aPercentageBasis,
+      InlineMinISizeData* aData) override;
+  void AddInlinePrefISize(
+      gfxContext* aRenderingContext,
+      const mozilla::Maybe<mozilla::LogicalSize>& aPercentageBasis,
+      InlinePrefISizeData* aData) override;
   SizeComputationResult ComputeSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,
       const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,

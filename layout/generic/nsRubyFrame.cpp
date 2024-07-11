@@ -52,11 +52,17 @@ nsresult nsRubyFrame::GetFrameName(nsAString& aResult) const {
 
 /* virtual */
 void nsRubyFrame::AddInlineMinISize(gfxContext* aRenderingContext,
-                                    nsIFrame::InlineMinISizeData* aData) {
+                                    const Maybe<LogicalSize>& aPercentageBasis,
+                                    InlineMinISizeData* aData) {
   auto handleChildren = [aRenderingContext](auto frame, auto data) {
     for (RubySegmentEnumerator e(static_cast<nsRubyFrame*>(frame)); !e.AtEnd();
          e.Next()) {
-      e.GetBaseContainer()->AddInlineMinISize(aRenderingContext, data);
+      MOZ_ASSERT(!e.GetBaseContainer()->SupportsAspectRatio(),
+                 "Internal ruby boxes do not support aspect-ratio!");
+      // We don't need a percentage basis because internal ruby boxes do not
+      // support aspect-ratio.
+      e.GetBaseContainer()->AddInlineMinISize(aRenderingContext, Nothing(),
+                                              data);
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);
@@ -64,11 +70,17 @@ void nsRubyFrame::AddInlineMinISize(gfxContext* aRenderingContext,
 
 /* virtual */
 void nsRubyFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
-                                     nsIFrame::InlinePrefISizeData* aData) {
+                                     const Maybe<LogicalSize>& aPercentageBasis,
+                                     InlinePrefISizeData* aData) {
   auto handleChildren = [aRenderingContext](auto frame, auto data) {
     for (RubySegmentEnumerator e(static_cast<nsRubyFrame*>(frame)); !e.AtEnd();
          e.Next()) {
-      e.GetBaseContainer()->AddInlinePrefISize(aRenderingContext, data);
+      MOZ_ASSERT(!e.GetBaseContainer()->SupportsAspectRatio(),
+                 "Internal ruby boxes do not support aspect-ratio!");
+      // We don't need a percentage basis because internal ruby boxes do not
+      // support aspect-ratio.
+      e.GetBaseContainer()->AddInlinePrefISize(aRenderingContext, Nothing(),
+                                               data);
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);

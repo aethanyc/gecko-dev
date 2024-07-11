@@ -790,9 +790,16 @@ void nsContainerFrame::SyncFrameViewAfterReflow(nsPresContext* aPresContext,
 
 void nsContainerFrame::DoInlineMinISize(gfxContext* aRenderingContext,
                                         InlineMinISizeData* aData) {
+  MOZ_ASSERT(!SupportsAspectRatio(),
+             "This method doesn't work on frames that supports aspect-ratio!");
+
   auto handleChildren = [aRenderingContext](auto frame, auto data) {
     for (nsIFrame* kid : frame->mFrames) {
-      kid->AddInlineMinISize(aRenderingContext, data);
+      // Only nsFirstLetterFrame and nsInlineFrame use this method. They don't
+      // support aspect-ratio, so they cannot have a definite block size as a
+      // percentage basis when computing the children's intrinsic contributions.
+      // Therefore, it is fine to pass Nothing() as a percentage basis.
+      kid->AddInlineMinISize(aRenderingContext, Nothing(), data);
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);
@@ -800,9 +807,16 @@ void nsContainerFrame::DoInlineMinISize(gfxContext* aRenderingContext,
 
 void nsContainerFrame::DoInlinePrefISize(gfxContext* aRenderingContext,
                                          InlinePrefISizeData* aData) {
+  MOZ_ASSERT(!SupportsAspectRatio(),
+             "This method doesn't work on frames that supports aspect-ratio!");
+
   auto handleChildren = [aRenderingContext](auto frame, auto data) {
     for (nsIFrame* kid : frame->mFrames) {
-      kid->AddInlinePrefISize(aRenderingContext, data);
+      // Only nsFirstLetterFrame and nsInlineFrame use this method. They don't
+      // support aspect-ratio, so they cannot have a definite block size as a
+      // percentage basis when computing the children's intrinsic contributions.
+      // Therefore, it is fine to pass Nothing() as a percentage basis.
+      kid->AddInlinePrefISize(aRenderingContext, Nothing(), data);
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);
@@ -820,12 +834,25 @@ LogicalSize nsContainerFrame::ComputeAutoSize(
       aAvailableISize - aMargin.ISize(aWM) - aBorderPadding.ISize(aWM);
   if (aFlags.contains(ComputeSizeFlag::ShrinkWrap)) {
     // Only bother computing our 'auto' ISize if the result will be used.
+    const nsStylePosition* stylePos = StylePosition();
     const auto& styleISize = aSizeOverrides.mStyleISize
                                  ? *aSizeOverrides.mStyleISize
-                                 : StylePosition()->ISize(aWM);
+                                 : stylePos->ISize(aWM);
     if (styleISize.IsAuto()) {
+      const auto& styleBSize = aSizeOverrides.mStyleBSize
+                                   ? *aSizeOverrides.mStyleBSize
+                                   : stylePos->BSize(aWM);
+      const LogicalSize contentEdgeToBoxSizing =
+          stylePos->mBoxSizing == StyleBoxSizing::Border ? aBorderPadding
+                                                         : LogicalSize(aWM);
+      const nscoord bSize =
+          nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM))
+              ? NS_UNCONSTRAINEDSIZE
+              : nsLayoutUtils::ComputeBSizeValue(
+                    aCBSize.BSize(aWM), contentEdgeToBoxSizing.BSize(aWM),
+                    styleBSize.AsLengthPercentage());
       result.ISize(aWM) =
-          ShrinkISizeToFit(aRenderingContext, availBased, aFlags);
+          ShrinkISizeToFit(aRenderingContext, availBased, bSize, aFlags);
     }
   } else {
     result.ISize(aWM) = availBased;

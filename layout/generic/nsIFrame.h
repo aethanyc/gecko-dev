@@ -420,6 +420,11 @@ struct FrameBidiData {
 // nsIFrame::GetPrefISize().
 struct MOZ_STACK_CLASS IntrinsicISizeInput final {
   gfxContext* mContext = nullptr;
+
+  // The block size of the frame, which can serve as the containing block's
+  // block size (also known as the percentage basis in the block axis) when
+  // computing the children's intrinsic contributions.
+  nscoord mBSize = NS_UNCONSTRAINEDSIZE;
 };
 
 }  // namespace mozilla
@@ -2728,8 +2733,10 @@ class nsIFrame : public nsQueryFrame {
    * line breaking can inherit the default implementation on nsIFrame,
    * which calls |GetMinISize|.
    */
-  virtual void AddInlineMinISize(gfxContext* aRenderingContext,
-                                 InlineMinISizeData* aData);
+  virtual void AddInlineMinISize(
+      gfxContext* aRenderingContext,
+      const mozilla::Maybe<mozilla::LogicalSize>& aPercentageBasis,
+      InlineMinISizeData* aData);
 
   /**
    * Add the intrinsic preferred inline size of a frame in a way suitable for
@@ -2741,8 +2748,10 @@ class nsIFrame : public nsQueryFrame {
    * except that this fills in an |InlinePrefISizeData| structure
    * based on using all *mandatory* breakpoints within the frame.
    */
-  virtual void AddInlinePrefISize(gfxContext* aRenderingContext,
-                                  InlinePrefISizeData* aData);
+  virtual void AddInlinePrefISize(
+      gfxContext* aRenderingContext,
+      const mozilla::Maybe<mozilla::LogicalSize>& aPercentageBasis,
+      InlinePrefISizeData* aData);
 
   /**
    * Intrinsic size of a frame in a single axis.
@@ -2892,7 +2901,7 @@ class nsIFrame : public nsQueryFrame {
    * max(GetMinISize(), min(aISizeInCB, GetPrefISize()))
    */
   nscoord ShrinkISizeToFit(gfxContext* aRenderingContext, nscoord aISizeInCB,
-                           mozilla::ComputeSizeFlags aFlags);
+                           nscoord aBSize, mozilla::ComputeSizeFlags aFlags);
 
  public:
   /**
