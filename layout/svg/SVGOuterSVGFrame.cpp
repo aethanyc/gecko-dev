@@ -125,12 +125,12 @@ NS_QUERYFRAME_TAIL_INHERITING(SVGDisplayContainerFrame)
 // reflowing
 
 /* virtual */
-nscoord SVGOuterSVGFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord SVGOuterSVGFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   return GetIntrinsicSize().ISize(GetWritingMode()).valueOr(0);
 }
 
 /* virtual */
-nscoord SVGOuterSVGFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord SVGOuterSVGFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
   nscoord result;
 
   SVGSVGElement* svg = static_cast<SVGSVGElement*>(GetContent());

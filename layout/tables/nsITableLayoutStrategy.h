@@ -17,6 +17,7 @@
 
 class gfxContext;
 namespace mozilla {
+struct IntrinsicISizeInput;
 struct ReflowInput;
 }  // namespace mozilla
 
@@ -27,10 +28,10 @@ class nsITableLayoutStrategy {
   virtual ~nsITableLayoutStrategy() = default;
 
   /** Implement nsIFrame::GetMinISize for the table */
-  virtual nscoord GetMinISize(gfxContext* aRenderingContext) = 0;
+  virtual nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) = 0;
 
   /** Implement nsIFrame::GetPrefISize for the table */
-  virtual nscoord GetPrefISize(gfxContext* aRenderingContext,
+  virtual nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput,
                                bool aComputingSize) = 0;
 
   /** Implement nsIFrame::MarkIntrinsicISizesDirty for the table */

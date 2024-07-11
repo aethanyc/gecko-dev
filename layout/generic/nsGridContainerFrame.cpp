@@ -9444,7 +9444,7 @@ void nsGridContainerFrame::DidSetComputedStyle(ComputedStyle* aOldStyle) {
   UpdateSubgridFrameState();
 }
 
-nscoord nsGridContainerFrame::IntrinsicISize(gfxContext* aRenderingContext,
+nscoord nsGridContainerFrame::IntrinsicISize(const IntrinsicISizeInput& aInput,
                                              IntrinsicISizeType aType) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
@@ -9453,7 +9453,7 @@ nscoord nsGridContainerFrame::IntrinsicISize(gfxContext* aRenderingContext,
   // Calculate the sum of column sizes under intrinsic sizing.
   // http://dev.w3.org/csswg/css-grid/#intrinsic-sizes
   NormalizeChildLists();
-  GridReflowInput state(this, *aRenderingContext);
+  GridReflowInput state(this, *aInput.mContext);
   InitImplicitNamedAreas(state.mGridStyle);  // XXX optimize
 
   // The min/sz/max sizes are the input to the "repeat-to-fill" algorithm:
@@ -9514,26 +9514,26 @@ nscoord nsGridContainerFrame::IntrinsicISize(gfxContext* aRenderingContext,
   return last.mPosition + last.mBase;
 }
 
-nscoord nsGridContainerFrame::GetMinISize(gfxContext* aRC) {
+nscoord nsGridContainerFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   auto* f = static_cast<nsGridContainerFrame*>(FirstContinuation());
   if (f != this) {
-    return f->GetMinISize(aRC);
+    return f->GetMinISize(aInput);
   }
 
   if (mCachedMinISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    mCachedMinISize = IntrinsicISize(aRC, IntrinsicISizeType::MinISize);
+    mCachedMinISize = IntrinsicISize(aInput, IntrinsicISizeType::MinISize);
   }
   return mCachedMinISize;
 }
 
-nscoord nsGridContainerFrame::GetPrefISize(gfxContext* aRC) {
+nscoord nsGridContainerFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
   auto* f = static_cast<nsGridContainerFrame*>(FirstContinuation());
   if (f != this) {
-    return f->GetPrefISize(aRC);
+    return f->GetPrefISize(aInput);
   }
 
   if (mCachedPrefISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    mCachedPrefISize = IntrinsicISize(aRC, IntrinsicISizeType::PrefISize);
+    mCachedPrefISize = IntrinsicISize(aInput, IntrinsicISizeType::PrefISize);
   }
   return mCachedPrefISize;
 }

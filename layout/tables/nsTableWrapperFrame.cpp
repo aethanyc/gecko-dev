@@ -239,12 +239,12 @@ ComputedStyle* nsTableWrapperFrame::GetParentComputedStyle(
 }
 
 /* virtual */
-nscoord nsTableWrapperFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord nsTableWrapperFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   nscoord iSize = nsLayoutUtils::IntrinsicForContainer(
-      aRenderingContext, InnerTableFrame(), IntrinsicISizeType::MinISize);
+      aInput.mContext, InnerTableFrame(), IntrinsicISizeType::MinISize);
   if (mCaptionFrames.NotEmpty()) {
     nscoord capISize = nsLayoutUtils::IntrinsicForContainer(
-        aRenderingContext, mCaptionFrames.FirstChild(),
+        aInput.mContext, mCaptionFrames.FirstChild(),
         IntrinsicISizeType::MinISize);
     if (capISize > iSize) {
       iSize = capISize;
@@ -254,13 +254,13 @@ nscoord nsTableWrapperFrame::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord nsTableWrapperFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsTableWrapperFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
   nscoord maxISize = nsLayoutUtils::IntrinsicForContainer(
-      aRenderingContext, InnerTableFrame(), IntrinsicISizeType::PrefISize);
+      aInput.mContext, InnerTableFrame(), IntrinsicISizeType::PrefISize);
   if (mCaptionFrames.NotEmpty()) {
     // Don't let the caption's pref isize expand the table's pref isize.
     const nscoord capMinISize = nsLayoutUtils::IntrinsicForContainer(
-        aRenderingContext, mCaptionFrames.FirstChild(),
+        aInput.mContext, mCaptionFrames.FirstChild(),
         IntrinsicISizeType::MinISize);
     maxISize = std::max(maxISize, capMinISize);
   }

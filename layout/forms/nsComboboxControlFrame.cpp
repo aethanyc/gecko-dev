@@ -170,8 +170,8 @@ nscoord nsComboboxControlFrame::GetLongestOptionISize(
   return maxOptionSize;
 }
 
-nscoord nsComboboxControlFrame::IntrinsicISize(gfxContext* aRenderingContext,
-                                               IntrinsicISizeType aType) {
+nscoord nsComboboxControlFrame::IntrinsicISize(
+    const IntrinsicISizeInput& aInput, IntrinsicISizeType aType) {
   Maybe<nscoord> containISize = ContainIntrinsicISize(NS_UNCONSTRAINEDSIZE);
   if (containISize && *containISize != NS_UNCONSTRAINEDSIZE) {
     return *containISize;
@@ -179,7 +179,7 @@ nscoord nsComboboxControlFrame::IntrinsicISize(gfxContext* aRenderingContext,
 
   nscoord displayISize = 0;
   if (!containISize && !StyleContent()->mContent.IsNone()) {
-    displayISize += GetLongestOptionISize(aRenderingContext);
+    displayISize += GetLongestOptionISize(aInput.mContext);
   }
 
   // Add room for the dropmarker button (if there is one).
@@ -187,12 +187,13 @@ nscoord nsComboboxControlFrame::IntrinsicISize(gfxContext* aRenderingContext,
   return displayISize;
 }
 
-nscoord nsComboboxControlFrame::GetMinISize(gfxContext* aRenderingContext) {
-  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
+nscoord nsComboboxControlFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
+  return IntrinsicISize(aInput, IntrinsicISizeType::MinISize);
 }
 
-nscoord nsComboboxControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
-  return IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
+nscoord nsComboboxControlFrame::GetPrefISize(
+    const IntrinsicISizeInput& aInput) {
+  return IntrinsicISize(aInput, IntrinsicISizeType::PrefISize);
 }
 
 dom::HTMLSelectElement& nsComboboxControlFrame::Select() const {

@@ -393,8 +393,8 @@ class nsTextFrame : public nsIFrame {
   void SetFontSizeInflation(float aInflation);
 
   void MarkIntrinsicISizesDirty() final;
-  nscoord GetMinISize(gfxContext* aRenderingContext) final;
-  nscoord GetPrefISize(gfxContext* aRenderingContext) final;
+  nscoord GetMinISize(const mozilla::IntrinsicISizeInput& aInput) final;
+  nscoord GetPrefISize(const mozilla::IntrinsicISizeInput& aInput) final;
   void AddInlineMinISize(gfxContext* aRenderingContext,
                          InlineMinISizeData* aData) override;
   void AddInlinePrefISize(gfxContext* aRenderingContext,

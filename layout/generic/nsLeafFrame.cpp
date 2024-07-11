@@ -23,12 +23,12 @@ void nsLeafFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 }
 
 /* virtual */
-nscoord nsLeafFrame::GetMinISize(gfxContext* aRenderingContext) {
+nscoord nsLeafFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
   return GetIntrinsicSize().ISize(GetWritingMode()).valueOr(0);
 }
 
 /* virtual */
-nscoord nsLeafFrame::GetPrefISize(gfxContext* aRenderingContext) {
+nscoord nsLeafFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
   return GetIntrinsicSize().ISize(GetWritingMode()).valueOr(0);
 }
 

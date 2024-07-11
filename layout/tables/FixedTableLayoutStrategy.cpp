@@ -31,7 +31,8 @@ FixedTableLayoutStrategy::FixedTableLayoutStrategy(nsTableFrame* aTableFrame)
 FixedTableLayoutStrategy::~FixedTableLayoutStrategy() = default;
 
 /* virtual */
-nscoord FixedTableLayoutStrategy::GetMinISize(gfxContext* aRenderingContext) {
+nscoord FixedTableLayoutStrategy::GetMinISize(
+    const IntrinsicISizeInput& aInput) {
   if (mMinISize != NS_INTRINSIC_ISIZE_UNKNOWN) {
     return mMinISize;
   }
@@ -85,7 +86,7 @@ nscoord FixedTableLayoutStrategy::GetMinISize(gfxContext* aRenderingContext) {
         if (styleISize->ConvertsToLength() || styleISize->IsMinContent() ||
             styleISize->IsMaxContent()) {
           nscoord cellISize = nsLayoutUtils::IntrinsicForContainer(
-              aRenderingContext, cellFrame, IntrinsicISizeType::MinISize);
+              aInput.mContext, cellFrame, IntrinsicISizeType::MinISize);
           if (colSpan > 1) {
             // If a column-spanning cell is in the first row, split up
             // the space evenly.  (XXX This isn't quite right if some of
@@ -110,8 +111,8 @@ nscoord FixedTableLayoutStrategy::GetMinISize(gfxContext* aRenderingContext) {
 }
 
 /* virtual */
-nscoord FixedTableLayoutStrategy::GetPrefISize(gfxContext* aRenderingContext,
-                                               bool aComputingSize) {
+nscoord FixedTableLayoutStrategy::GetPrefISize(
+    const IntrinsicISizeInput& aInput, bool aComputingSize) {
   // It's theoretically possible to do something much better here that
   // depends only on the columns and the first row (where we look at
   // intrinsic inline sizes inside the first row and then reverse the
