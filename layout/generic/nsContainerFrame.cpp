@@ -788,35 +788,23 @@ void nsContainerFrame::SyncFrameViewAfterReflow(nsPresContext* aPresContext,
   }
 }
 
-void nsContainerFrame::DoInlineMinISize(gfxContext* aRenderingContext,
-                                        InlineMinISizeData* aData) {
-  MOZ_ASSERT(!SupportsAspectRatio(),
-             "This method doesn't work on frames that supports aspect-ratio!");
-
-  auto handleChildren = [aRenderingContext](auto frame, auto data) {
+void nsContainerFrame::DoInlineMinISize(
+    gfxContext* aRenderingContext, const Maybe<LogicalSize>& aPercentageBasis,
+    InlineMinISizeData* aData) {
+  auto handleChildren = [&](auto frame, auto data) {
     for (nsIFrame* kid : frame->mFrames) {
-      // Only nsFirstLetterFrame and nsInlineFrame use this method. They don't
-      // support aspect-ratio, so they cannot have a definite block size as a
-      // percentage basis when computing the children's intrinsic contributions.
-      // Therefore, it is fine to pass Nothing() as a percentage basis.
-      kid->AddInlineMinISize(aRenderingContext, Nothing(), data);
+      kid->AddInlineMinISize(aRenderingContext, aPercentageBasis, data);
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);
 }
 
-void nsContainerFrame::DoInlinePrefISize(gfxContext* aRenderingContext,
-                                         InlinePrefISizeData* aData) {
-  MOZ_ASSERT(!SupportsAspectRatio(),
-             "This method doesn't work on frames that supports aspect-ratio!");
-
-  auto handleChildren = [aRenderingContext](auto frame, auto data) {
+void nsContainerFrame::DoInlinePrefISize(
+    gfxContext* aRenderingContext, const Maybe<LogicalSize>& aPercentageBasis,
+    InlinePrefISizeData* aData) {
+  auto handleChildren = [&](auto frame, auto data) {
     for (nsIFrame* kid : frame->mFrames) {
-      // Only nsFirstLetterFrame and nsInlineFrame use this method. They don't
-      // support aspect-ratio, so they cannot have a definite block size as a
-      // percentage basis when computing the children's intrinsic contributions.
-      // Therefore, it is fine to pass Nothing() as a percentage basis.
-      kid->AddInlinePrefISize(aRenderingContext, Nothing(), data);
+      kid->AddInlinePrefISize(aRenderingContext, aPercentageBasis, data);
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);

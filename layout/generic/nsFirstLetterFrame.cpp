@@ -112,7 +112,7 @@ nsresult nsFirstLetterFrame::GetChildFrameContainingOffset(
 void nsFirstLetterFrame::AddInlineMinISize(
     gfxContext* aRenderingContext, const Maybe<LogicalSize>& aPercentageBasis,
     InlineMinISizeData* aData) {
-  DoInlineMinISize(aRenderingContext, aData);
+  DoInlineMinISize(aRenderingContext, aPercentageBasis, aData);
 }
 
 // Needed for non-floating first-letter frames and for the continuations
@@ -121,7 +121,7 @@ void nsFirstLetterFrame::AddInlineMinISize(
 void nsFirstLetterFrame::AddInlinePrefISize(
     gfxContext* aRenderingContext, const Maybe<LogicalSize>& aPercentageBasis,
     InlinePrefISizeData* aData) {
-  DoInlinePrefISize(aRenderingContext, aData);
+  DoInlinePrefISize(aRenderingContext, aPercentageBasis, aData);
 }
 
 // Needed for floating first-letter frames.

@@ -210,10 +210,14 @@ class nsContainerFrame : public nsSplittableFrame {
   template <typename ISizeData, typename F>
   void DoInlineIntrinsicISize(ISizeData* aData, F& aHandleChildren);
 
-  void DoInlineMinISize(gfxContext* aRenderingContext,
-                        InlineMinISizeData* aData);
-  void DoInlinePrefISize(gfxContext* aRenderingContext,
-                         InlinePrefISizeData* aData);
+  void DoInlineMinISize(
+      gfxContext* aRenderingContext,
+      const mozilla::Maybe<mozilla::LogicalSize>& aPercentageBasis,
+      InlineMinISizeData* aData);
+  void DoInlinePrefISize(
+      gfxContext* aRenderingContext,
+      const mozilla::Maybe<mozilla::LogicalSize>& aPercentageBasis,
+      InlinePrefISizeData* aData);
 
   /**
    * This is the CSS block concept of computing 'auto' widths, which most

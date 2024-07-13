@@ -226,14 +226,14 @@ void nsInlineFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 void nsInlineFrame::AddInlineMinISize(
     gfxContext* aRenderingContext, const Maybe<LogicalSize>& aPercentageBasis,
     InlineMinISizeData* aData) {
-  DoInlineMinISize(aRenderingContext, aData);
+  DoInlineMinISize(aRenderingContext, aPercentageBasis, aData);
 }
 
 /* virtual */
 void nsInlineFrame::AddInlinePrefISize(
     gfxContext* aRenderingContext, const Maybe<LogicalSize>& aPercentageBasis,
     InlinePrefISizeData* aData) {
-  DoInlinePrefISize(aRenderingContext, aData);
+  DoInlinePrefISize(aRenderingContext, aPercentageBasis, aData);
 }
 
 /* virtual */
