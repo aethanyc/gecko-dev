@@ -4845,13 +4845,20 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
       }
     } else {
       nscoord bSize;
-      if (Maybe<nscoord> maybeBSize = GetDefiniteSize(
-              styleBSize, aFrame, !isInlineAxis, aPercentageBasis)) {
-        const LogicalSize contentEdgeToBoxSizing =
-            getContentBoxSizeToBoxSizingAdjust(boxSizing);
-        bSize = *maybeBSize - contentEdgeToBoxSizing.BSize(childWM);
+      if (aFrame->IsBlockContainer()) {
+        if (Maybe<nscoord> maybeBSize = GetDefiniteSize(
+                styleBSize, aFrame, !isInlineAxis, aPercentageBasis)) {
+          const LogicalSize contentEdgeToBoxSizing =
+              getContentBoxSizeToBoxSizingAdjust(boxSizing);
+          bSize = *maybeBSize - contentEdgeToBoxSizing.BSize(childWM);
+        } else {
+          bSize = NS_UNCONSTRAINEDSIZE;
+        }
       } else {
-        bSize = NS_UNCONSTRAINEDSIZE;
+        // aFrame is not a containing block. Just pass the percentage basis
+        // down.
+        bSize = aPercentageBasis ? aPercentageBasis->BSize(childWM)
+                                 : NS_UNCONSTRAINEDSIZE;
       }
       const IntrinsicISizeInput input{aRenderingContext, bSize};
       result = aType == IntrinsicISizeType::MinISize
