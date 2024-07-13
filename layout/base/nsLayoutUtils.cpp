@@ -11,6 +11,7 @@
 
 #include "ActiveLayerTracker.h"
 #include "DisplayItemClip.h"
+#include "LayoutConstants.h"
 #include "gfx2DGlue.h"
 #include "gfxContext.h"
 #include "gfxDrawable.h"
@@ -4638,6 +4639,8 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
     PhysicalAxis aAxis, gfxContext* aRenderingContext, nsIFrame* aFrame,
     IntrinsicISizeType aType, const Maybe<LogicalSize>& aPercentageBasis,
     uint32_t aFlags, nscoord aMarginBoxMinSizeClamp) {
+  // printf("IntrinsicForAxis for %s\n", aFrame->ListTag().get());
+
   MOZ_ASSERT(aFrame, "null frame");
   MOZ_ASSERT(aFrame->GetParent(),
              "IntrinsicForAxis called on frame not in tree");
@@ -4699,6 +4702,32 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   // if needed.
   if (!isInlineAxis) {
     resetIfKeywords(styleISize, styleMinISize, styleMaxISize);
+  }
+
+  // Handle elements with an intrinsic ratio (or size) and a specified
+  // height, min-height, or max-height.
+  // NOTE:
+  // 1. We treat "min-height:auto" as "0" for the purpose of this code,
+  // since that's what it means in all cases except for on flex items -- and
+  // even there, we're supposed to ignore it (i.e. treat it as 0) until the
+  // flex container explicitly considers it.
+  // 2. The 'B' in |styleBSize|, |styleMinBSize|, and |styleMaxBSize|
+  // represents the ratio-determining axis of |aFrame|. It could be the inline
+  // axis or the block axis of |aFrame|. (So we are calculating the size
+  // along the ratio-dependent axis in this if-branch.)
+  StyleSize styleBSize = horizontalAxis ? stylePos->mHeight : stylePos->mWidth;
+  StyleSize styleMinBSize =
+      horizontalAxis ? stylePos->mMinHeight : stylePos->mMinWidth;
+  StyleMaxSize styleMaxBSize =
+      horizontalAxis ? stylePos->mMaxHeight : stylePos->mMaxWidth;
+
+  // According to the spec, max-content and min-content should behave as the
+  // property's initial values in block axis.
+  // It also make senses to use the initial values for -moz-fit-content and
+  // -moz-available for intrinsic size in block axis. Therefore, we reset them
+  // if needed.
+  if (isInlineAxis) {
+    resetIfKeywords(styleBSize, styleMinBSize, styleMaxBSize);
   }
 
   // We build up two values starting with the content box, and then
@@ -4763,12 +4792,19 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   auto GetBSize = [&](const auto& aSize) -> Maybe<nscoord> {
     if (Maybe<nscoord> bSize =
             GetDefiniteSize(aSize, aFrame, !isInlineAxis, aPercentageBasis)) {
+      printf("type %s: GetDefiniteSize() for %s is %s\n",
+             aType == IntrinsicISizeType::MinISize ? "min" : "pref",
+             aFrame->ListTag().get(), ToString(bSize).c_str());
       return bSize;
     }
     if (aPercentageBasis) {
       return Nothing();
     }
-    return GetPercentBSize(aSize, aFrame, horizontalAxis);
+    Maybe<nscoord> bSize = GetPercentBSize(aSize, aFrame, horizontalAxis);
+    printf("type %s: GetPercentBSize() for %s is %s\n",
+           aType == IntrinsicISizeType::MinISize ? "min" : "pref",
+           aFrame->ListTag().get(), ToString(bSize).c_str());
+    return bSize;
   };
 
   Maybe<nscoord> iSizeFromAspectRatio;
@@ -4818,7 +4854,19 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         result = aFrame->BSize();
       }
     } else {
-      const IntrinsicISizeInput input{aRenderingContext};
+      Maybe<nscoord> maybeBSize =
+          GetDefiniteSize(styleBSize, aFrame, !isInlineAxis, aPercentageBasis);
+      nscoord bSize;
+      if (maybeBSize) {
+        LogicalSize contentEdgeToBoxSizing =
+            getContentBoxSizeToBoxSizingAdjust(boxSizing);
+        bSize = *maybeBSize - contentEdgeToBoxSizing.BSize(childWM);
+      } else {
+        bSize = NS_UNCONSTRAINEDSIZE;
+      }
+
+      printf("aFrame %s bSize %d\n", aFrame->ListTag().get(), bSize);
+      const IntrinsicISizeInput input{aRenderingContext, bSize};
       result = aType == IntrinsicISizeType::MinISize
                    ? aFrame->GetMinISize(input)
                    : aFrame->GetPrefISize(input);
@@ -4831,33 +4879,6 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
                   aType == IntrinsicISizeType::MinISize ? "min" : "pref",
                   horizontalAxis ? "horizontal" : "vertical", result);
 #endif
-
-    // Handle elements with an intrinsic ratio (or size) and a specified
-    // height, min-height, or max-height.
-    // NOTE:
-    // 1. We treat "min-height:auto" as "0" for the purpose of this code,
-    // since that's what it means in all cases except for on flex items -- and
-    // even there, we're supposed to ignore it (i.e. treat it as 0) until the
-    // flex container explicitly considers it.
-    // 2. The 'B' in |styleBSize|, |styleMinBSize|, and |styleMaxBSize|
-    // represents the ratio-determining axis of |aFrame|. It could be the inline
-    // axis or the block axis of |aFrame|. (So we are calculating the size
-    // along the ratio-dependent axis in this if-branch.)
-    StyleSize styleBSize =
-        horizontalAxis ? stylePos->mHeight : stylePos->mWidth;
-    StyleSize styleMinBSize =
-        horizontalAxis ? stylePos->mMinHeight : stylePos->mMinWidth;
-    StyleMaxSize styleMaxBSize =
-        horizontalAxis ? stylePos->mMaxHeight : stylePos->mMaxWidth;
-
-    // According to the spec, max-content and min-content should behave as the
-    // property's initial values in block axis.
-    // It also make senses to use the initial values for -moz-fit-content and
-    // -moz-available for intrinsic size in block axis. Therefore, we reset them
-    // if needed.
-    if (isInlineAxis) {
-      resetIfKeywords(styleBSize, styleMinBSize, styleMaxBSize);
-    }
 
     // If our BSize or min/max-BSize properties are set to values that we can
     // resolve and that will impose a constraint when transferred through our
@@ -4896,6 +4917,12 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
             boxSizing, aFrame, !isInlineAxis, ignorePadding, aPercentageBasis);
         contentBoxSizeToBoxSizingAdjust.emplace(
             getContentBoxSizeToBoxSizingAdjust(boxSizing));
+
+        printf(
+            "%s: bSizeTakenByBoxSizing %d, contentBoxSizeToBoxSizingAdjust "
+            "%s\n",
+            aFrame->ListTag().get(), bSizeTakenByBoxSizing,
+            ToString(*contentBoxSizeToBoxSizingAdjust).c_str());
         // NOTE: This is only the minContentSize if we've been passed
         // MIN_INTRINSIC_ISIZE (which is fine, because this should only be used
         // inside a check for that flag).
