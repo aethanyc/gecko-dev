@@ -1386,7 +1386,7 @@ nsIFrame::SizeComputationResult nsTableFrame::ComputeSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
     const LogicalSize& aBorderPadding, const StyleSizeOverrides& aSizeOverrides,
-    ComputeSizeFlags aFlags) {
+    ComputeSizeFlags aFlags, const ReflowInput* aReflowInput) {
   // Only table wrapper calls this method, and it should use our writing mode.
   MOZ_ASSERT(aWM == GetWritingMode(),
              "aWM should be the same as our writing mode!");
@@ -1449,7 +1449,7 @@ LogicalSize nsTableFrame::ComputeAutoSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
     const LogicalSize& aBorderPadding, const StyleSizeOverrides& aSizeOverrides,
-    ComputeSizeFlags aFlags) {
+    ComputeSizeFlags aFlags, const ReflowInput* aReflowInput) {
   // Tables always shrink-wrap.
   nscoord cbBased =
       aAvailableISize - aMargin.ISize(aWM) - aBorderPadding.ISize(aWM);

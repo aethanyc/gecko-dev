@@ -80,7 +80,8 @@ class nsTableWrapperFrame : public nsContainerFrame {
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags) override;
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* aReflowInput = nullptr) override;
 
   mozilla::LogicalSize ComputeAutoSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,
@@ -88,7 +89,8 @@ class nsTableWrapperFrame : public nsContainerFrame {
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags) override;
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* aReflowInput = nullptr) override;
 
   /** process a reflow command for the table.
    * This involves reflowing the caption and the inner table.

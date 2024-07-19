@@ -392,7 +392,7 @@ nsIFrame::SizeComputationResult nsTableWrapperFrame::ComputeSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
     const LogicalSize& aBorderPadding, const StyleSizeOverrides& aSizeOverrides,
-    ComputeSizeFlags aFlags) {
+    ComputeSizeFlags aFlags, const mozilla::ReflowInput* aReflowInput) {
   auto result = nsContainerFrame::ComputeSize(
       aRenderingContext, aWM, aCBSize, aAvailableISize, aMargin, aBorderPadding,
       aSizeOverrides, aFlags);
@@ -418,7 +418,7 @@ LogicalSize nsTableWrapperFrame::ComputeAutoSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
     const LogicalSize& aBorderPadding, const StyleSizeOverrides& aSizeOverrides,
-    ComputeSizeFlags aFlags) {
+    ComputeSizeFlags aFlags, const mozilla::ReflowInput* aReflowInput) {
   nscoord kidAvailableISize = aAvailableISize - aMargin.ISize(aWM);
   NS_ASSERTION(aBorderPadding.IsAllZero(),
                "Table wrapper frames cannot have borders or paddings");

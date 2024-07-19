@@ -2853,7 +2853,8 @@ class nsIFrame : public nsQueryFrame {
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags);
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* aReflowInput = nullptr);
 
  protected:
   /**
@@ -2881,14 +2882,16 @@ class nsIFrame : public nsQueryFrame {
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags);
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* aReflowInput = nullptr);
 
   /**
    * Utility function for ComputeAutoSize implementations.  Return
    * max(GetMinISize(), min(aISizeInCB, GetPrefISize()))
    */
   nscoord ShrinkISizeToFit(gfxContext* aRenderingContext, nscoord aISizeInCB,
-                           mozilla::ComputeSizeFlags aFlags);
+                           mozilla::ComputeSizeFlags aFlags,
+                           const mozilla::ReflowInput* aReflowInput = nullptr);
 
  public:
   /**
@@ -4825,7 +4828,8 @@ class nsIFrame : public nsQueryFrame {
       Maybe<nscoord> aAvailableISizeOverride,
       const mozilla::StyleSize& aStyleBSize,
       const mozilla::AspectRatio& aAspectRatio,
-      mozilla::ComputeSizeFlags aFlags);
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* aReflowInput = nullptr);
 
   /**
    * Helper function - computes the content-box inline size for aSize, which is
@@ -4855,7 +4859,8 @@ class nsIFrame : public nsQueryFrame {
       nscoord aBoxSizingToMarginEdge, const SizeOrMaxSize& aSize,
       const mozilla::StyleSize& aStyleBSize,
       const mozilla::AspectRatio& aAspectRatio,
-      mozilla::ComputeSizeFlags aFlags = {}) {
+      mozilla::ComputeSizeFlags aFlags = {},
+      const mozilla::ReflowInput* aReflowInput = nullptr) {
     if (aSize.IsLengthPercentage()) {
       return {ComputeISizeValue(aWM, aCBSize, aContentEdgeToBoxSizing,
                                 aSize.AsLengthPercentage())};
@@ -4870,7 +4875,7 @@ class nsIFrame : public nsQueryFrame {
     return ComputeISizeValue(
         aRenderingContext, aWM, aCBSize, aContentEdgeToBoxSizing,
         aBoxSizingToMarginEdge, length.valueOr(ExtremumLength::MinContent),
-        availbleISizeOverride, aStyleBSize, aAspectRatio, aFlags);
+        availbleISizeOverride, aStyleBSize, aAspectRatio, aFlags, aReflowInput);
   }
 
   DisplayItemArray& DisplayItems() { return mDisplayItems; }

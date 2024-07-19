@@ -44,7 +44,8 @@ class nsCheckboxRadioFrame final : public nsAtomicContainerFrame,
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags) override;
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* aReflowInput = nullptr) override;
 
   /**
    * Respond to a gui event

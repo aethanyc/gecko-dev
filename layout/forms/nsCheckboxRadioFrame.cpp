@@ -61,7 +61,7 @@ LogicalSize nsCheckboxRadioFrame::ComputeAutoSize(
     gfxContext* aRC, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
     const LogicalSize& aBorderPadding, const StyleSizeOverrides& aSizeOverrides,
-    ComputeSizeFlags aFlags) {
+    ComputeSizeFlags aFlags, const ReflowInput* aReflowInput) {
   LogicalSize size(aWM, 0, 0);
   if (!StyleDisplay()->HasAppearance()) {
     return size;

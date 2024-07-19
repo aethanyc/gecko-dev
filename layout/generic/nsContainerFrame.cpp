@@ -814,7 +814,8 @@ LogicalSize nsContainerFrame::ComputeAutoSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
     const mozilla::LogicalSize& aBorderPadding,
-    const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags) {
+    const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags,
+    const ReflowInput* aReflowInput) {
   LogicalSize result(aWM, 0xdeadbeef, NS_UNCONSTRAINEDSIZE);
   nscoord availBased =
       aAvailableISize - aMargin.ISize(aWM) - aBorderPadding.ISize(aWM);
@@ -825,7 +826,7 @@ LogicalSize nsContainerFrame::ComputeAutoSize(
                                  : StylePosition()->ISize(aWM);
     if (styleISize.IsAuto()) {
       result.ISize(aWM) =
-          ShrinkISizeToFit(aRenderingContext, availBased, aFlags);
+          ShrinkISizeToFit(aRenderingContext, availBased, aFlags, aReflowInput);
     }
   } else {
     result.ISize(aWM) = availBased;

@@ -244,7 +244,7 @@ nsIFrame::SizeComputationResult nsRubyBaseContainerFrame::ComputeSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
     const LogicalSize& aBorderPadding, const StyleSizeOverrides& aSizeOverrides,
-    ComputeSizeFlags aFlags) {
+    ComputeSizeFlags aFlags, const ReflowInput* aReflowInput) {
   // Ruby base container frame is inline,
   // hence don't compute size before reflow.
   return {LogicalSize(aWM, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE),
