@@ -37,7 +37,7 @@ LogicalSize nsLeafFrame::ComputeAutoSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
     const LogicalSize& aBorderPadding, const StyleSizeOverrides& aSizeOverrides,
-    ComputeSizeFlags aFlags) {
+    ComputeSizeFlags aFlags, const ReflowInput* const aReflowInput) {
   const WritingMode wm = GetWritingMode();
   IntrinsicSize intrinsicSize = GetIntrinsicSize();
   LogicalSize result(wm, intrinsicSize.ISize(wm).valueOr(0),

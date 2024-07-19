@@ -246,7 +246,8 @@ nsIFrame::SizeComputationResult SVGOuterSVGFrame::ComputeSize(
     gfxContext* aRenderingContext, WritingMode aWritingMode,
     const LogicalSize& aCBSize, nscoord aAvailableISize,
     const LogicalSize& aMargin, const LogicalSize& aBorderPadding,
-    const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags) {
+    const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags,
+    const ReflowInput* const aReflowInput) {
   if (IsRootOfImage() || mIsInObjectOrEmbed) {
     // The embedding element has sized itself using the CSS replaced element
     // sizing rules, using our intrinsic dimensions as necessary. The SVG spec

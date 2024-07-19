@@ -48,7 +48,8 @@ class nsFirstLetterFrame : public nsContainerFrame {
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags) final;
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* const aReflowInput = nullptr) final;
 
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
               const ReflowInput& aReflowInput, nsReflowStatus& aStatus) final;

@@ -282,7 +282,8 @@ class nsTableFrame : public nsContainerFrame {
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags) override;
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* const aReflowInput = nullptr) override;
 
   mozilla::LogicalSize ComputeAutoSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,
@@ -290,7 +291,8 @@ class nsTableFrame : public nsContainerFrame {
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags) override;
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* const aReflowInput = nullptr) override;
 
   /**
    * A copy of nsIFrame::ShrinkISizeToFit that calls a different

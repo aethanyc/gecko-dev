@@ -632,7 +632,7 @@ LogicalSize nsSubDocumentFrame::ComputeAutoSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
     const LogicalSize& aBorderPadding, const StyleSizeOverrides& aSizeOverrides,
-    ComputeSizeFlags aFlags) {
+    ComputeSizeFlags aFlags, const ReflowInput* const aReflowInput) {
   if (!IsInline()) {
     return nsIFrame::ComputeAutoSize(aRenderingContext, aWM, aCBSize,
                                      aAvailableISize, aMargin, aBorderPadding,
@@ -649,7 +649,7 @@ nsIFrame::SizeComputationResult nsSubDocumentFrame::ComputeSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
     const LogicalSize& aBorderPadding, const StyleSizeOverrides& aSizeOverrides,
-    ComputeSizeFlags aFlags) {
+    ComputeSizeFlags aFlags, const ReflowInput* const aReflowInput) {
   return {ComputeSizeWithIntrinsicDimensions(
               aRenderingContext, aWM, GetIntrinsicSize(), GetAspectRatio(),
               aCBSize, aMargin, aBorderPadding, aSizeOverrides, aFlags),

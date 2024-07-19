@@ -405,7 +405,8 @@ class nsTextFrame : public nsIFrame {
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags) final;
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* const aReflowInput = nullptr) final;
   nsRect ComputeTightBounds(DrawTarget* aDrawTarget) const final;
   nsresult GetPrefWidthTightBounds(gfxContext* aContext, nscoord* aX,
                                    nscoord* aXMost) final;

@@ -2851,7 +2851,8 @@ class nsIFrame : public nsQueryFrame {
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags);
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* const aReflowInput = nullptr);
 
  protected:
   /**
@@ -2879,14 +2880,17 @@ class nsIFrame : public nsQueryFrame {
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags);
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* const aReflowInput = nullptr);
 
   /**
    * Utility function for ComputeAutoSize implementations.  Return
    * max(GetMinISize(), min(aISizeInCB, GetPrefISize()))
    */
-  nscoord ShrinkISizeToFit(gfxContext* aRenderingContext, nscoord aISizeInCB,
-                           mozilla::ComputeSizeFlags aFlags);
+  nscoord ShrinkISizeToFit(
+      gfxContext* aRenderingContext, nscoord aISizeInCB,
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* const aReflowInput = nullptr);
 
  public:
   /**

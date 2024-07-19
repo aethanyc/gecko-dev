@@ -225,7 +225,8 @@ class nsContainerFrame : public nsSplittableFrame {
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags) override;
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* const aReflowInput = nullptr) override;
 
   /**
    * Positions aKidFrame and its view (if requested), and then calls Reflow().

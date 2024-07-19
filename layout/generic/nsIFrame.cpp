@@ -6295,13 +6295,13 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
     const LogicalSize& aBorderPadding, const StyleSizeOverrides& aSizeOverrides,
-    ComputeSizeFlags aFlags) {
+    ComputeSizeFlags aFlags, const ReflowInput* const aReflowInput) {
   MOZ_ASSERT(!GetIntrinsicRatio(),
              "Please override this method and call "
              "nsContainerFrame::ComputeSizeWithIntrinsicDimensions instead.");
   LogicalSize result =
       ComputeAutoSize(aRenderingContext, aWM, aCBSize, aAvailableISize, aMargin,
-                      aBorderPadding, aSizeOverrides, aFlags);
+                      aBorderPadding, aSizeOverrides, aFlags, aReflowInput);
   const nsStylePosition* stylePos = StylePosition();
   const nsStyleDisplay* disp = StyleDisplay();
   auto aspectRatioUsage = AspectRatioUsage::None;
@@ -6691,7 +6691,8 @@ LogicalSize nsIFrame::ComputeAutoSize(
     const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,
     const mozilla::LogicalSize& aMargin,
     const mozilla::LogicalSize& aBorderPadding,
-    const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags) {
+    const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags,
+    const mozilla::ReflowInput* const aReflowInput) {
   // Use basic shrink-wrapping as a default implementation.
   LogicalSize result(aWM, 0xdeadbeef, NS_UNCONSTRAINEDSIZE);
 
@@ -6702,14 +6703,15 @@ LogicalSize nsIFrame::ComputeAutoSize(
   if (styleISize.IsAuto()) {
     nscoord availBased =
         aAvailableISize - aMargin.ISize(aWM) - aBorderPadding.ISize(aWM);
-    result.ISize(aWM) = ShrinkISizeToFit(aRenderingContext, availBased, aFlags);
+    result.ISize(aWM) =
+        ShrinkISizeToFit(aRenderingContext, availBased, aFlags, aReflowInput);
   }
   return result;
 }
 
 nscoord nsIFrame::ShrinkISizeToFit(gfxContext* aRenderingContext,
-                                   nscoord aISizeInCB,
-                                   ComputeSizeFlags aFlags) {
+                                   nscoord aISizeInCB, ComputeSizeFlags aFlags,
+                                   const ReflowInput* const aReflowInput) {
   // If we're a container for font size inflation, then shrink
   // wrapping inside of us should not apply font size inflation.
   AutoMaybeDisableFontInflation an(this);

@@ -39,7 +39,8 @@ class nsLeafFrame : public nsIFrame {
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags) override;
+      mozilla::ComputeSizeFlags aFlags,
+      const ReflowInput* const aReflowInput) override;
 
   /**
    * Each of our subclasses should provide its own Reflow impl:

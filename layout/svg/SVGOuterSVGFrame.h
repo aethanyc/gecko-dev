@@ -57,7 +57,8 @@ class SVGOuterSVGFrame final : public SVGDisplayContainerFrame,
       const LogicalSize& aCBSize, nscoord aAvailableISize,
       const LogicalSize& aMargin, const LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      ComputeSizeFlags aFlags) override;
+      ComputeSizeFlags aFlags,
+      const ReflowInput* const aReflowInput = nullptr) override;
 
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
               const ReflowInput& aReflowInput,

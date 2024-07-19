@@ -241,7 +241,8 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
       const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
-      mozilla::ComputeSizeFlags aFlags) final;
+      mozilla::ComputeSizeFlags aFlags,
+      const mozilla::ReflowInput* const aReflowInput = nullptr) final;
 
   bool IsServerImageMap();
 
