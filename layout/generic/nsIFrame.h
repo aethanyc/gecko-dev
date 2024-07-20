@@ -420,7 +420,7 @@ struct FrameBidiData {
 // nsIFrame::GetPrefISize().
 struct MOZ_STACK_CLASS IntrinsicISizeInput final {
   gfxContext* mContext = nullptr;
-  ReflowInput* mReflowInput = nullptr;
+  const ReflowInput* mReflowInput = nullptr;
 };
 
 }  // namespace mozilla

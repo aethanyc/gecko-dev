@@ -80,6 +80,7 @@
 #include "mozilla/PresShell.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/ProfilerMarkers.h"
+#include "mozilla/ReflowInput.h"
 #include "mozilla/RestyleManager.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/ScrollContainerFrame.h"
@@ -4640,7 +4641,8 @@ static void AddStateBitToAncestors(nsIFrame* aFrame, nsFrameState aBit) {
 nscoord nsLayoutUtils::IntrinsicForAxis(
     PhysicalAxis aAxis, gfxContext* aRenderingContext, nsIFrame* aFrame,
     IntrinsicISizeType aType, const Maybe<LogicalSize>& aPercentageBasis,
-    uint32_t aFlags, nscoord aMarginBoxMinSizeClamp) {
+    uint32_t aFlags, nscoord aMarginBoxMinSizeClamp,
+    const ReflowInput* aReflowInput) {
   MOZ_ASSERT(aFrame, "null frame");
   MOZ_ASSERT(aFrame->GetParent(),
              "IntrinsicForAxis called on frame not in tree");
@@ -4821,7 +4823,7 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         result = aFrame->BSize();
       }
     } else {
-      const IntrinsicISizeInput input{aRenderingContext};
+      const IntrinsicISizeInput input{aRenderingContext, aReflowInput};
       result = aType == IntrinsicISizeType::MinISize
                    ? aFrame->GetMinISize(input)
                    : aFrame->GetPrefISize(input);
@@ -5020,13 +5022,14 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
 /* static */
 nscoord nsLayoutUtils::IntrinsicForContainer(
     gfxContext* aRenderingContext, nsIFrame* aFrame, IntrinsicISizeType aType,
-    const Maybe<LogicalSize>& aPercentageBasis, uint32_t aFlags) {
+    const Maybe<LogicalSize>& aPercentageBasis, uint32_t aFlags,
+    const ReflowInput* aReflowInput) {
   MOZ_ASSERT(aFrame && aFrame->GetParent());
   // We want the size aFrame will contribute to its parent's inline-size.
   PhysicalAxis axis =
       aFrame->GetParent()->GetWritingMode().PhysicalAxis(LogicalAxis::Inline);
   return IntrinsicForAxis(axis, aRenderingContext, aFrame, aType,
-                          aPercentageBasis, aFlags);
+                          aPercentageBasis, aFlags, NS_MAXSIZE, aReflowInput);
 }
 
 /* static */

@@ -76,6 +76,7 @@ enum class PseudoStyleType : uint8_t;
 class EventListenerManager;
 enum class LayoutFrameType : uint8_t;
 struct IntrinsicSize;
+struct ReflowInput;
 class ReflowOutput;
 class WritingMode;
 class DisplayItemClip;
@@ -1481,7 +1482,8 @@ class nsLayoutUtils {
       mozilla::PhysicalAxis aAxis, gfxContext* aRenderingContext,
       nsIFrame* aFrame, mozilla::IntrinsicISizeType aType,
       const mozilla::Maybe<LogicalSize>& aPercentageBasis = mozilla::Nothing(),
-      uint32_t aFlags = 0, nscoord aMarginBoxMinSizeClamp = NS_MAXSIZE);
+      uint32_t aFlags = 0, nscoord aMarginBoxMinSizeClamp = NS_MAXSIZE,
+      const mozilla::ReflowInput* aReflowInput = nullptr);
   /**
    * Calls IntrinsicForAxis with aFrame's parent's inline physical axis.
    */
@@ -1489,7 +1491,7 @@ class nsLayoutUtils {
       gfxContext* aRenderingContext, nsIFrame* aFrame,
       mozilla::IntrinsicISizeType aType,
       const mozilla::Maybe<LogicalSize>& aPercentageBasis = mozilla::Nothing(),
-      uint32_t aFlags = 0);
+      uint32_t aFlags = 0, const mozilla::ReflowInput* aReflowInput = nullptr);
 
   /**
    * Get the definite size contribution of aFrame for the given physical axis.

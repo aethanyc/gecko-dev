@@ -6718,7 +6718,7 @@ nscoord nsIFrame::ShrinkISizeToFit(gfxContext* aRenderingContext,
   AutoMaybeDisableFontInflation an(this);
 
   nscoord result;
-  const IntrinsicISizeInput input{aRenderingContext};
+  const IntrinsicISizeInput input{aRenderingContext, aReflowInput};
   nscoord minISize = GetMinISize(input);
   if (minISize > aISizeInCB) {
     const bool clamp = aFlags.contains(ComputeSizeFlag::IClampMarginBoxMinSize);
