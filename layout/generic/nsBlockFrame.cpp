@@ -861,6 +861,18 @@ nscoord nsBlockFrame::GetMinISize(const IntrinsicISizeInput& aInput) {
 #endif
       if (line->IsBlock()) {
         data.ForceBreak();
+        Maybe<ReflowInput> childReflowInput;
+        Maybe<LogicalSize> percentageBasis;
+        if (aInput.mReflowInput) {
+          childReflowInput.emplace(PresContext(), *aInput.mReflowInput,
+                                   line->mFirstChild,
+                                   aInput.mReflowInput->ComputedSize(
+                                       line->mFirstChild->GetWritingMode()));
+          percentageBasis.emplace(childReflowInput->mContainingBlockSize);
+          printf("Construct ReflowInput for %s, percentageBasis %s\n",
+                 line->mFirstChild->ListTag().get(),
+                 ToString(percentageBasis).c_str());
+        }
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
             aInput.mContext, line->mFirstChild, IntrinsicISizeType::MinISize);
         data.ForceBreak();
@@ -953,6 +965,18 @@ nscoord nsBlockFrame::GetPrefISize(const IntrinsicISizeInput& aInput) {
           clearType = line->mFirstChild->StyleDisplay()->mClear;
         }
         data.ForceBreak(clearType);
+        Maybe<ReflowInput> childReflowInput;
+        Maybe<LogicalSize> percentageBasis;
+        if (aInput.mReflowInput) {
+          childReflowInput.emplace(PresContext(), *aInput.mReflowInput,
+                                   line->mFirstChild,
+                                   aInput.mReflowInput->ComputedSize(
+                                       line->mFirstChild->GetWritingMode()));
+          percentageBasis.emplace(childReflowInput->mContainingBlockSize);
+          printf("Construct ReflowInput for %s, percentageBasis %s\n",
+                 line->mFirstChild->ListTag().get(),
+                 ToString(percentageBasis).c_str());
+        }
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
             aInput.mContext, line->mFirstChild, IntrinsicISizeType::PrefISize);
         data.ForceBreak();

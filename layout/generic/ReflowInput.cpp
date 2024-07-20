@@ -1776,7 +1776,7 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
         cbSize.ConvertTo(wm, cbwm).ISize(wm),  // XXX or AvailableISize()?
         ComputedLogicalMargin(wm).Size(wm) +
             ComputedLogicalOffsets(wm).Size(wm),
-        ComputedLogicalBorderPadding(wm).Size(wm), {}, mComputeSizeFlags);
+        ComputedLogicalBorderPadding(wm).Size(wm), {}, mComputeSizeFlags, this);
     mComputedSize = sizeResult.mLogicalSize;
     NS_ASSERTION(ComputedISize() >= 0, "Bogus inline-size");
     NS_ASSERTION(
@@ -2411,11 +2411,15 @@ void ReflowInput::InitConstraints(
         cbSize.ISize(wm) = AvailableISize();
       }
 
+      mContainingBlockSize = cbSize;
+      printf("In ReflowInput: mFrame %s, cb size %s\n", mFrame->ListTag().get(),
+             ToString(mContainingBlockSize).c_str());
+
       auto size =
           mFrame->ComputeSize(mRenderingContext, wm, cbSize, AvailableISize(),
                               ComputedLogicalMargin(wm).Size(wm),
                               ComputedLogicalBorderPadding(wm).Size(wm),
-                              mStyleSizeOverrides, mComputeSizeFlags);
+                              mStyleSizeOverrides, mComputeSizeFlags, this);
 
       mComputedSize = size.mLogicalSize;
       NS_ASSERTION(ComputedISize() >= 0, "Bogus inline-size");
