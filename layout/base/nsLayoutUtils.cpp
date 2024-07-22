@@ -4282,8 +4282,7 @@ static nscoord GetBSizePercentBasisAdjustment(StyleBoxSizing aBoxSizing,
     // here as 0 instead, except that in some cases the width may in fact be
     // known.  See bug 1231059.
     auto GetPadding = [&](const LengthPercentage& aPadding) {
-      return GetAbsoluteSize(aPadding).orElse(
-          [&]() { return GetPercentBSize(aPadding, aFrame, aHorizontalAxis); });
+      return GetAbsoluteSize(aPadding);
     };
     if (Maybe<nscoord> pad = GetPadding(paddingStart)) {
       adjustment += aResolvesAgainstPaddingBox ? *pad : -*pad;
@@ -4326,14 +4325,8 @@ static nscoord GetDefiniteSizeTakenByBoxSizing(
       // known.  See bug 1231059.
       auto GetPadding =
           [&](const LengthPercentage& aPadding) -> Maybe<nscoord> {
-        if (Maybe<nscoord> padding = GetDefiniteSize(
-                aPadding, aFrame, aIsInlineAxis, aPercentageBasis)) {
-          return padding;
-        }
-        if (aPercentageBasis) {
-          return Nothing();
-        }
-        return GetPercentBSize(aPadding, aFrame, isHorizontalAxis);
+        return GetDefiniteSize(aPadding, aFrame, aIsInlineAxis,
+                               aPercentageBasis);
       };
       if (Maybe<nscoord> pad = GetPadding(pStart)) {
         sizeTakenByBoxSizing += *pad;
