@@ -490,14 +490,9 @@ void nsMenuPopupFrame::TweakMinPrefISize(nscoord& aSize) {
   aSize = std::max(aSize, menuListOrAnchorWidth);
 }
 
-nscoord nsMenuPopupFrame::GetMinISize(gfxContext* aRC) {
-  nscoord result = nsBlockFrame::GetMinISize(aRC);
-  TweakMinPrefISize(result);
-  return result;
-}
-
-nscoord nsMenuPopupFrame::GetPrefISize(gfxContext* aRC) {
-  nscoord result = nsBlockFrame::GetPrefISize(aRC);
+nscoord nsMenuPopupFrame::IntrinsicISize(gfxContext* aContext,
+                                         IntrinsicISizeType aType) {
+  nscoord result = nsBlockFrame::IntrinsicISize(aContext, aType);
   TweakMinPrefISize(result);
   return result;
 }
