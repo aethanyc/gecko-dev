@@ -6516,6 +6516,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
     result.ISize(aWM) = std::min(maxISize, result.ISize(aWM));
   }
 
+  const IntrinsicSizeInput input{aRenderingContext};
   const auto& minISizeCoord = stylePos->MinISize(aWM);
   nscoord minISize;
   if (!minISizeCoord.IsAuto() && !shouldIgnoreMinMaxISize) {
@@ -6527,7 +6528,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
                  aFlags.contains(ComputeSizeFlag::IApplyAutoMinSize))) {
     // This implements "Implied Minimum Size of Grid Items".
     // https://drafts.csswg.org/css-grid/#min-size-auto
-    minISize = std::min(maxISize, GetMinISize(aRenderingContext));
+    minISize = std::min(maxISize, GetMinISize(input));
     if (styleISize.IsLengthPercentage()) {
       minISize = std::min(minISize, result.ISize(aWM));
     } else if (aFlags.contains(ComputeSizeFlag::IClampMarginBoxMinSize)) {
@@ -6550,7 +6551,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
                "aspect-ratio minimums should not apply to replaced elements");
     // The inline size computed by aspect-ratio shouldn't less than the
     // min-content size, which should be capped by its maximum inline size.
-    minISize = std::min(GetMinISize(aRenderingContext), maxISize);
+    minISize = std::min(GetMinISize(input), maxISize);
   } else {
     // Treat "min-width: auto" as 0.
     // NOTE: Technically, "auto" is supposed to behave like "min-content" on
@@ -6711,12 +6712,13 @@ LogicalSize nsIFrame::ComputeAutoSize(
   if (styleISize.IsAuto()) {
     nscoord availBased =
         aAvailableISize - aMargin.ISize(aWM) - aBorderPadding.ISize(aWM);
-    result.ISize(aWM) = ShrinkISizeToFit(aRenderingContext, availBased, aFlags);
+    const IntrinsicSizeInput input{aRenderingContext};
+    result.ISize(aWM) = ShrinkISizeToFit(input, availBased, aFlags);
   }
   return result;
 }
 
-nscoord nsIFrame::ShrinkISizeToFit(gfxContext* aRenderingContext,
+nscoord nsIFrame::ShrinkISizeToFit(const IntrinsicSizeInput& aInput,
                                    nscoord aISizeInCB,
                                    ComputeSizeFlags aFlags) {
   // If we're a container for font size inflation, then shrink
@@ -6724,12 +6726,12 @@ nscoord nsIFrame::ShrinkISizeToFit(gfxContext* aRenderingContext,
   AutoMaybeDisableFontInflation an(this);
 
   nscoord result;
-  nscoord minISize = GetMinISize(aRenderingContext);
+  nscoord minISize = GetMinISize(aInput);
   if (minISize > aISizeInCB) {
     const bool clamp = aFlags.contains(ComputeSizeFlag::IClampMarginBoxMinSize);
     result = MOZ_UNLIKELY(clamp) ? aISizeInCB : minISize;
   } else {
-    nscoord prefISize = GetPrefISize(aRenderingContext);
+    nscoord prefISize = GetPrefISize(aInput);
     if (prefISize > aISizeInCB) {
       result = aISizeInCB;
     } else {
@@ -6801,17 +6803,18 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
         aAspectRatio));
   }();
 
+  const IntrinsicSizeInput input{aRenderingContext};
   nscoord result;
   switch (aSize) {
     case ExtremumLength::MaxContent:
-      result = iSizeFromAspectRatio ? *iSizeFromAspectRatio
-                                    : GetPrefISize(aRenderingContext);
+      result =
+          iSizeFromAspectRatio ? *iSizeFromAspectRatio : GetPrefISize(input);
       NS_ASSERTION(result >= 0, "inline-size less than zero");
       return {result, iSizeFromAspectRatio ? AspectRatioUsage::ToComputeISize
                                            : AspectRatioUsage::None};
     case ExtremumLength::MinContent:
-      result = iSizeFromAspectRatio ? *iSizeFromAspectRatio
-                                    : GetMinISize(aRenderingContext);
+      result =
+          iSizeFromAspectRatio ? *iSizeFromAspectRatio : GetMinISize(input);
       NS_ASSERTION(result >= 0, "inline-size less than zero");
       if (MOZ_UNLIKELY(
               aFlags.contains(ComputeSizeFlag::IClampMarginBoxMinSize))) {
@@ -6828,8 +6831,8 @@ nsIFrame::ISizeComputationResult nsIFrame::ComputeISizeValue(
         // size computed from the block size and the aspect ratio.
         pref = min = *iSizeFromAspectRatio;
       } else {
-        pref = GetPrefISize(aRenderingContext);
-        min = GetMinISize(aRenderingContext);
+        pref = GetPrefISize(input);
+        min = GetMinISize(input);
       }
 
       const nscoord fill = aAvailableISizeOverride ? *aAvailableISizeOverride

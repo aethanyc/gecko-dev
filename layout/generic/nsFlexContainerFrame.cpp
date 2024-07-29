@@ -6413,8 +6413,8 @@ void nsFlexContainerFrame::ReflowPlaceholders(
   }
 }
 
-nscoord nsFlexContainerFrame::ComputeIntrinsicISize(gfxContext* aContext,
-                                                    IntrinsicISizeType aType) {
+nscoord nsFlexContainerFrame::ComputeIntrinsicISize(
+    const IntrinsicSizeInput& aInput, IntrinsicISizeType aType) {
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }
@@ -6452,8 +6452,8 @@ nscoord nsFlexContainerFrame::ComputeIntrinsicISize(gfxContext* aContext,
       continue;
     }
 
-    nscoord childISize =
-        nsLayoutUtils::IntrinsicForContainer(aContext, childFrame, aType);
+    nscoord childISize = nsLayoutUtils::IntrinsicForContainer(
+        aInput.mContext, childFrame, aType);
 
     // * For a row-oriented single-line flex container, the intrinsic
     // {min/pref}-isize is the sum of its items' {min/pref}-isizes and
@@ -6478,13 +6478,13 @@ nscoord nsFlexContainerFrame::ComputeIntrinsicISize(gfxContext* aContext,
   return containerISize;
 }
 
-nscoord nsFlexContainerFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsFlexContainerFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                              IntrinsicISizeType aType) {
   nscoord& cachedISize = aType == IntrinsicISizeType::MinISize
                              ? mCachedMinISize
                              : mCachedPrefISize;
   if (cachedISize == NS_INTRINSIC_ISIZE_UNKNOWN) {
-    cachedISize = ComputeIntrinsicISize(aContext, aType);
+    cachedISize = ComputeIntrinsicISize(aInput, aType);
   }
   return cachedISize;
 }
