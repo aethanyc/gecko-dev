@@ -39,7 +39,7 @@ class nsColumnSetFrame final : public nsContainerFrame {
   void RemoveFrame(DestroyContext&, ChildListID, nsIFrame*) override;
 #endif
 
-  nscoord IntrinsicISize(gfxContext* aContext,
+  nscoord IntrinsicISize(const mozilla::IntrinsicISizeInput& aInput,
                          mozilla::IntrinsicISizeType aType) override;
 
   nsContainerFrame* GetContentInsertionFrame() override {
@@ -198,8 +198,8 @@ class nsColumnSetFrame final : public nsContainerFrame {
       const nsPoint& aPt) const;
 
   // MinISize() and PrefISize() are helpers to implement IntrinsicISize().
-  nscoord MinISize(gfxContext* aContext);
-  nscoord PrefISize(gfxContext* aContext);
+  nscoord MinISize(const mozilla::IntrinsicISizeInput& aInput);
+  nscoord PrefISize(const mozilla::IntrinsicISizeInput& aInput);
 };
 
 #endif  // nsColumnSetFrame_h___

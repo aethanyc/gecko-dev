@@ -55,7 +55,7 @@ class ColumnSetWrapperFrame final : public nsBlockFrame {
 
   void MarkIntrinsicISizesDirty() override;
 
-  nscoord IntrinsicISize(gfxContext* aContext,
+  nscoord IntrinsicISize(const IntrinsicISizeInput& aInput,
                          IntrinsicISizeType aType) override;
 
   Maybe<nscoord> GetNaturalBaselineBOffset(
@@ -68,8 +68,8 @@ class ColumnSetWrapperFrame final : public nsBlockFrame {
   ~ColumnSetWrapperFrame() override = default;
 
   // MinISize() and PrefISize() are helpers to implement IntrinsicISize().
-  nscoord MinISize(gfxContext* aContext);
-  nscoord PrefISize(gfxContext* aContext);
+  nscoord MinISize(const IntrinsicISizeInput& aInput);
+  nscoord PrefISize(const IntrinsicISizeInput& aInput);
 
 #ifdef DEBUG
   static void AssertColumnSpanWrapperSubtreeIsSane(const nsIFrame* aFrame);

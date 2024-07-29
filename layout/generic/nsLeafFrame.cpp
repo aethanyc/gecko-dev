@@ -22,7 +22,7 @@ void nsLeafFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   DisplayBorderBackgroundOutline(aBuilder, aLists);
 }
 
-nscoord nsLeafFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsLeafFrame::IntrinsicISize(const IntrinsicISizeInput& aInput,
                                     IntrinsicISizeType aType) {
   return GetIntrinsicSize().ISize(GetWritingMode()).valueOr(0);
 }

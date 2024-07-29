@@ -4524,8 +4524,9 @@ static nscoord AddIntrinsicSizeOffset(
     if (aISizeFromAspectRatio) {
       minContent = maxContent = *aISizeFromAspectRatio;
     } else {
-      minContent = aFrame->GetMinISize(aRenderingContext);
-      maxContent = aFrame->GetPrefISize(aRenderingContext);
+      const IntrinsicISizeInput input{aRenderingContext};
+      minContent = aFrame->GetMinISize(input);
+      maxContent = aFrame->GetPrefISize(input);
     }
     minContent += contentBoxToBoxSizingDiff;
     maxContent += contentBoxToBoxSizingDiff;
@@ -4818,7 +4819,8 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         result = aFrame->BSize();
       }
     } else {
-      result = aFrame->IntrinsicISize(aRenderingContext, aType);
+      const IntrinsicISizeInput input{aRenderingContext};
+      result = aFrame->IntrinsicISize(input, aType);
     }
 #ifdef DEBUG_INTRINSIC_WIDTH
     --gNoiseIndent;
@@ -4951,9 +4953,10 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   }
 
   if (aFrame->IsTableFrame()) {
-    // Tables can't shrink smaller than their intrinsic minimum width,
+    // Tables can't shrink smaller than their intrinsic minimum inline size,
     // no matter what.
-    min = aFrame->GetMinISize(aRenderingContext);
+    const IntrinsicISizeInput input{aRenderingContext};
+    min = aFrame->GetMinISize(input);
   }
 
   // If we have an aspect-ratio and a definite block size of |aFrame|, we should

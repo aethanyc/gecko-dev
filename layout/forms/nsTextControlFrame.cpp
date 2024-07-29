@@ -559,12 +559,12 @@ void nsTextControlFrame::AppendAnonymousContentTo(
   aElements.AppendElement(mRootNode);
 }
 
-nscoord nsTextControlFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsTextControlFrame::IntrinsicISize(const IntrinsicISizeInput& aInput,
                                            IntrinsicISizeType aType) {
   // Our min inline size is just our preferred inline-size if we have auto
   // inline size.
   WritingMode wm = GetWritingMode();
-  return CalcIntrinsicSize(aContext, wm).ISize(wm);
+  return CalcIntrinsicSize(aInput.mContext, wm).ISize(wm);
 }
 
 Maybe<nscoord> nsTextControlFrame::ComputeBaseline(

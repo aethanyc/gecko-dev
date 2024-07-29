@@ -119,7 +119,7 @@ class nsGridContainerFrame final : public nsContainerFrame,
             nsIFrame* aPrevInFlow) override;
   void DidSetComputedStyle(ComputedStyle* aOldStyle) override;
 
-  nscoord IntrinsicISize(gfxContext* aContext,
+  nscoord IntrinsicISize(const mozilla::IntrinsicISizeInput& aInput,
                          mozilla::IntrinsicISizeType aType) override;
 
   void MarkIntrinsicISizesDirty() override;

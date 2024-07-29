@@ -594,11 +594,11 @@ ScrollContainerFrame* nsTableCellFrame::GetScrollTargetFrame() const {
   return do_QueryFrame(mFrames.FirstChild());
 }
 
-nscoord nsTableCellFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsTableCellFrame::IntrinsicISize(const IntrinsicISizeInput& aInput,
                                          IntrinsicISizeType aType) {
-  return nsLayoutUtils::IntrinsicForContainer(aContext, mFrames.FirstChild(),
-                                              aType, Nothing(),
-                                              nsLayoutUtils::IGNORE_PADDING);
+  return nsLayoutUtils::IntrinsicForContainer(
+      aInput.mContext, mFrames.FirstChild(), aType, Nothing(),
+      nsLayoutUtils::IGNORE_PADDING);
 }
 
 /* virtual */ nsIFrame::IntrinsicSizeOffsetData

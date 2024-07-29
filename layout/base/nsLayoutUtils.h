@@ -87,6 +87,7 @@ enum class StyleImageOrientation : uint8_t;
 enum class StyleSystemFont : uint8_t;
 enum class StyleScrollbarWidth : uint8_t;
 struct OverflowAreas;
+struct IntrinsicISizeInput;
 namespace dom {
 class CanvasRenderingContext2D;
 class DOMRectList;

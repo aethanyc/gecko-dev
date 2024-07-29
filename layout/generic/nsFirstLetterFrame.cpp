@@ -123,7 +123,7 @@ void nsFirstLetterFrame::AddInlinePrefISize(
 }
 
 // Needed for floating first-letter frames.
-nscoord nsFirstLetterFrame::IntrinsicISize(gfxContext* aContext,
+nscoord nsFirstLetterFrame::IntrinsicISize(const IntrinsicISizeInput& aInput,
                                            IntrinsicISizeType aType) {
   return IntrinsicISizeFromInline(aContext, aType);
 }
