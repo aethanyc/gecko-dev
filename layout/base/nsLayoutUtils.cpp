@@ -4395,10 +4395,12 @@ static Maybe<nscoord> GetIntrinsicSize(nsIFrame::ExtremumLength aLength,
   nscoord result;
   if (aISizeFromAspectRatio) {
     result = *aISizeFromAspectRatio;
-  } else if (aLength == nsIFrame::ExtremumLength::MaxContent) {
-    result = aFrame->GetPrefISize(aRenderingContext);
   } else {
-    result = aFrame->GetMinISize(aRenderingContext);
+    const IntrinsicSizeInput input{aRenderingContext};
+    auto type = aLength == nsIFrame::ExtremumLength::MaxContent
+                    ? IntrinsicISizeType::PrefISize
+                    : IntrinsicISizeType::MinISize;
+    result = aFrame->IntrinsicISize(input, type);
   }
 
   result += aContentBoxToBoxSizingDiff;
@@ -4524,8 +4526,9 @@ static nscoord AddIntrinsicSizeOffset(
     if (aISizeFromAspectRatio) {
       minContent = maxContent = *aISizeFromAspectRatio;
     } else {
-      minContent = aFrame->GetMinISize(aRenderingContext);
-      maxContent = aFrame->GetPrefISize(aRenderingContext);
+      const IntrinsicSizeInput input{aRenderingContext};
+      minContent = aFrame->GetMinISize(input);
+      maxContent = aFrame->GetPrefISize(input);
     }
     minContent += contentBoxToBoxSizingDiff;
     maxContent += contentBoxToBoxSizingDiff;
@@ -4818,7 +4821,8 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         result = aFrame->BSize();
       }
     } else {
-      result = aFrame->IntrinsicISize(aRenderingContext, aType);
+      const IntrinsicSizeInput input{aRenderingContext};
+      result = aFrame->IntrinsicISize(input, aType);
     }
 #ifdef DEBUG_INTRINSIC_WIDTH
     --gNoiseIndent;
@@ -4951,9 +4955,10 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   }
 
   if (aFrame->IsTableFrame()) {
-    // Tables can't shrink smaller than their intrinsic minimum width,
+    // Tables can't shrink smaller than their intrinsic minimum inline size,
     // no matter what.
-    min = aFrame->GetMinISize(aRenderingContext);
+    const IntrinsicSizeInput input{aRenderingContext};
+    min = aFrame->GetMinISize(input);
   }
 
   // If we have an aspect-ratio and a definite block size of |aFrame|, we should
