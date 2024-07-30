@@ -421,6 +421,11 @@ struct FrameBidiData {
 // and others.
 struct MOZ_STACK_CLASS IntrinsicSizeInput final {
   gfxContext* mContext = nullptr;
+
+  // The content-box size of a frame, served as a percentage basis when
+  // computing the children's intrinsic contributions. If the basis is
+  // indefinite in a given axis, use NS_UNCONSTRAINEDSIZE in that component.
+  Maybe<LogicalSize> mPercentageBasis = Nothing();
 };
 
 }  // namespace mozilla
@@ -2865,6 +2870,11 @@ class nsIFrame : public nsQueryFrame {
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
       mozilla::ComputeSizeFlags aFlags);
+
+  static nscoord ComputeBSizeValueAsPercentageBasis(
+      const mozilla::StyleSize& aBSize, const mozilla::StyleSize& aMinBSize,
+      const mozilla::StyleMaxSize& aMaxBSize, nscoord aCBBSize,
+      nscoord aContentEdgeToBoxSizingBSize);
 
  protected:
   /**

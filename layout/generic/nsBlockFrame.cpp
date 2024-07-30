@@ -854,6 +854,7 @@ nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
     ResolveBidi();
   }
 
+  const auto wm = GetWritingMode();
   const bool whiteSpaceCanWrap = StyleText()->WhiteSpaceCanWrapStyle();
   InlineMinISizeData data;
   for (nsBlockFrame* curFrame = this; curFrame;
@@ -871,8 +872,13 @@ nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
 #endif
       if (line->IsBlock()) {
         data.ForceBreak();
+        const Maybe<LogicalSize> percentageBasisInKidWM =
+            aInput.mPercentageBasis.map([&](const auto& aPB) {
+              return aPB.ConvertTo(line->mFirstChild->GetWritingMode(), wm);
+            });
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            aInput.mContext, line->mFirstChild, IntrinsicISizeType::MinISize);
+            aInput.mContext, line->mFirstChild, IntrinsicISizeType::MinISize,
+            percentageBasisInKidWM);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -883,7 +889,12 @@ nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          const IntrinsicSizeInput kidInput{aInput.mContext};
+          const Maybe<LogicalSize> percentageBasisInKidWM =
+              aInput.mPercentageBasis.map([&](const auto& aPB) {
+                return aPB.ConvertTo(kid->GetWritingMode(), wm);
+              });
+          const IntrinsicSizeInput kidInput{aInput.mContext,
+                                            percentageBasisInKidWM};
           kid->AddInlineMinISize(kidInput, &data);
           if (whiteSpaceCanWrap && data.mTrailingWhitespace) {
             data.OptionallyBreak();
@@ -927,6 +938,8 @@ nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
       PresContext()->BidiEnabled()) {
     ResolveBidi();
   }
+
+  const auto wm = GetWritingMode();
   InlinePrefISizeData data;
   for (nsBlockFrame* curFrame = this; curFrame;
        curFrame = static_cast<nsBlockFrame*>(curFrame->GetNextContinuation())) {
@@ -949,8 +962,13 @@ nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
           clearType = line->mFirstChild->StyleDisplay()->mClear;
         }
         data.ForceBreak(clearType);
+        const Maybe<LogicalSize> percentageBasisInKidWM =
+            aInput.mPercentageBasis.map([&](const auto& aPB) {
+              return aPB.ConvertTo(line->mFirstChild->GetWritingMode(), wm);
+            });
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            aInput.mContext, line->mFirstChild, IntrinsicISizeType::PrefISize);
+            aInput.mContext, line->mFirstChild, IntrinsicISizeType::PrefISize,
+            percentageBasisInKidWM);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -966,7 +984,12 @@ nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          const IntrinsicSizeInput kidInput{aInput.mContext};
+          const Maybe<LogicalSize> percentageBasisInKidWM =
+              aInput.mPercentageBasis.map([&](const auto& aPB) {
+                return aPB.ConvertTo(kid->GetWritingMode(), wm);
+              });
+          const IntrinsicSizeInput kidInput{aInput.mContext,
+                                            percentageBasisInKidWM};
           kid->AddInlinePrefISize(kidInput, &data);
         }
       }
@@ -1024,7 +1047,12 @@ nsresult nsBlockFrame::GetPrefWidthTightBounds(gfxContext* aRenderingContext,
         data.mLine = &line;
         data.SetLineContainer(curFrame);
         nsIFrame* kid = line->mFirstChild;
-        const IntrinsicSizeInput kidInput{aRenderingContext};
+        // Per comment in nsIFrame::GetPrefWidthTightBounds(), the function is
+        // only implemented for nsBlockFrame and nsTextFrame and is used to
+        // determine the intrinsic inline sizes of MathML token elements. These
+        // elements shouldn't have percentage block sizes that requires a
+        // percentage basis for resolution.
+        const IntrinsicSizeInput kidInput{aRenderingContext, Nothing()};
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
           rv = kid->GetPrefWidthTightBounds(aRenderingContext, &childX,

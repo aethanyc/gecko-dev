@@ -198,8 +198,13 @@ nscoord ColumnSetWrapperFrame::MinISize(const IntrinsicSizeInput& aInput) {
                                           colGap, 0);
     }
   } else {
+    const auto wm = GetWritingMode();
     for (nsIFrame* f : PrincipalChildList()) {
-      const IntrinsicSizeInput input{aInput.mContext};
+      const Maybe<LogicalSize> pbInChildWM =
+          aInput.mPercentageBasis.map([&](const auto& aPB) {
+            return aPB.ConvertTo(f->GetWritingMode(), wm);
+          });
+      const IntrinsicSizeInput input{aInput.mContext, pbInChildWM};
       iSize = std::max(iSize, f->GetMinISize(input));
     }
   }
@@ -235,8 +240,13 @@ nscoord ColumnSetWrapperFrame::PrefISize(const IntrinsicSizeInput& aInput) {
         ColumnUtils::GetColumnGap(this, NS_UNCONSTRAINEDSIZE);
     iSize = ColumnUtils::IntrinsicISize(numColumns, colGap, colISize);
   } else {
+    const auto wm = GetWritingMode();
     for (nsIFrame* f : PrincipalChildList()) {
-      const IntrinsicSizeInput input{aInput.mContext};
+      const Maybe<LogicalSize> pbInChildWM =
+          aInput.mPercentageBasis.map([&](const auto& aPB) {
+            return aPB.ConvertTo(f->GetWritingMode(), wm);
+          });
+      const IntrinsicSizeInput input{aInput.mContext, pbInChildWM};
       iSize = std::max(iSize, f->GetPrefISize(input));
     }
   }
