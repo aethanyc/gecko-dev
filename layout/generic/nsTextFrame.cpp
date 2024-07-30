@@ -4252,11 +4252,11 @@ class nsContinuingTextFrame final : public nsTextFrame {
     return mFirstContinuation;
   };
 
-  void AddInlineMinISize(gfxContext* aRenderingContext,
+  void AddInlineMinISize(const IntrinsicSizeInput& aInput,
                          InlineMinISizeData* aData) final {
     // Do nothing, since the first-in-flow accounts for everything.
   }
-  void AddInlinePrefISize(gfxContext* aRenderingContext,
+  void AddInlinePrefISize(const IntrinsicSizeInput& aInput,
                           InlinePrefISizeData* aData) final {
     // Do nothing, since the first-in-flow accounts for everything.
   }
@@ -4381,7 +4381,7 @@ nsIFrame* nsContinuingTextFrame::FirstInFlow() const {
 
 nscoord nsTextFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                     IntrinsicISizeType aType) {
-  return IntrinsicISizeFromInline(aInput.mContext, aType);
+  return IntrinsicISizeFromInline(aInput, aType);
 }
 
 //----------------------------------------------------------------------
@@ -8840,7 +8840,7 @@ static bool IsUnreflowedLetterFrame(nsIFrame* aFrame) {
 // XXX Need to do something here to avoid incremental reflow bugs due to
 // first-line changing min-width
 /* virtual */
-void nsTextFrame::AddInlineMinISize(gfxContext* aRenderingContext,
+void nsTextFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
                                     InlineMinISizeData* aData) {
   // Check if this textframe belongs to a first-letter frame that has not yet
   // been reflowed; if so, we need to deal with splitting off a continuation
@@ -8879,7 +8879,7 @@ void nsTextFrame::AddInlineMinISize(gfxContext* aRenderingContext,
       }
 
       // This will process all the text frames that share the same textrun as f.
-      f->AddInlineMinISizeForFlow(aRenderingContext, aData, trtype);
+      f->AddInlineMinISizeForFlow(aInput.mContext, aData, trtype);
       lastTextRun = f->GetTextRun(trtype);
     }
   }
@@ -9007,7 +9007,7 @@ void nsTextFrame::AddInlinePrefISizeForFlow(gfxContext* aRenderingContext,
 // XXX Need to do something here to avoid incremental reflow bugs due to
 // first-line and first-letter changing pref-width
 /* virtual */
-void nsTextFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
+void nsTextFrame::AddInlinePrefISize(const IntrinsicSizeInput& aInput,
                                      InlinePrefISizeData* aData) {
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   TextRunType trtype = (inflation == 1.0f) ? eNotInflated : eInflated;
@@ -9039,7 +9039,7 @@ void nsTextFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
       }
 
       // This will process all the text frames that share the same textrun as f.
-      f->AddInlinePrefISizeForFlow(aRenderingContext, aData, trtype);
+      f->AddInlinePrefISizeForFlow(aInput.mContext, aData, trtype);
       lastTextRun = f->GetTextRun(trtype);
     }
   }
