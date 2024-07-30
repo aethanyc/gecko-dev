@@ -46,7 +46,7 @@ NS_QUERYFRAME_TAIL_INHERITING(nsIFrame)
 #endif
 
 /* virtual */
-void nsPlaceholderFrame::AddInlineMinISize(gfxContext* aRenderingContext,
+void nsPlaceholderFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
                                            InlineMinISizeData* aData) {
   // Override AddInlineMinISize so that *nothing* happens. In
   // particular, we don't want to zero out |aData->mTrailingWhitespace|,
@@ -57,13 +57,13 @@ void nsPlaceholderFrame::AddInlineMinISize(gfxContext* aRenderingContext,
   // ...but push floats onto the list
   if (mOutOfFlowFrame->IsFloating()) {
     const nscoord floatISize = nsLayoutUtils::IntrinsicForContainer(
-        aRenderingContext, mOutOfFlowFrame, IntrinsicISizeType::MinISize);
+        aInput.mContext, mOutOfFlowFrame, IntrinsicISizeType::MinISize);
     aData->mFloats.EmplaceBack(mOutOfFlowFrame, floatISize);
   }
 }
 
 /* virtual */
-void nsPlaceholderFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
+void nsPlaceholderFrame::AddInlinePrefISize(const IntrinsicSizeInput& aInput,
                                             InlinePrefISizeData* aData) {
   // Override AddInlinePrefISize so that *nothing* happens. In
   // particular, we don't want to zero out |aData->mTrailingWhitespace|,
@@ -74,7 +74,7 @@ void nsPlaceholderFrame::AddInlinePrefISize(gfxContext* aRenderingContext,
   // ...but push floats onto the list
   if (mOutOfFlowFrame->IsFloating()) {
     const nscoord floatISize = nsLayoutUtils::IntrinsicForContainer(
-        aRenderingContext, mOutOfFlowFrame, IntrinsicISizeType::PrefISize);
+        aInput.mContext, mOutOfFlowFrame, IntrinsicISizeType::PrefISize);
     aData->mFloats.EmplaceBack(mOutOfFlowFrame, floatISize);
   }
 }
