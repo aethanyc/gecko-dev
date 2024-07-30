@@ -854,6 +854,7 @@ nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
     ResolveBidi();
   }
 
+  const auto wm = GetWritingMode();
   const bool whiteSpaceCanWrap = StyleText()->WhiteSpaceCanWrapStyle();
   InlineMinISizeData data;
   for (nsBlockFrame* curFrame = this; curFrame;
@@ -871,8 +872,13 @@ nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
 #endif
       if (line->IsBlock()) {
         data.ForceBreak();
+        const Maybe<LogicalSize> pbInChildWM =
+            aInput.mPercentageBasis.map([&](const auto& aPB) {
+              return aPB.ConvertTo(line->mFirstChild->GetWritingMode(), wm);
+            });
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            aInput.mContext, line->mFirstChild, IntrinsicISizeType::MinISize);
+            aInput.mContext, line->mFirstChild, IntrinsicISizeType::MinISize,
+            pbInChildWM);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -883,7 +889,11 @@ nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          const IntrinsicSizeInput input{aInput.mContext};
+          const Maybe<LogicalSize> pbInChildWM =
+              aInput.mPercentageBasis.map([&](const auto& aPB) {
+                return aPB.ConvertTo(kid->GetWritingMode(), wm);
+              });
+          const IntrinsicSizeInput input{aInput.mContext, pbInChildWM};
           kid->AddInlineMinISize(input, &data);
           if (whiteSpaceCanWrap && data.mTrailingWhitespace) {
             data.OptionallyBreak();
@@ -927,6 +937,8 @@ nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
       PresContext()->BidiEnabled()) {
     ResolveBidi();
   }
+
+  const auto wm = GetWritingMode();
   InlinePrefISizeData data;
   for (nsBlockFrame* curFrame = this; curFrame;
        curFrame = static_cast<nsBlockFrame*>(curFrame->GetNextContinuation())) {
@@ -949,8 +961,13 @@ nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
           clearType = line->mFirstChild->StyleDisplay()->mClear;
         }
         data.ForceBreak(clearType);
+        const Maybe<LogicalSize> pbInChildWM =
+            aInput.mPercentageBasis.map([&](const auto& aPB) {
+              return aPB.ConvertTo(line->mFirstChild->GetWritingMode(), wm);
+            });
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
-            aInput.mContext, line->mFirstChild, IntrinsicISizeType::PrefISize);
+            aInput.mContext, line->mFirstChild, IntrinsicISizeType::PrefISize,
+            pbInChildWM);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -966,7 +983,11 @@ nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
         nsIFrame* kid = line->mFirstChild;
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
-          const IntrinsicSizeInput input{aInput.mContext};
+          const Maybe<LogicalSize> pbInChildWM =
+              aInput.mPercentageBasis.map([&](const auto& aPB) {
+                return aPB.ConvertTo(kid->GetWritingMode(), wm);
+              });
+          const IntrinsicSizeInput input{aInput.mContext, pbInChildWM};
           kid->AddInlinePrefISize(input, &data);
         }
       }
