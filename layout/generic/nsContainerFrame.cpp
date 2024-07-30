@@ -791,8 +791,13 @@ void nsContainerFrame::SyncFrameViewAfterReflow(nsPresContext* aPresContext,
 void nsContainerFrame::DoInlineMinISize(const IntrinsicSizeInput& aInput,
                                         InlineMinISizeData* aData) {
   auto handleChildren = [&](auto frame, auto data) {
+    const auto wm = GetWritingMode();
     for (nsIFrame* kid : frame->mFrames) {
-      const IntrinsicSizeInput kidInput{aInput.mContext};
+      const Maybe<LogicalSize> pbInKidWM =
+          aInput.mPercentageBasis.map([&](const auto& aPB) {
+            return aPB.ConvertTo(kid->GetWritingMode(), wm);
+          });
+      const IntrinsicSizeInput kidInput{aInput.mContext, pbInKidWM};
       kid->AddInlineMinISize(kidInput, data);
     }
   };
@@ -802,8 +807,13 @@ void nsContainerFrame::DoInlineMinISize(const IntrinsicSizeInput& aInput,
 void nsContainerFrame::DoInlinePrefISize(const IntrinsicSizeInput& aInput,
                                          InlinePrefISizeData* aData) {
   auto handleChildren = [&](auto frame, auto data) {
+    const auto wm = GetWritingMode();
     for (nsIFrame* kid : frame->mFrames) {
-      const IntrinsicSizeInput kidInput{aInput.mContext};
+      const Maybe<LogicalSize> pbInKidWM =
+          aInput.mPercentageBasis.map([&](const auto& aPB) {
+            return aPB.ConvertTo(kid->GetWritingMode(), wm);
+          });
+      const IntrinsicSizeInput kidInput{aInput.mContext, pbInKidWM};
       kid->AddInlinePrefISize(kidInput, data);
     }
   };

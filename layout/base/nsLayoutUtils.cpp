@@ -4730,6 +4730,32 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
     fixedMinISize = GetAbsoluteSize(styleMinISize);
   }
 
+  // Handle elements with an intrinsic ratio (or size) and a specified
+  // height, min-height, or max-height.
+  // NOTE:
+  // 1. We treat "min-height:auto" as "0" for the purpose of this code,
+  // since that's what it means in all cases except for on flex items -- and
+  // even there, we're supposed to ignore it (i.e. treat it as 0) until the
+  // flex container explicitly considers it.
+  // 2. The 'B' in |styleBSize|, |styleMinBSize|, and |styleMaxBSize|
+  // represents the ratio-determining axis of |aFrame|. It could be the inline
+  // axis or the block axis of |aFrame|. (So we are calculating the size
+  // along the ratio-dependent axis in this if-branch.)
+  StyleSize styleBSize = horizontalAxis ? stylePos->mHeight : stylePos->mWidth;
+  StyleSize styleMinBSize =
+      horizontalAxis ? stylePos->mMinHeight : stylePos->mMinWidth;
+  StyleMaxSize styleMaxBSize =
+      horizontalAxis ? stylePos->mMaxHeight : stylePos->mMaxWidth;
+
+  // According to the spec, max-content and min-content should behave as the
+  // property's initial values in block axis.
+  // It also make senses to use the initial values for -moz-fit-content and
+  // -moz-available for intrinsic size in block axis. Therefore, we reset them
+  // if needed.
+  if (isInlineAxis) {
+    resetIfKeywords(styleBSize, styleMinBSize, styleMaxBSize);
+  }
+
   auto childWM = aFrame->GetWritingMode();
   nscoord pmPercentageBasis = NS_UNCONSTRAINEDSIZE;
   if (aPercentageBasis.isSome()) {
@@ -4821,7 +4847,26 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         result = aFrame->BSize();
       }
     } else {
-      const IntrinsicSizeInput input{aRenderingContext};
+      // Compute a percentage basis for aFrame's children.
+      const nscoord pmBSize = aPercentageBasis
+                                  ? aPercentageBasis->BSize(childWM)
+                                  : NS_UNCONSTRAINEDSIZE;
+      nscoord percentageBasisBSizeForChildren;
+      if (aFrame->IsBlockContainer()) {
+        const LogicalSize contentEdgeToBoxSizing =
+            getContentBoxSizeToBoxSizingAdjust(stylePos->mBoxSizing);
+        percentageBasisBSizeForChildren =
+            aFrame->ComputeBSizeValueAsPercentageBasis(
+                styleBSize, styleMinBSize, styleMaxBSize, pmBSize,
+                contentEdgeToBoxSizing.BSize(childWM));
+      } else {
+        // aFrame is not a containing block. Pass down the aPercentageBasis.
+        percentageBasisBSizeForChildren = pmBSize;
+      }
+      const IntrinsicSizeInput input{
+          aRenderingContext,
+          Some(LogicalSize(childWM, NS_UNCONSTRAINEDSIZE,
+                           percentageBasisBSizeForChildren))};
       result = aFrame->IntrinsicISize(input, aType);
     }
 #ifdef DEBUG_INTRINSIC_WIDTH
@@ -4832,33 +4877,6 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
                   aType == IntrinsicISizeType::MinISize ? "min" : "pref",
                   horizontalAxis ? "horizontal" : "vertical", result);
 #endif
-
-    // Handle elements with an intrinsic ratio (or size) and a specified
-    // height, min-height, or max-height.
-    // NOTE:
-    // 1. We treat "min-height:auto" as "0" for the purpose of this code,
-    // since that's what it means in all cases except for on flex items -- and
-    // even there, we're supposed to ignore it (i.e. treat it as 0) until the
-    // flex container explicitly considers it.
-    // 2. The 'B' in |styleBSize|, |styleMinBSize|, and |styleMaxBSize|
-    // represents the ratio-determining axis of |aFrame|. It could be the inline
-    // axis or the block axis of |aFrame|. (So we are calculating the size
-    // along the ratio-dependent axis in this if-branch.)
-    StyleSize styleBSize =
-        horizontalAxis ? stylePos->mHeight : stylePos->mWidth;
-    StyleSize styleMinBSize =
-        horizontalAxis ? stylePos->mMinHeight : stylePos->mMinWidth;
-    StyleMaxSize styleMaxBSize =
-        horizontalAxis ? stylePos->mMaxHeight : stylePos->mMaxWidth;
-
-    // According to the spec, max-content and min-content should behave as the
-    // property's initial values in block axis.
-    // It also make senses to use the initial values for -moz-fit-content and
-    // -moz-available for intrinsic size in block axis. Therefore, we reset them
-    // if needed.
-    if (isInlineAxis) {
-      resetIfKeywords(styleBSize, styleMinBSize, styleMaxBSize);
-    }
 
     // If our BSize or min/max-BSize properties are set to values that we can
     // resolve and that will impose a constraint when transferred through our

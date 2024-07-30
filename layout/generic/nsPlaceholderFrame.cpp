@@ -56,8 +56,14 @@ void nsPlaceholderFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
 
   // ...but push floats onto the list
   if (mOutOfFlowFrame->IsFloating()) {
+    const Maybe<LogicalSize> pbInOutOfFlowWM =
+        aInput.mPercentageBasis.map([&](const auto& aPB) {
+          return aPB.ConvertTo(mOutOfFlowFrame->GetWritingMode(),
+                               GetWritingMode());
+        });
     const nscoord floatISize = nsLayoutUtils::IntrinsicForContainer(
-        aInput.mContext, mOutOfFlowFrame, IntrinsicISizeType::MinISize);
+        aInput.mContext, mOutOfFlowFrame, IntrinsicISizeType::MinISize,
+        pbInOutOfFlowWM);
     aData->mFloats.EmplaceBack(mOutOfFlowFrame, floatISize);
   }
 }
@@ -73,8 +79,14 @@ void nsPlaceholderFrame::AddInlinePrefISize(const IntrinsicSizeInput& aInput,
 
   // ...but push floats onto the list
   if (mOutOfFlowFrame->IsFloating()) {
+    const Maybe<LogicalSize> pbInOutOfFlowWM =
+        aInput.mPercentageBasis.map([&](const auto& aPB) {
+          return aPB.ConvertTo(mOutOfFlowFrame->GetWritingMode(),
+                               GetWritingMode());
+        });
     const nscoord floatISize = nsLayoutUtils::IntrinsicForContainer(
-        aInput.mContext, mOutOfFlowFrame, IntrinsicISizeType::PrefISize);
+        aInput.mContext, mOutOfFlowFrame, IntrinsicISizeType::PrefISize,
+        pbInOutOfFlowWM);
     aData->mFloats.EmplaceBack(mOutOfFlowFrame, floatISize);
   }
 }
