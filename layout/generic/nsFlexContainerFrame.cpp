@@ -6434,6 +6434,7 @@ nscoord nsFlexContainerFrame::ComputeIntrinsicISize(
 
   const bool useMozBoxCollapseBehavior =
       StyleVisibility()->UseLegacyCollapseBehavior();
+  const auto wm = GetWritingMode();
 
   // The loop below sets aside space for a gap before each item besides the
   // first. This bool helps us handle that special-case.
@@ -6452,8 +6453,12 @@ nscoord nsFlexContainerFrame::ComputeIntrinsicISize(
       continue;
     }
 
+    const Maybe<LogicalSize> percentageBasisInChildWM =
+        aInput.mPercentageBasis.map([&](const auto& aPB) {
+          return aPB.ConvertTo(childFrame->GetWritingMode(), wm);
+        });
     nscoord childISize = nsLayoutUtils::IntrinsicForContainer(
-        aInput.mContext, childFrame, aType);
+        aInput.mContext, childFrame, aType, percentageBasisInChildWM);
 
     // * For a row-oriented single-line flex container, the intrinsic
     // {min/pref}-isize is the sum of its items' {min/pref}-isizes and

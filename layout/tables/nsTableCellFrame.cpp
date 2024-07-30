@@ -597,7 +597,7 @@ ScrollContainerFrame* nsTableCellFrame::GetScrollTargetFrame() const {
 nscoord nsTableCellFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                          IntrinsicISizeType aType) {
   return nsLayoutUtils::IntrinsicForContainer(
-      aInput.mContext, mFrames.FirstChild(), aType, Nothing(),
+      aInput.mContext, mFrames.FirstChild(), aType, aInput.mPercentageBasis,
       nsLayoutUtils::IGNORE_PADDING);
 }
 
