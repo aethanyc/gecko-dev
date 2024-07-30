@@ -596,9 +596,19 @@ ScrollContainerFrame* nsTableCellFrame::GetScrollTargetFrame() const {
 
 nscoord nsTableCellFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                          IntrinsicISizeType aType) {
-  return nsLayoutUtils::IntrinsicForContainer(
-      aInput.mContext, mFrames.FirstChild(), aType, Nothing(),
-      nsLayoutUtils::IGNORE_PADDING);
+  nsIFrame* inner = mFrames.FirstChild();
+
+  // A table cell has the same writing-mode as its table ancestor, which
+  // may differ from its inner frame that derives its writing-mode from
+  // the style. See nsTableCellFrame::Init(). Therefore, we must convert
+  // the percentage basis.
+  const Maybe<LogicalSize> percentageBasisInInnerWM =
+      aInput.mPercentageBasis.map([&](const auto& aPB) {
+        return aPB.ConvertTo(inner->GetWritingMode(), GetWritingMode());
+      });
+  return nsLayoutUtils::IntrinsicForContainer(aInput.mContext, inner, aType,
+                                              percentageBasisInInnerWM,
+                                              nsLayoutUtils::IGNORE_PADDING);
 }
 
 /* virtual */ nsIFrame::IntrinsicSizeOffsetData
