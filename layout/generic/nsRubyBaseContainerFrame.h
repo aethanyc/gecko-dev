@@ -28,12 +28,11 @@ class nsRubyBaseContainerFrame final : public nsContainerFrame {
   NS_DECL_FRAMEARENA_HELPERS(nsRubyBaseContainerFrame)
   NS_DECL_QUERYFRAME
 
-  // nsIFrame overrides
   virtual bool CanContinueTextRun() const override;
-  virtual void AddInlineMinISize(gfxContext* aRenderingContext,
-                                 InlineMinISizeData* aData) override;
-  virtual void AddInlinePrefISize(gfxContext* aRenderingContext,
-                                  InlinePrefISizeData* aData) override;
+  void AddInlineMinISize(const mozilla::IntrinsicSizeInput& aInput,
+                         InlineMinISizeData* aData) override;
+  void AddInlinePrefISize(const mozilla::IntrinsicSizeInput& aInput,
+                          InlinePrefISizeData* aData) override;
   SizeComputationResult ComputeSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,
       const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,

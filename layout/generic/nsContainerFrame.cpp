@@ -788,21 +788,23 @@ void nsContainerFrame::SyncFrameViewAfterReflow(nsPresContext* aPresContext,
   }
 }
 
-void nsContainerFrame::DoInlineMinISize(gfxContext* aRenderingContext,
+void nsContainerFrame::DoInlineMinISize(const IntrinsicSizeInput& aInput,
                                         InlineMinISizeData* aData) {
-  auto handleChildren = [aRenderingContext](auto frame, auto data) {
-    for (nsIFrame* kid : frame->mFrames) {
-      kid->AddInlineMinISize(aRenderingContext, data);
+  auto handleChildren = [&](auto frame, auto data) {
+    for (nsIFrame* child : frame->mFrames) {
+      const IntrinsicSizeInput childInput{aInput.mContext};
+      child->AddInlineMinISize(childInput, data);
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);
 }
 
-void nsContainerFrame::DoInlinePrefISize(gfxContext* aRenderingContext,
+void nsContainerFrame::DoInlinePrefISize(const IntrinsicSizeInput& aInput,
                                          InlinePrefISizeData* aData) {
-  auto handleChildren = [aRenderingContext](auto frame, auto data) {
-    for (nsIFrame* kid : frame->mFrames) {
-      kid->AddInlinePrefISize(aRenderingContext, data);
+  auto handleChildren = [&](auto frame, auto data) {
+    for (nsIFrame* child : frame->mFrames) {
+      const IntrinsicSizeInput childInput{aInput.mContext};
+      child->AddInlinePrefISize(childInput, data);
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);
