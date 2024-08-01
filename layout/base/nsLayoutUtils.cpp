@@ -4147,6 +4147,8 @@ static Maybe<nscoord> GetPercentBSize(const LengthPercentage& aSize,
   MOZ_ASSERT(!aSize.ConvertsToLength(),
              "GetAbsoluteSize should have handled this");
 
+  NS_ASSERTION(false, "check who calls GetPercentBSize()");
+
   // During reflow, ScrollContainerFrame::ReflowScrolledFrame uses
   // SetComputedHeight on the reflow input for its child to propagate its
   // computed height to the scrolled content. So here we skip to the scroll
