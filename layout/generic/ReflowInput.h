@@ -230,10 +230,7 @@ struct SizeComputationInput {
 };
 
 /**
- * State passed to a frame during reflow or intrinsic size calculation.
- *
- * XXX Refactor so only a base class (nsSizingState?) is used for intrinsic
- * size calculation.
+ * State passed to a frame during reflow.
  *
  * @see nsIFrame#Reflow()
  */
