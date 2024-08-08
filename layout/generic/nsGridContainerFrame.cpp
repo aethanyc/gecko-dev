@@ -308,8 +308,14 @@ struct nsGridContainerFrame::TrackSize {
     return (aStateBits & (eIntrinsicMaxSizing | eFlexMaxSizing)) == 0;
   }
 
+  // Base size of this track.
+  // https://drafts.csswg.org/css-grid-2/#base-size
   nscoord mBase;
+
+  // Growth limit of this track.
+  // https://drafts.csswg.org/css-grid-2/#growth-limit
   nscoord mLimit;
+
   nscoord mPosition;  // zero until we apply 'align/justify-content'
   // mBaselineSubtreeSize is the size of a baseline-aligned subtree within
   // this track.  One subtree per baseline-sharing group (per track).
@@ -2253,7 +2259,7 @@ struct nsGridContainerFrame::Tracks {
       bool aNeedInfinitelyGrowableFlag = false);
   /**
    * Resolve Intrinsic Track Sizes.
-   * http://dev.w3.org/csswg/css-grid/#algo-content
+   * https://drafts.csswg.org/css-grid-2/#algo-content
    */
   void ResolveIntrinsicSize(GridReflowInput& aState,
                             nsTArray<GridItemInfo>& aGridItems,
@@ -2263,17 +2269,20 @@ struct nsGridContainerFrame::Tracks {
                             SizingConstraint aConstraint);
 
   /**
-   * Helper for ResolveIntrinsicSize.  It implements step 1 "size tracks to fit
-   * non-spanning items" in the spec.  Return true if the track has a <flex>
-   * max-sizing function, false otherwise.
+   * Helper for ResolveIntrinsicSize. It implements "Resolve Intrinsic Track
+   * Sizes" step 2: "Size tracks to fit non-spanning items" in the spec.
+   * https://drafts.csswg.org/css-grid-2/#algo-single-span-items
+   *
+   * @return true if the track has a <flex> max-sizing function, false
+   * otherwise.
    */
   bool ResolveIntrinsicSizeForNonSpanningItems(
       GridReflowInput& aState, const TrackSizingFunctions& aFunctions,
       nscoord aPercentageBasis, SizingConstraint aConstraint,
       const LineRange& aRange, const GridItemInfo& aGridItem);
 
-  // Helper method that returns the track size to use in §11.5.1.2
-  // https://drafts.csswg.org/css-grid/#extra-space
+  // Helper method that returns the track size to use in §12.5.1.2
+  // https://drafts.csswg.org/css-grid-2/#extra-space
   template <TrackSizingPhase phase>
   static nscoord StartSizeInDistribution(const TrackSize& aSize) {
     switch (phase) {
