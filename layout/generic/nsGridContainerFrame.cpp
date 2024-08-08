@@ -7375,14 +7375,12 @@ LogicalSize nsGridContainerFrame::GridReflowInput::PercentageBasisFor(
     return LogicalSize(wm, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
   }
 
-  if (aAxis == LogicalAxis::Inline || !mCols.mCanResolveLineRangeSize) {
-    return LogicalSize(wm, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
-  }
-  // Note: for now, we only resolve transferred percentages to row sizing.
-  // We may need to adjust these assertions once we implement bug 1300366.
-  MOZ_ASSERT(!mRows.mCanResolveLineRangeSize);
-  nscoord colSize = aGridItem.mArea.mCols.ToLength(mCols.mSizes);
-  nscoord rowSize = NS_UNCONSTRAINEDSIZE;
+  const nscoord colSize = mCols.mCanResolveLineRangeSize
+                              ? aGridItem.mArea.mCols.ToLength(mCols.mSizes)
+                              : NS_UNCONSTRAINEDSIZE;
+  const nscoord rowSize = mRows.mCanResolveLineRangeSize
+                              ? aGridItem.mArea.mRows.ToLength(mRows.mSizes)
+                              : NS_UNCONSTRAINEDSIZE;
   return !wm.IsOrthogonalTo(mWM) ? LogicalSize(wm, colSize, rowSize)
                                  : LogicalSize(wm, rowSize, colSize);
 }
@@ -9659,6 +9657,11 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     return nscoord(0);
   }
 
+  // Definite grid row sizes can affect grid column sizes via grid items with an
+  // aspect-ratio (or with a child with an aspect ratio). Thus, we calculate row
+  // sizes first in ComputeIntrinsicISize().
+  state.CalculateTrackSizesForAxis(LogicalAxis::Block, grid,
+                                   NS_UNCONSTRAINEDSIZE, constraint);
   state.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
                                    NS_UNCONSTRAINEDSIZE, constraint);
 
