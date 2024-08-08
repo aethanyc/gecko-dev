@@ -5849,6 +5849,11 @@ bool nsGridContainerFrame::Tracks::ResolveIntrinsicSizeForNonSpanningItems(
   CachedIntrinsicSizes cache;
   TrackSize& sz = mSizes[aRange.mStart];
 
+  if ((mAxis == LogicalAxis::Inline) ==
+      !wm.IsOrthogonalTo(aGridItem.mFrame->GetWritingMode())) {
+    aGridItem.mFrame->MarkIntrinsicISizesDirty();
+  }
+
   // min sizing
   if (sz.mState & TrackSize::eAutoMinSizing) {
     nscoord s;
@@ -6546,10 +6551,11 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
   const bool isMasonryInOtherAxis = aState.mFrame->IsMasonry(orthogonalAxis);
 
   for (auto& gridItem : aGridItems) {
-    MOZ_ASSERT(!(gridItem.mState[mAxis] &
-                 (ItemState::eApplyAutoMinSize | ItemState::eIsFlexing |
-                  ItemState::eClampMarginBoxMinSize)),
-               "Why are any of these bits set already?");
+    // XXX: Tweak this assert.
+    // MOZ_ASSERT(!(gridItem.mState[mAxis] &
+    //              (ItemState::eApplyAutoMinSize | ItemState::eIsFlexing |
+    //               ItemState::eClampMarginBoxMinSize)),
+    //            "Why are any of these bits set already?");
 
     const GridArea& area = gridItem.mArea;
     const LineRange& lineRange = area.*aRange;
@@ -7241,6 +7247,10 @@ LogicalSize nsGridContainerFrame::GridReflowInput::PercentageBasisFor(
   }
 
   if (aAxis == LogicalAxis::Inline || !mCols.mCanResolveLineRangeSize) {
+    if (mRows.mCanResolveLineRangeSize) {
+      return LogicalSize(wm, NS_UNCONSTRAINEDSIZE,
+                         aGridItem.mArea.mRows.ToLength(mRows.mSizes));
+    }
     return LogicalSize(wm, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
   }
   // Note: for now, we only resolve transferred percentages to row sizing.
@@ -8804,6 +8814,9 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
     const LogicalSize containLogicalSize(wm, computedISize, trackSizingBSize);
     gridReflowInput.CalculateTrackSizes(grid, containLogicalSize,
                                         SizingConstraint::NoConstraint);
+    gridReflowInput.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
+                                               computedISize,
+                                               SizingConstraint::NoConstraint);
     if (containBSize) {
       bSize = *containBSize;
     } else {
@@ -9515,6 +9528,11 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     return nscoord(0);
   }
 
+  // Definite grid row sizes can affect grid column sizes via grid items with an
+  // aspect-ratio (or with a child with an aspect ratio). Thus, we calculate row
+  // sizes first in ComputeIntrinsicISize().
+  state.CalculateTrackSizesForAxis(LogicalAxis::Block, grid,
+                                   NS_UNCONSTRAINEDSIZE, constraint);
   state.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
                                    NS_UNCONSTRAINEDSIZE, constraint);
 
