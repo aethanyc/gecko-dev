@@ -737,32 +737,16 @@ struct nsGridContainerFrame::GridItemInfo {
         mFrame->IsTableWrapperFrame()
             ? mFrame->PrincipalChildList().FirstChild()->StylePosition()
             : mFrame->StylePosition();
-    const auto& size =
-        isInlineAxis ? pos->ISize(aContainerWM) : pos->BSize(aContainerWM);
-    // max-content and min-content should behave as initial value in block axis.
-    // FIXME: Bug 567039: moz-fit-content and -moz-available are not supported
-    // for block size dimension on sizing properties (e.g. height), so we
-    // treat it as `auto`.
-    bool isAuto = size.IsAuto() ||
-                  (isInlineAxis ==
-                       aContainerWM.IsOrthogonalTo(mFrame->GetWritingMode()) &&
-                   size.BehavesLikeInitialValueOnBlockAxis());
-    // NOTE: if we have a definite size then our automatic minimum size
-    // can't affect our size.  Excluding these simplifies applying
-    // the clamping in the right cases later.
-    if (!isAuto && !::IsPercentOfIndefiniteSize(size, aPercentageBasis)) {
-      return false;
-    }
     const auto& minSize = isInlineAxis ? pos->MinISize(aContainerWM)
                                        : pos->MinBSize(aContainerWM);
     // max-content and min-content should behave as initial value in block axis.
     // FIXME: Bug 567039: moz-fit-content and -moz-available are not supported
     // for block size dimension on sizing properties (e.g. height), so we
     // treat it as `auto`.
-    isAuto = minSize.IsAuto() ||
-             (isInlineAxis ==
-                  aContainerWM.IsOrthogonalTo(mFrame->GetWritingMode()) &&
-              minSize.BehavesLikeInitialValueOnBlockAxis());
+    const bool isAuto =
+        minSize.IsAuto() || (isInlineAxis == aContainerWM.IsOrthogonalTo(
+                                                 mFrame->GetWritingMode()) &&
+                             minSize.BehavesLikeInitialValueOnBlockAxis());
     return isAuto && !mFrame->StyleDisplay()->IsScrollableOverflow();
   }
 
