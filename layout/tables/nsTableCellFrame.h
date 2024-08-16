@@ -87,6 +87,9 @@ class nsTableCellFrame : public nsContainerFrame,
     return PrincipalChildList().FirstChild()->GetContentInsertionFrame();
   }
 
+  // Return our anonymous inner frame.
+  nsIFrame* Inner() const;
+
   nsIFrame* CellContentFrame() const;
 
   nsMargin GetUsedMargin() const override;
