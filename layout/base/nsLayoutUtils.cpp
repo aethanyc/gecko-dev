@@ -4867,6 +4867,15 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
                 styleBSize, styleMinBSize, styleMaxBSize,
                 percentageBasisBSizeForFrame,
                 contentEdgeToBoxSizing->BSize(childWM));
+
+        if (aFrame->PresContext()->CompatibilityMode() ==
+                eCompatibility_NavQuirks &&
+            percentageBasisBSizeForChildren == NS_UNCONSTRAINEDSIZE &&
+            horizontalAxis && !aFrame->IsAbsolutelyPositioned()) {
+          // Pass down percentageBasisBSizeForFrame for quicks mode.
+          // https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk
+          percentageBasisBSizeForChildren = percentageBasisBSizeForFrame;
+        }
       } else {
         // aFrame is not a containing block. Pass down
         // percentageBasisBSizeForFrame.
