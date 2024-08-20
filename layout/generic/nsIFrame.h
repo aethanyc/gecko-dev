@@ -422,9 +422,27 @@ struct FrameBidiData {
 struct MOZ_STACK_CLASS IntrinsicSizeInput final {
   gfxContext* const mContext;
 
-  explicit IntrinsicSizeInput(gfxContext* aContext) : mContext(aContext) {
+  // The content-box size of a frame, served as a percentage basis when
+  // computing the children's intrinsic contributions. If the basis is
+  // indefinite in a given axis, use NS_UNCONSTRAINEDSIZE in that component.
+  Maybe<LogicalSize> mPercentageBasis;
+
+  IntrinsicSizeInput(gfxContext* aContext,
+                     const Maybe<LogicalSize>& aPercentageBasis)
+      : mContext(aContext), mPercentageBasis(aPercentageBasis) {
     MOZ_ASSERT(mContext);
   }
+
+  // Construct a new IntrinsicSizeInput by copying from aSource.
+  //
+  // This constructor converts mPercentageBasis' writing mode, if it exists. The
+  // original mPercentageBasis in aSource is expected to be in the writing mode
+  // aFromWM, and it will be converted to the writing mode aToWM.
+  IntrinsicSizeInput(const IntrinsicSizeInput& aSource,
+                     mozilla::WritingMode aToWM, mozilla::WritingMode aFromWM)
+      : mContext(aSource.mContext),
+        mPercentageBasis(aSource.mPercentageBasis.map(
+            [&](const auto& aPB) { return aPB.ConvertTo(aToWM, aFromWM); })) {}
 };
 
 }  // namespace mozilla
@@ -2869,6 +2887,12 @@ class nsIFrame : public nsQueryFrame {
       const mozilla::LogicalSize& aBorderPadding,
       const mozilla::StyleSizeOverrides& aSizeOverrides,
       mozilla::ComputeSizeFlags aFlags);
+
+  static nscoord ComputeBSizeValueAsPercentageBasis(
+      const mozilla::StyleSize& aStyleBSize,
+      const mozilla::StyleSize& aStyleMinBSize,
+      const mozilla::StyleMaxSize& aStyleMaxBSize, nscoord aCBBSize,
+      nscoord aContentEdgeToBoxSizingBSize);
 
  protected:
   /**
