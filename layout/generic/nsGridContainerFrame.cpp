@@ -204,50 +204,46 @@ struct RepeatTrackSizingInput {
   // This should be used in intrinsic sizing (i.e. when we can't initialize
   // the sizes directly from ReflowInput values).
   void InitFromStyle(LogicalAxis aAxis, WritingMode aWM,
-                     const ComputedStyle* aStyle) {
-    const auto& pos = aStyle->StylePosition();
-    const bool borderBoxSizing = pos->mBoxSizing == StyleBoxSizing::Border;
-    nscoord bp = NS_UNCONSTRAINEDSIZE;  // a sentinel to calculate it only once
-    auto adjustForBoxSizing = [borderBoxSizing, aWM, aAxis, aStyle,
-                               &bp](nscoord aSize) {
-      if (!borderBoxSizing) {
-        return aSize;
-      }
-      if (bp == NS_UNCONSTRAINEDSIZE) {
-        const auto& padding = aStyle->StylePadding()->mPadding;
-        LogicalMargin border(aWM, aStyle->StyleBorder()->GetComputedBorder());
-        // We can use zero percentage basis since this is only called from
-        // intrinsic sizing code.
-        const nscoord percentageBasis = 0;
-        if (aAxis == LogicalAxis::Inline) {
-          bp = std::max(padding.GetIStart(aWM).Resolve(percentageBasis), 0) +
-               std::max(padding.GetIEnd(aWM).Resolve(percentageBasis), 0) +
-               border.IStartEnd(aWM);
-        } else {
-          bp = std::max(padding.GetBStart(aWM).Resolve(percentageBasis), 0) +
-               std::max(padding.GetBEnd(aWM).Resolve(percentageBasis), 0) +
-               border.BStartEnd(aWM);
-        }
-      }
-      return std::max(aSize - bp, 0);
+                     nsGridContainerFrame* aFrame) {
+    const auto& stylePos = aFrame->Style()->StylePosition();
+    const auto contentEdgeToBoxSizing =
+        stylePos->mBoxSizing == StyleBoxSizing::Border
+            ? LogicalSize(aWM, aFrame->IntrinsicISizeOffsets().BorderPadding(),
+                          aFrame->IntrinsicBSizeOffsets().BorderPadding())
+            : LogicalSize(aWM);
+    auto AdjustForBoxSizing = [&](nscoord aSize) {
+      return std::max(aSize - contentEdgeToBoxSizing.Size(aAxis, aWM), 0);
     };
-    nscoord& min = mMin.Size(aAxis, aWM);
-    nscoord& size = mSize.Size(aAxis, aWM);
-    nscoord& max = mMax.Size(aAxis, aWM);
-    const auto& minCoord =
-        aAxis == LogicalAxis::Inline ? pos->MinISize(aWM) : pos->MinBSize(aWM);
-    if (minCoord.ConvertsToLength()) {
-      min = adjustForBoxSizing(minCoord.ToLength());
-    }
-    const auto& maxCoord =
-        aAxis == LogicalAxis::Inline ? pos->MaxISize(aWM) : pos->MaxBSize(aWM);
-    if (maxCoord.ConvertsToLength()) {
-      max = std::max(min, adjustForBoxSizing(maxCoord.ToLength()));
-    }
-    const auto& sizeCoord =
-        aAxis == LogicalAxis::Inline ? pos->ISize(aWM) : pos->BSize(aWM);
-    if (sizeCoord.ConvertsToLength()) {
-      size = Clamp(adjustForBoxSizing(sizeCoord.ToLength()), min, max);
+
+    nscoord& min = mMin.ISize(aWM);
+    nscoord& size = mSize.ISize(aWM);
+    nscoord& max = mMax.ISize(aWM);
+    if (aAxis == LogicalAxis::Inline) {
+      const auto& styleMinISize = stylePos->ISize(aWM);
+      if (styleMinISize.ConvertsToLength()) {
+        min = AdjustForBoxSizing(styleMinISize.ToLength());
+      }
+      const auto& styleMaxISize = stylePos->MaxISize(aWM);
+      if (styleMaxISize.ConvertsToLength()) {
+        max = std::max(min, AdjustForBoxSizing(styleMaxISize.ToLength()));
+      }
+      const auto& styleISize = stylePos->ISize(aWM);
+      if (styleISize.ConvertsToLength()) {
+        size = Clamp(AdjustForBoxSizing(styleISize.ToLength()), min, max);
+      }
+    } else {
+      const auto& styleMinBSize = stylePos->BSize(aWM);
+      if (styleMinBSize.ConvertsToLength()) {
+        min = AdjustForBoxSizing(styleMinBSize.ToLength());
+      }
+      const auto& styleMaxBSize = stylePos->MaxBSize(aWM);
+      if (styleMaxBSize.ConvertsToLength()) {
+        max = std::max(min, AdjustForBoxSizing(styleMaxBSize.ToLength()));
+      }
+      const auto& styleBSize = stylePos->BSize(aWM);
+      if (styleBSize.ConvertsToLength()) {
+        size = Clamp(AdjustForBoxSizing(styleBSize.ToLength()), min, max);
+      }
     }
   }
 
@@ -4823,12 +4819,10 @@ void nsGridContainerFrame::Grid::SubgridPlaceGridItems(
   // computing them otherwise.
   RepeatTrackSizingInput repeatSizing(gridRI.mWM);
   if (!childGrid->IsColSubgrid() && gridRI.mColFunctions.mHasRepeatAuto) {
-    repeatSizing.InitFromStyle(LogicalAxis::Inline, gridRI.mWM,
-                               gridRI.mFrame->Style());
+    repeatSizing.InitFromStyle(LogicalAxis::Inline, gridRI.mWM, gridRI.mFrame);
   }
   if (!childGrid->IsRowSubgrid() && gridRI.mRowFunctions.mHasRepeatAuto) {
-    repeatSizing.InitFromStyle(LogicalAxis::Block, gridRI.mWM,
-                               gridRI.mFrame->Style());
+    repeatSizing.InitFromStyle(LogicalAxis::Block, gridRI.mWM, gridRI.mFrame);
   }
 
   PlaceGridItems(gridRI, repeatSizing);
@@ -9471,8 +9465,7 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
   // They're only used for auto-repeat so we skip computing them otherwise.
   RepeatTrackSizingInput repeatSizing(gridRI.mWM);
   if (!IsColSubgrid() && gridRI.mColFunctions.mHasRepeatAuto) {
-    repeatSizing.InitFromStyle(LogicalAxis::Inline, gridRI.mWM,
-                               gridRI.mFrame->Style());
+    repeatSizing.InitFromStyle(LogicalAxis::Inline, gridRI.mWM, gridRI.mFrame);
   }
   if ((!IsRowSubgrid() && gridRI.mRowFunctions.mHasRepeatAuto &&
        !(gridRI.mGridStyle->mGridAutoFlow & StyleGridAutoFlow::ROW)) ||
@@ -9480,8 +9473,7 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     // Only 'grid-auto-flow:column' can create new implicit columns, so that's
     // the only case where our block-size can affect the number of columns.
     // Masonry layout always depends on how many rows we have though.
-    repeatSizing.InitFromStyle(LogicalAxis::Block, gridRI.mWM,
-                               gridRI.mFrame->Style());
+    repeatSizing.InitFromStyle(LogicalAxis::Block, gridRI.mWM, gridRI.mFrame);
   }
 
   Grid grid;
