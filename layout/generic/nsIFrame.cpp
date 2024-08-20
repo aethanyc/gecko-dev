@@ -6801,7 +6801,7 @@ nscoord nsIFrame::IntrinsicISizeFromInline(const IntrinsicSizeInput& aInput,
 nscoord nsIFrame::ComputeISizeValueFromAspectRatio(
     WritingMode aWM, const LogicalSize& aCBSize,
     const LogicalSize& aContentEdgeToBoxSizing, const LengthPercentage& aBSize,
-    const AspectRatio& aAspectRatio) const {
+    const AspectRatio& aAspectRatio) {
   MOZ_ASSERT(aAspectRatio, "Must have a valid AspectRatio!");
   const nscoord bSize = nsLayoutUtils::ComputeBSizeValue(
       aCBSize.BSize(aWM), aContentEdgeToBoxSizing.BSize(aWM), aBSize);

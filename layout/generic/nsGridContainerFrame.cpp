@@ -16,6 +16,7 @@
 #include "mozilla/Baseline.h"
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/CSSAlignUtils.h"
+#include "mozilla/WritingModes.h"
 #include "mozilla/dom/Grid.h"
 #include "mozilla/dom/GridBinding.h"
 #include "mozilla/IntegerRange.h"
@@ -204,13 +205,21 @@ struct RepeatTrackSizingInput {
   // This should be used in intrinsic sizing (i.e. when we can't initialize
   // the sizes directly from ReflowInput values).
   void InitFromStyle(LogicalAxis aAxis, WritingMode aWM,
-                     nsGridContainerFrame* aFrame) {
+                     nsGridContainerFrame* aFrame,
+                     const Maybe<LogicalSize>& aPercentageBasis) {
     const auto& stylePos = aFrame->Style()->StylePosition();
     const auto contentEdgeToBoxSizing =
         stylePos->mBoxSizing == StyleBoxSizing::Border
             ? LogicalSize(aWM, aFrame->IntrinsicISizeOffsets().BorderPadding(),
                           aFrame->IntrinsicBSizeOffsets().BorderPadding())
             : LogicalSize(aWM);
+    const LogicalSize percentageBasis =
+        aPercentageBasis
+            ? *aPercentageBasis
+            : LogicalSize(aWM, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+
+    printf("aPercentageBasis %s\n", ToString(aPercentageBasis).c_str());
+    const auto& aspectRatio = aFrame->GetAspectRatio();
     auto AdjustForBoxSizing = [&](nscoord aSize) {
       return std::max(aSize - contentEdgeToBoxSizing.Size(aAxis, aWM), 0);
     };
@@ -222,6 +231,14 @@ struct RepeatTrackSizingInput {
       const auto& styleMinISize = stylePos->ISize(aWM);
       if (styleMinISize.ConvertsToLength()) {
         min = AdjustForBoxSizing(styleMinISize.ToLength());
+      } else if (aspectRatio && styleMinISize.IsAuto()) {
+        const auto& styleMinBSize = stylePos->MinBSize(aWM);
+        if (!nsLayoutUtils::IsAutoBSize(styleMinBSize,
+                                        percentageBasis.BSize(aWM))) {
+          min = nsIFrame::ComputeISizeValueFromAspectRatio(
+              aWM, percentageBasis, contentEdgeToBoxSizing,
+              styleMinBSize.AsLengthPercentage(), aspectRatio);
+        }
       }
       const auto& styleMaxISize = stylePos->MaxISize(aWM);
       if (styleMaxISize.ConvertsToLength()) {
@@ -245,6 +262,8 @@ struct RepeatTrackSizingInput {
         size = Clamp(AdjustForBoxSizing(styleBSize.ToLength()), min, max);
       }
     }
+
+    printf("In InitFromStyle(): min %d, max %d, size %d\n", min, max, size);
   }
 
   LogicalSize mMin;
@@ -4819,10 +4838,12 @@ void nsGridContainerFrame::Grid::SubgridPlaceGridItems(
   // computing them otherwise.
   RepeatTrackSizingInput repeatSizing(gridRI.mWM);
   if (!childGrid->IsColSubgrid() && gridRI.mColFunctions.mHasRepeatAuto) {
-    repeatSizing.InitFromStyle(LogicalAxis::Inline, gridRI.mWM, gridRI.mFrame);
+    repeatSizing.InitFromStyle(LogicalAxis::Inline, gridRI.mWM, gridRI.mFrame,
+                               Nothing());
   }
   if (!childGrid->IsRowSubgrid() && gridRI.mRowFunctions.mHasRepeatAuto) {
-    repeatSizing.InitFromStyle(LogicalAxis::Block, gridRI.mWM, gridRI.mFrame);
+    repeatSizing.InitFromStyle(LogicalAxis::Block, gridRI.mWM, gridRI.mFrame,
+                               Nothing());
   }
 
   PlaceGridItems(gridRI, repeatSizing);
@@ -9465,7 +9486,8 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
   // They're only used for auto-repeat so we skip computing them otherwise.
   RepeatTrackSizingInput repeatSizing(gridRI.mWM);
   if (!IsColSubgrid() && gridRI.mColFunctions.mHasRepeatAuto) {
-    repeatSizing.InitFromStyle(LogicalAxis::Inline, gridRI.mWM, gridRI.mFrame);
+    repeatSizing.InitFromStyle(LogicalAxis::Inline, gridRI.mWM, gridRI.mFrame,
+                               aInput.mPercentageBasis);
   }
   if ((!IsRowSubgrid() && gridRI.mRowFunctions.mHasRepeatAuto &&
        !(gridRI.mGridStyle->mGridAutoFlow & StyleGridAutoFlow::ROW)) ||
@@ -9473,7 +9495,8 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     // Only 'grid-auto-flow:column' can create new implicit columns, so that's
     // the only case where our block-size can affect the number of columns.
     // Masonry layout always depends on how many rows we have though.
-    repeatSizing.InitFromStyle(LogicalAxis::Block, gridRI.mWM, gridRI.mFrame);
+    repeatSizing.InitFromStyle(LogicalAxis::Block, gridRI.mWM, gridRI.mFrame,
+                               aInput.mPercentageBasis);
   }
 
   Grid grid;

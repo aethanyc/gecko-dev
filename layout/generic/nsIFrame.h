@@ -4455,13 +4455,6 @@ class nsIFrame : public nsQueryFrame {
                             nsReflowStatus& aStatus,
                             bool aConstrainBSize = true);
 
- private:
-  nscoord ComputeISizeValueFromAspectRatio(
-      mozilla::WritingMode aWM, const mozilla::LogicalSize& aCBSize,
-      const mozilla::LogicalSize& aContentEdgeToBoxSizing,
-      const mozilla::LengthPercentage& aBSize,
-      const mozilla::AspectRatio& aAspectRatio) const;
-
  public:
   /**
    * @return true if this text frame ends with a newline character.  It
@@ -4897,6 +4890,12 @@ class nsIFrame : public nsQueryFrame {
         aBoxSizingToMarginEdge, length.valueOr(ExtremumLength::MinContent),
         availbleISizeOverride, aStyleBSize, aAspectRatio, aFlags);
   }
+
+  static nscoord ComputeISizeValueFromAspectRatio(
+      mozilla::WritingMode aWM, const mozilla::LogicalSize& aCBSize,
+      const mozilla::LogicalSize& aContentEdgeToBoxSizing,
+      const mozilla::LengthPercentage& aBSize,
+      const mozilla::AspectRatio& aAspectRatio);
 
   DisplayItemArray& DisplayItems() { return mDisplayItems; }
   const DisplayItemArray& DisplayItems() const { return mDisplayItems; }
