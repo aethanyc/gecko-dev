@@ -75,8 +75,13 @@ void nsPlaceholderFrame::AddFloatToIntrinsicISizeData(
     const IntrinsicSizeInput& aInput, IntrinsicISizeType aType,
     InlineIntrinsicISizeData* aData) const {
   if (mOutOfFlowFrame->IsFloating()) {
+    const Maybe<LogicalSize> percentageBasisInOutOfFlowWM =
+        aInput.mPercentageBasis.map([&](const auto& aPB) {
+          return aPB.ConvertTo(mOutOfFlowFrame->GetWritingMode(),
+                               GetWritingMode());
+        });
     const nscoord floatISize = nsLayoutUtils::IntrinsicForContainer(
-        aInput.mContext, mOutOfFlowFrame, aType);
+        aInput.mContext, mOutOfFlowFrame, aType, percentageBasisInOutOfFlowWM);
     aData->mFloats.EmplaceBack(mOutOfFlowFrame, floatISize);
   }
 }

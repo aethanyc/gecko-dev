@@ -84,7 +84,21 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
     // wrapping inside of it should not apply font size inflation.
     AutoMaybeDisableFontInflation an(aFrame);
 
-    const IntrinsicSizeInput input(aRenderingContext);
+    // A table cell doesn't resolve its percentage block size from table frame
+    // or table row frame.
+    const nscoord cbBSize = NS_UNCONSTRAINEDSIZE;
+    const nscoord contentEdgeToBoxSizingBSize =
+        stylePos->mBoxSizing == StyleBoxSizing::Border
+            ? aFrame->IntrinsicBSizeOffsets().BorderPadding()
+            : 0;
+    const nscoord cellBSize = nsIFrame::ComputeBSizeValueAsPercentageBasis(
+        stylePos->BSize(aWM), stylePos->MinBSize(aWM), stylePos->MaxBSize(aWM),
+        cbBSize, contentEdgeToBoxSizingBSize);
+
+    const IntrinsicSizeInput input(
+        aRenderingContext,
+        Some(LogicalSize(aWM, NS_UNCONSTRAINEDSIZE, cellBSize)
+                 .ConvertTo(aFrame->GetWritingMode(), aWM)));
     minCoord = aFrame->GetMinISize(input);
     prefCoord = aFrame->GetPrefISize(input);
     // Until almost the end of this function, minCoord and prefCoord
