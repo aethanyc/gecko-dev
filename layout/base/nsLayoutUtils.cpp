@@ -5158,9 +5158,13 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
   // Note: aISizeFromAspectRatio is Nothing() here because we don't handle
   // "content size" cases here (i.e. we've returned earlier when |fixedMinSize|
   // is Nothing()).
+
+  printf("Axis %d, (before AddIntrinsicSizeOffset) result %d\n", int(aAxis),
+         result);
   result = AddIntrinsicSizeOffset(
       aRC, aFrame, offsets, aType, stylePos->mBoxSizing, result, min, size,
       fixedMinSize, size, Nothing(), maxSize, Nothing(), aFlags, aAxis);
+  printf("(after AddIntrinsicSizeOffset) result %d\n", result);
 
 #ifdef DEBUG_INTRINSIC_WIDTH
   nsIFrame::IndentBy(stderr, gNoiseIndent);

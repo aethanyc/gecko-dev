@@ -5376,6 +5376,9 @@ static nscoord MeasuringReflow(nsIFrame* aChild,
   ReflowInput childRI(pc, *rs, aChild, aAvailableSize, Some(aCBSize), {}, {},
                       csFlags);
 
+  printf("Setup childRI for %s: aCBSize %s\n", aChild->ListTag().get(),
+         ToString(aCBSize).c_str());
+
   // FIXME (perf): It would be faster to do this only if the previous reflow of
   // the child was not a measuring reflow, and only if the child does some of
   // the things that are affected by ComputeSizeFlag::IsGridMeasuringReflow.
@@ -5398,14 +5401,15 @@ static nscoord MeasuringReflow(nsIFrame* aChild,
     childSize.ISize(wm) = aChild->ISize(wm);
     nsContainerFrame::FinishReflowChild(aChild, pc, childSize, &childRI, wm,
                                         LogicalPoint(wm), nsSize(), flags);
-    GRID_LOG(
+    printf(
         "[perf] MeasuringReflow accepted cached value=%d, child=%p, "
-        "aCBSize.ISize=%d",
+        "aCBSize.ISize=%d\n",
         cachedMeasurement.BSize(), aChild,
         aCBSize.ISize(aChild->GetWritingMode()));
     return cachedMeasurement.BSize();
   }
 
+  printf("ReflowChild!\n");
   parent->ReflowChild(aChild, pc, childSize, childRI, wm, LogicalPoint(wm),
                       nsSize(), flags, childStatus);
   nsContainerFrame::FinishReflowChild(aChild, pc, childSize, &childRI, wm,
@@ -5644,6 +5648,8 @@ static nscoord ContentContribution(
     LogicalSize availableSize(childWM, availISize, availBSize);
     size = ::MeasuringReflow(child, aState.mReflowInput, aRC, availableSize,
                              cbSize, iMinSizeClamp, bMinSizeClamp);
+    printf("After MeasuringReflow: cbSize %s, size %d\n",
+           ToString(cbSize).c_str(), size);
     size += child->GetLogicalUsedMargin(childWM).BStartEnd(childWM);
     nscoord overflow = size - aMinSizeClamp;
     if (MOZ_UNLIKELY(overflow > 0)) {
@@ -5770,6 +5776,9 @@ static nscoord MinSize(const GridItemInfo& aGridItem,
                nsLayoutUtils::MinSizeContributionForAxis(
                    axis, aRC, child, IntrinsicISizeType::MinISize,
                    *aCache->mPercentageBasis);
+
+  printf("Call MinSizeContributionForAxis(): percentage basis %s, sz %d\n",
+         ToString(*aCache->mPercentageBasis).c_str(), sz);
   const StyleSize& style = axis == PhysicalAxis::Horizontal
                                ? stylePos->mMinWidth
                                : stylePos->mMinHeight;
@@ -5785,11 +5794,12 @@ static nscoord MinSize(const GridItemInfo& aGridItem,
       (isAuto && !child->StyleDisplay()->IsScrollableOverflow())) {
     // Now calculate the "content size" part and return whichever is smaller.
     MOZ_ASSERT(isAuto || sz == NS_UNCONSTRAINEDSIZE);
-    sz = std::min(sz, ContentContribution(aGridItem, aState, aRC, aCBWM, aAxis,
-                                          aCache->mPercentageBasis,
-                                          IntrinsicISizeType::MinISize,
-                                          aCache->mMinSizeClamp,
-                                          nsLayoutUtils::MIN_INTRINSIC_ISIZE));
+    const nscoord contentSize = ContentContribution(
+        aGridItem, aState, aRC, aCBWM, aAxis, aCache->mPercentageBasis,
+        IntrinsicISizeType::MinISize, aCache->mMinSizeClamp,
+        nsLayoutUtils::MIN_INTRINSIC_ISIZE);
+    printf("Called ContentContribution: contentSize %d\n", contentSize);
+    sz = std::min(sz, contentSize);
   }
   aCache->mMinSize.emplace(sz);
   return sz;
@@ -5867,8 +5877,12 @@ bool nsGridContainerFrame::Tracks::ResolveIntrinsicSizeForNonSpanningItems(
       } else {
         s = MaxContentContribution(aGridItem, aState, rc, wm, mAxis, &cache);
       }
+      printf("%s item needs to apply auto min size, result %d\n",
+             aGridItem.mFrame->ListTag().get(), s);
     } else {
       s = MinSize(aGridItem, aState, rc, wm, mAxis, &cache);
+      printf("%s item has no auto min size, min size %d\n",
+             aGridItem.mFrame->ListTag().get(), s);
     }
     sz.mBase = std::max(sz.mBase, s);
   } else if (sz.mState & TrackSize::eMinContentMinSizing) {
@@ -7538,8 +7552,11 @@ void nsGridContainerFrame::ReflowInFlowChild(
     childCBSize.BSize(childWM) = NS_UNCONSTRAINEDSIZE;
   }
   LogicalSize percentBasis(cb.Size(wm).ConvertTo(childWM, wm));
+
   ReflowInput childRI(pc, *aState.mReflowInput, aChild, childCBSize,
                       Some(percentBasis), {}, {}, csFlags);
+  printf("Construct RI for grid item, percentage basis %s, bsize %d\n",
+         ToString(percentBasis).c_str(), childRI.ComputedBSize());
   childRI.mFlags.mIsTopOfPage =
       aFragmentainer ? aFragmentainer->mIsTopOfPage : false;
 
@@ -8802,6 +8819,10 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
     const LogicalSize containLogicalSize(wm, computedISize, trackSizingBSize);
     gridReflowInput.CalculateTrackSizes(grid, containLogicalSize,
                                         SizingConstraint::NoConstraint);
+    printf("%s: In Reflow\n", ListTag().get());
+    // gridReflowInput.mCols.Dump();
+    gridReflowInput.mRows.Dump();
+
     if (containBSize) {
       bSize = *containBSize;
     } else {
@@ -9513,10 +9534,16 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     return nscoord(0);
   }
 
+  printf("%s: In ComputeIntrinsicISize\n", ListTag().get());
   state.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
                                    NS_UNCONSTRAINEDSIZE, constraint);
 
+  state.mCols.Dump();
+  state.mRows.Dump();
+
   if (MOZ_LIKELY(!IsSubgrid())) {
+    printf("%s: intrinsic isize %d\n", ListTag().get(),
+           state.mCols.SumOfGridTracksAndGaps());
     return state.mCols.SumOfGridTracksAndGaps();
   }
   const auto& last = state.mCols.mSizes.LastElement();
