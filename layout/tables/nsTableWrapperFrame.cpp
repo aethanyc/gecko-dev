@@ -576,6 +576,13 @@ void nsTableWrapperFrame::CreateReflowInputForInnerTable(
     // sufficient to call the standard ReflowInput constructor.
     aChildRI.emplace(aPresContext, aOuterRI, aTableFrame, availSize, cbSize,
                      ReflowInput::InitFlags{}, StyleSizeOverrides{}, csFlags);
+
+    if (aOuterRI.IsBResizeForWM(wm)) {
+      aChildRI->SetBResize(true);
+    }
+    if (aOuterRI.IsBResizeForPercentagesForWM(wm)) {
+      aChildRI->mFlags.mIsBResizeForPercentages = true;
+    }
     return;
   }
 
@@ -605,6 +612,12 @@ void nsTableWrapperFrame::CreateReflowInputForInnerTable(
                    csFlags);
   aChildRI->Init(aPresContext, cbSize, Some(*borderPadding - *padding),
                  padding);
+  if (aOuterRI.IsBResizeForWM(wm)) {
+    aChildRI->SetBResize(true);
+  }
+  if (aOuterRI.IsBResizeForPercentagesForWM(wm)) {
+    aChildRI->mFlags.mIsBResizeForPercentages = true;
+  }
 }
 
 void nsTableWrapperFrame::CreateReflowInputForCaption(
