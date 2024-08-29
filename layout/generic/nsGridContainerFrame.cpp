@@ -753,6 +753,17 @@ struct nsGridContainerFrame::GridItemInfo {
     if (!isAuto && !::IsPercentOfIndefiniteSize(size, aPercentageBasis)) {
       return false;
     }
+
+    const auto& maxSize = isInlineAxis ? pos->MaxISize(aContainerWM)
+                                       : pos->MaxBSize(aContainerWM);
+    bool isNone = maxSize.IsNone() ||
+                  (isInlineAxis ==
+                       aContainerWM.IsOrthogonalTo(mFrame->GetWritingMode()) &&
+                   maxSize.BehavesLikeInitialValueOnBlockAxis());
+    if (!isNone && !::IsPercentOfIndefiniteSize(maxSize, aPercentageBasis)) {
+      return false;
+    }
+
     const auto& minSize = isInlineAxis ? pos->MinISize(aContainerWM)
                                        : pos->MinBSize(aContainerWM);
     // max-content and min-content should behave as initial value in block axis.
