@@ -2849,7 +2849,7 @@ void nsImageFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
                                      InlineMinISizeData* aData) {
   nscoord isize = nsLayoutUtils::IntrinsicForContainer(
       aInput.mContext, this, IntrinsicISizeType::MinISize,
-      aInput.mPercentageBasis);
+      aInput.mPercentageBasisForChildren);
   bool canBreak = !IsInAutoWidthTableCellForQuirk(this);
   aData->DefaultAddInlineMinISize(this, isize, canBreak);
 }

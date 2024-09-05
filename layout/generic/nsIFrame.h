@@ -429,11 +429,11 @@ struct MOZ_STACK_CLASS IntrinsicSizeInput final {
   // In most scenarios, this struct is used when computing the inline size
   // contribution, so the inline component of the percentage basis should be set
   // to NS_UNCONSTRAINEDSIZE.
-  Maybe<LogicalSize> mPercentageBasis;
+  Maybe<LogicalSize> mPercentageBasisForChildren;
 
   IntrinsicSizeInput(gfxContext* aContext,
                      const Maybe<LogicalSize>& aPercentageBasis)
-      : mContext(aContext), mPercentageBasis(aPercentageBasis) {
+      : mContext(aContext), mPercentageBasisForChildren(aPercentageBasis) {
     MOZ_ASSERT(mContext);
   }
 
@@ -444,10 +444,11 @@ struct MOZ_STACK_CLASS IntrinsicSizeInput final {
   // aFromWM, and it will be converted to the writing mode aToWM.
   IntrinsicSizeInput(const IntrinsicSizeInput& aSource,
                      mozilla::WritingMode aToWM, mozilla::WritingMode aFromWM)
-      : IntrinsicSizeInput(aSource.mContext,
-                           aSource.mPercentageBasis.map([&](const auto& aPB) {
-                             return aPB.ConvertTo(aToWM, aFromWM);
-                           })) {}
+      : IntrinsicSizeInput(
+            aSource.mContext,
+            aSource.mPercentageBasisForChildren.map([&](const auto& aPB) {
+              return aPB.ConvertTo(aToWM, aFromWM);
+            })) {}
 };
 
 }  // namespace mozilla

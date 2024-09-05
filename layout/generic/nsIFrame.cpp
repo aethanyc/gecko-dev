@@ -6017,7 +6017,7 @@ void nsIFrame::AddInlineMinISize(const IntrinsicSizeInput& aInput,
                                  InlineMinISizeData* aData) {
   nscoord isize = nsLayoutUtils::IntrinsicForContainer(
       aInput.mContext, this, IntrinsicISizeType::MinISize,
-      aInput.mPercentageBasis);
+      aInput.mPercentageBasisForChildren);
   aData->DefaultAddInlineMinISize(this, isize);
 }
 
@@ -6026,7 +6026,7 @@ void nsIFrame::AddInlinePrefISize(const IntrinsicSizeInput& aInput,
                                   nsIFrame::InlinePrefISizeData* aData) {
   nscoord isize = nsLayoutUtils::IntrinsicForContainer(
       aInput.mContext, this, IntrinsicISizeType::PrefISize,
-      aInput.mPercentageBasis);
+      aInput.mPercentageBasisForChildren);
   aData->DefaultAddInlinePrefISize(isize);
 }
 
