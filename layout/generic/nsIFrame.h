@@ -416,15 +416,18 @@ struct FrameBidiData {
   mozilla::intl::BidiEmbeddingLevel precedingControl;
 };
 
-// A struct aggregates necessary data to compute the intrinsic sizes for a
-// frame, used as an input for GetMinISize(), GetPrefISize(), IntrinsicISize(),
+// A struct aggregates necessary data to compute the intrinsic sizes for a frame
+// |F|, used as an input for GetMinISize(), GetPrefISize(), IntrinsicISize(),
 // and others.
 struct MOZ_STACK_CLASS IntrinsicSizeInput final {
   gfxContext* const mContext;
 
-  // The content-box size of a frame, served as a percentage basis when
-  // computing the children's intrinsic contributions. If the basis is
-  // indefinite in a given axis, use NS_UNCONSTRAINEDSIZE for that component.
+  // The content-box size of |F|'s containing block (in F's writing mode).
+  Maybe<LogicalSize> mContainingBlockSize;
+
+  // The content-box size of |F| (in F's writing mode), served as a percentage
+  // basis when computing the children's intrinsic contributions. If the basis
+  // is indefinite in a given axis, use NS_UNCONSTRAINEDSIZE for that component.
   //
   // In most scenarios, this struct is used when computing the inline size
   // contribution, so the inline component of the percentage basis should be set
@@ -432,20 +435,27 @@ struct MOZ_STACK_CLASS IntrinsicSizeInput final {
   Maybe<LogicalSize> mPercentageBasisForChildren;
 
   IntrinsicSizeInput(gfxContext* aContext,
-                     const Maybe<LogicalSize>& aPercentageBasis)
-      : mContext(aContext), mPercentageBasisForChildren(aPercentageBasis) {
+                     const Maybe<LogicalSize>& aContainingBlockSize,
+                     const Maybe<LogicalSize>& aPercentageBasisForChildren)
+      : mContext(aContext),
+        mContainingBlockSize(aContainingBlockSize),
+        mPercentageBasisForChildren(aPercentageBasisForChildren) {
     MOZ_ASSERT(mContext);
   }
 
   // Construct a new IntrinsicSizeInput by copying from aSource.
   //
-  // This constructor converts mPercentageBasis' writing mode, if it exists. The
-  // original mPercentageBasis in aSource is expected to be in the writing mode
-  // aFromWM, and it will be converted to the writing mode aToWM.
+  // This constructor converts writing modes for the Maybe<LogicalSize> members,
+  // if any of them exists. The original LogicalSize members in aSource is
+  // expected to be in the writing mode aFromWM, and will be converted to the
+  // writing mode aToWM.
   IntrinsicSizeInput(const IntrinsicSizeInput& aSource,
                      mozilla::WritingMode aToWM, mozilla::WritingMode aFromWM)
       : IntrinsicSizeInput(
             aSource.mContext,
+            aSource.mContainingBlockSize.map([&](const auto& aCBSize) {
+              return aCBSize.ConvertTo(aToWM, aFromWM);
+            }),
             aSource.mPercentageBasisForChildren.map([&](const auto& aPB) {
               return aPB.ConvertTo(aToWM, aFromWM);
             })) {}
