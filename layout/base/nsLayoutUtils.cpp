@@ -4530,7 +4530,8 @@ static void AddStateBitToAncestors(nsIFrame* aFrame, nsFrameState aBit) {
 nscoord nsLayoutUtils::IntrinsicForAxis(
     PhysicalAxis aAxis, gfxContext* aRenderingContext, nsIFrame* aFrame,
     IntrinsicISizeType aType, const Maybe<LogicalSize>& aPercentageBasis,
-    uint32_t aFlags, nscoord aMarginBoxMinSizeClamp) {
+    uint32_t aFlags, nscoord aMarginBoxMinSizeClamp,
+    const StyleSizeOverrides& aSizeOverrides) {
   MOZ_ASSERT(aFrame, "null frame");
   MOZ_ASSERT(aFrame->GetParent(),
              "IntrinsicForAxis called on frame not in tree");
@@ -4616,7 +4617,12 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   // represents the ratio-determining axis of |aFrame|. It could be the inline
   // axis or the block axis of |aFrame|. (So we are calculating the size
   // along the ratio-dependent axis in this if-branch.)
-  StyleSize styleBSize = horizontalAxis ? stylePos->mHeight : stylePos->mWidth;
+  const Maybe<StyleSize>& overrideStyleBSize =
+      isInlineAxis ? aSizeOverrides.mStyleBSize : aSizeOverrides.mStyleISize;
+  StyleSize styleBSize =
+      overrideStyleBSize
+          ? *overrideStyleBSize
+          : (horizontalAxis ? stylePos->mHeight : stylePos->mWidth);
   StyleSize styleMinBSize =
       horizontalAxis ? stylePos->mMinHeight : stylePos->mMinWidth;
   StyleMaxSize styleMaxBSize =
@@ -4898,13 +4904,14 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
 /* static */
 nscoord nsLayoutUtils::IntrinsicForContainer(
     gfxContext* aRenderingContext, nsIFrame* aFrame, IntrinsicISizeType aType,
-    const Maybe<LogicalSize>& aPercentageBasis, uint32_t aFlags) {
+    const Maybe<LogicalSize>& aPercentageBasis, uint32_t aFlags,
+    const StyleSizeOverrides& aSizeOverrides) {
   MOZ_ASSERT(aFrame && aFrame->GetParent());
   // We want the size aFrame will contribute to its parent's inline-size.
   PhysicalAxis axis =
       aFrame->GetParent()->GetWritingMode().PhysicalAxis(LogicalAxis::Inline);
   return IntrinsicForAxis(axis, aRenderingContext, aFrame, aType,
-                          aPercentageBasis, aFlags);
+                          aPercentageBasis, aFlags, NS_MAXSIZE, aSizeOverrides);
 }
 
 /* static */
