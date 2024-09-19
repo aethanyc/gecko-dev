@@ -2427,14 +2427,14 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
         tentISize = iSize;  // * / 'stretch'
         if (stretchB == eStretch) {
           tentBSize = bSize;  // 'stretch' / 'stretch'
-        } else if (stretchB == eStretchPreservingRatio && aspectRatio) {
+        } else if (aspectRatio) {
           // 'normal' / 'stretch'
           tentBSize = aspectRatio.ComputeRatioDependentSize(
               LogicalAxis::Block, aWM, iSize, boxSizingAdjust);
         }
       } else if (stretchB == eStretch) {
         tentBSize = bSize;  // 'stretch' / * (except 'stretch')
-        if (stretchI == eStretchPreservingRatio && aspectRatio) {
+        if (aspectRatio) {
           // 'stretch' / 'normal'
           tentISize = aspectRatio.ComputeRatioDependentSize(
               LogicalAxis::Inline, aWM, bSize, boxSizingAdjust);
