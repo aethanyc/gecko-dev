@@ -2426,6 +2426,23 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
         stretchB = (stretchI == eStretch ? eStretch : eStretchPreservingRatio);
       }
 
+      if (iSizeToFillCB) {
+        tentISize = *iSizeToFillCB;
+        if (bSizeToFillCB) {
+          tentBSize = *bSizeToFillCB;
+        } else if (aspectRatio) {
+          tentBSize = aspectRatio.ComputeRatioDependentSize(
+              LogicalAxis::Block, aWM, *iSizeToFillCB, boxSizingAdjust);
+        }
+      } else if (bSizeToFillCB) {
+        tentBSize = *bSizeToFillCB;
+        if (aspectRatio) {
+          tentISize = aspectRatio.ComputeRatioDependentSize(
+              LogicalAxis::Inline, aWM, *bSizeToFillCB, boxSizingAdjust);
+        }
+      }
+
+      /*
       if (stretchI == eStretch) {
         // * / 'stretch'
         tentISize = *iSizeToFillCB;
@@ -2463,6 +2480,7 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
         tentISize = aspectRatio.ComputeRatioDependentSize(
             LogicalAxis::Inline, aWM, *bSizeToFillCB, boxSizingAdjust);
       }
+      */
 
       // ComputeAutoSizeWithIntrinsicDimensions preserves the ratio when
       // applying the min/max-size.  We don't want that when we have 'stretch'
