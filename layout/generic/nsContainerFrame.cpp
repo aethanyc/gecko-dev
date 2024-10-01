@@ -2232,17 +2232,13 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
 
   nscoord iSize, minISize, maxISize, bSize, minBSize, maxBSize;
   enum class Stretch {
-    // stretch to fill the CB (preserving intrinsic ratio) in the relevant axis
-    StretchPreservingRatio,
-    // stretch to fill the CB in the relevant axis
-    Stretch,
-    // no stretching in the relevant axis
-    NoStretch,
+    // No stretching in the relevant axis.
+    No,
+    // Stretch to fill the CB (preserving aspect-ratio) in the relevant axis.
+    Yes,
   };
-  // just to avoid having to type these out everywhere:
-  const auto eStretchPreservingRatio = Stretch::StretchPreservingRatio;
-  const auto eStretch = Stretch::Stretch;
-  const auto eNoStretch = Stretch::NoStretch;
+  const auto eStretch = Stretch::Yes;
+  const auto eNoStretch = Stretch::No;
 
   Stretch stretchI = eNoStretch;  // stretch behavior in the inline axis
   Stretch stretchB = eNoStretch;  // stretch behavior in the block axis
@@ -2405,7 +2401,7 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
       // unless we have 'stretch' in the other axis.
       if (aFlags.contains(ComputeSizeFlag::IClampMarginBoxMinSize) &&
           stretchI != eStretch && tentISize > iSize) {
-        stretchI = (stretchB == eStretch ? eStretch : eStretchPreservingRatio);
+        stretchI = eStretch;
       }
 
       if (hasIntrinsicBSize) {
@@ -2420,39 +2416,27 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
       // (ditto the comment about clamping the inline size above)
       if (aFlags.contains(ComputeSizeFlag::BClampMarginBoxMinSize) &&
           stretchB != eStretch && tentBSize > bSize) {
-        stretchB = (stretchI == eStretch ? eStretch : eStretchPreservingRatio);
+        stretchB = eStretch;
       }
 
-      // The slash notation is the used value of "align-self / justify-self".
-      if (stretchI == eStretch) {
-        tentISize = iSize;  // * / 'stretch'
-        if (stretchB == eStretch) {
-          tentBSize = bSize;  // 'stretch' / 'stretch'
-        } else if (aspectRatio) {
-          // * (except 'stretch') / 'stretch'
+      if (stretchI == eStretch && stretchB == eStretch) {
+        // Stretch both dimensions.
+        tentISize = iSize;
+        tentBSize = bSize;
+      } else if (stretchI == eStretch) {
+        // Stretch inline size and adjust block size to preserve aspect ratio.
+        tentISize = iSize;
+        if (aspectRatio) {
           tentBSize = aspectRatio.ComputeRatioDependentSize(
               LogicalAxis::Block, aWM, iSize, boxSizingAdjust);
         }
       } else if (stretchB == eStretch) {
-        tentBSize = bSize;  // 'stretch' / * (except 'stretch')
+        // Stretch block size and adjust inline size to preserve aspect ratio.
+        tentBSize = bSize;
         if (aspectRatio) {
           tentISize = aspectRatio.ComputeRatioDependentSize(
               LogicalAxis::Inline, aWM, bSize, boxSizingAdjust);
         }
-      } else if (stretchI == eStretchPreservingRatio && aspectRatio) {
-        tentISize = iSize;  // * (except 'stretch') / 'normal'
-        tentBSize = aspectRatio.ComputeRatioDependentSize(
-            LogicalAxis::Block, aWM, iSize, boxSizingAdjust);
-        if (stretchB == eStretchPreservingRatio && tentBSize > bSize) {
-          // Stretch within the CB size with preserved intrinsic ratio.
-          tentBSize = bSize;  // 'normal' / 'normal'
-          tentISize = aspectRatio.ComputeRatioDependentSize(
-              LogicalAxis::Inline, aWM, bSize, boxSizingAdjust);
-        }
-      } else if (stretchB == eStretchPreservingRatio && aspectRatio) {
-        tentBSize = bSize;  // 'normal' / * (except 'normal' and 'stretch')
-        tentISize = aspectRatio.ComputeRatioDependentSize(
-            LogicalAxis::Inline, aWM, bSize, boxSizingAdjust);
       }
 
       // ComputeAutoSizeWithIntrinsicDimensions preserves the ratio when
