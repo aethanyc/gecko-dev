@@ -5297,6 +5297,8 @@ nsFlexContainerFrame::FlexLayoutResult nsFlexContainerFrame::DoFlexLayout(
           sizeOverrides.mStyleISize.emplace(item.StyleMainSize());
         } else {
           sizeOverrides.mStyleBSize.emplace(item.StyleMainSize());
+          nsLayoutUtils::MarkIntrinsicISizesDirtyIfDependentOnBSize(
+              item.Frame());
         }
         FLEX_ITEM_LOG(item.Frame(), "Sizing item in cross axis");
         FLEX_LOGV("Main size override: %d", item.MainSize());
