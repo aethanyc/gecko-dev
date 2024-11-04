@@ -7398,7 +7398,12 @@ LogicalSize nsGridContainerFrame::GridReflowInput::PercentageBasisFor(
   }
 
   if (aAxis == LogicalAxis::Inline || !mCols.mCanResolveLineRangeSize) {
-    return LogicalSize(wm, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+    const nscoord colSize = NS_UNCONSTRAINEDSIZE;
+    const nscoord rowSize = mRows.mCanResolveLineRangeSize
+                                ? aGridItem.mArea.mRows.ToLength(mRows.mSizes)
+                                : NS_UNCONSTRAINEDSIZE;
+    return !wm.IsOrthogonalTo(mWM) ? LogicalSize(wm, colSize, rowSize)
+                                   : LogicalSize(wm, rowSize, colSize);
   }
   // Note: for now, we only resolve transferred percentages to row sizing.
   // We may need to adjust these assertions once we implement bug 1300366.
@@ -9681,8 +9686,26 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     return nscoord(0);
   }
 
+  state.CalculateTrackSizesForAxis(LogicalAxis::Block, grid,
+                                   NS_UNCONSTRAINEDSIZE, constraint);
   state.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
                                    NS_UNCONSTRAINEDSIZE, constraint);
+
+  // printf("In ComputeIntrinsicISize: block size %d\n",
+  //        aInput.mPercentageBasisForChildren
+  //            ? aInput.mPercentageBasisForChildren->BSize(state.mWM)
+  //            : NS_UNCONSTRAINEDSIZE);
+
+  // state.mCols.Dump();
+  // state.mRows.Dump();
+
+  // printf("col 1: base %d, limit %d, mCanResolveLineRangeSize %d\n",
+  //        state.mCols.mSizes[0].mBase, state.mCols.mSizes[0].mLimit,
+  //        state.mRows.mCanResolveLineRangeSize);
+
+  // printf("row 1: base %d, limit %d, mCanResolveLineRangeSize %d\n",
+  //        state.mRows.mSizes[0].mBase, state.mRows.mSizes[0].mLimit,
+  //        state.mRows.mCanResolveLineRangeSize);
 
   if (MOZ_LIKELY(!IsSubgrid())) {
     return state.mCols.SumOfGridTracksAndGaps();
