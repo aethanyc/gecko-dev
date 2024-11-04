@@ -64,11 +64,11 @@ fails == grid-auto-min-sizing-transferred-size-002.html grid-auto-min-sizing-tra
 == grid-auto-min-sizing-transferred-size-003.html grid-auto-min-sizing-transferred-size-003-ref.html
 == grid-auto-min-sizing-transferred-size-004.html grid-auto-min-sizing-transferred-size-004-ref.html
 == grid-auto-min-sizing-min-content-min-size-001.html grid-auto-min-sizing-min-content-min-size-001-ref.html
-== grid-auto-min-sizing-min-content-min-size-002.html grid-auto-min-sizing-min-content-min-size-002-ref.html
+pref(layout.css.grid-multi-pass-track-sizing.enabled,true) == grid-auto-min-sizing-min-content-min-size-002.html grid-auto-min-sizing-min-content-min-size-002-ref.html
 == grid-auto-min-sizing-min-content-min-size-003.html grid-auto-min-sizing-min-content-min-size-003-ref.html
 == grid-auto-min-sizing-min-content-min-size-004.html grid-auto-min-sizing-min-content-min-size-004-ref.html
 == grid-min-content-min-sizing-transferred-size-001.html grid-min-content-min-sizing-transferred-size-001-ref.html
-== grid-min-content-min-sizing-transferred-size-002.html grid-min-content-min-sizing-transferred-size-002-ref.html
+pref(layout.css.grid-multi-pass-track-sizing.enabled,true) == grid-min-content-min-sizing-transferred-size-002.html grid-min-content-min-sizing-transferred-size-002-ref.html
 == grid-min-content-min-sizing-transferred-size-003.html grid-min-content-min-sizing-transferred-size-003-ref.html
 == grid-min-content-min-sizing-transferred-size-004.html grid-min-content-min-sizing-transferred-size-004-ref.html
 == grid-auto-min-sizing-percent-001.html grid-auto-min-sizing-percent-001-ref.html
