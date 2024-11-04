@@ -9831,6 +9831,22 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
   gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
                                     NS_UNCONSTRAINEDSIZE, constraint);
 
+  // printf("In ComputeIntrinsicISize: block size %d\n",
+  //        aInput.mPercentageBasisForChildren
+  //            ? aInput.mPercentageBasisForChildren->BSize(state.mWM)
+  //            : NS_UNCONSTRAINEDSIZE);
+
+  // state.mCols.Dump();
+  // state.mRows.Dump();
+
+  // printf("col 1: base %d, limit %d, mCanResolveLineRangeSize %d\n",
+  //        state.mCols.mSizes[0].mBase, state.mCols.mSizes[0].mLimit,
+  //        state.mRows.mCanResolveLineRangeSize);
+
+  // printf("row 1: base %d, limit %d, mCanResolveLineRangeSize %d\n",
+  //        state.mRows.mSizes[0].mBase, state.mRows.mSizes[0].mLimit,
+  //        state.mRows.mCanResolveLineRangeSize);
+
   if (MOZ_LIKELY(!IsSubgrid())) {
     return gridRI.mCols.SumOfGridTracksAndGaps();
   }
