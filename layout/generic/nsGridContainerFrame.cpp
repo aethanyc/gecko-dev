@@ -289,6 +289,7 @@ struct RepeatTrackSizingInput {
       : mMin(aWM, 0, 0),
         mSize(aWM, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE),
         mMax(aWM, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE) {}
+
   RepeatTrackSizingInput(const LogicalSize& aMin, const LogicalSize& aSize,
                          const LogicalSize& aMax)
       : mMin(aMin), mSize(aSize), mMax(aMax) {}
@@ -301,6 +302,9 @@ struct RepeatTrackSizingInput {
                      const Maybe<LogicalSize>& aContainingBlockSize) {
     const auto& pos = aStyle->StylePosition();
     BoxSizingAdjustment boxSizingAdjustment(aWM, *aStyle);
+    const nscoord cbSizeInAxis = aContainingBlockSize
+                                     ? aContainingBlockSize->Size(aAxis, aWM)
+                                     : NS_UNCONSTRAINEDSIZE;
 
     auto adjustForBoxSizing = [aWM, aAxis,
                                &boxSizingAdjustment](nscoord aSize) {
@@ -327,6 +331,11 @@ struct RepeatTrackSizingInput {
     const auto& styleMaxSize = pos->MaxSize(aAxis, aWM);
     if (styleMaxSize.ConvertsToLength()) {
       max = std::max(min, adjustForBoxSizing(styleMaxSize.ToLength()));
+    } else if (styleMaxSize.HasPercent() &&
+               cbSizeInAxis != NS_UNCONSTRAINEDSIZE) {
+      max = std::max(
+          min, adjustForBoxSizing(
+                   styleMaxSize.AsLengthPercentage().Resolve(cbSizeInAxis)));
     } else if (aAspectRatio && IsInitialSize(styleMaxSize, aAxis)) {
       const auto& styleRDMaxSize = pos->MaxSize(GetOrthogonalAxis(aAxis), aWM);
       if (Maybe<nscoord> resolvedMaxSize = ComputeTransferredSize(
@@ -340,6 +349,10 @@ struct RepeatTrackSizingInput {
     const auto& styleSize = pos->Size(aAxis, aWM);
     if (styleSize.ConvertsToLength()) {
       size = Clamp(adjustForBoxSizing(styleSize.ToLength()), min, max);
+    } else if (styleSize.HasPercent() && cbSizeInAxis != NS_UNCONSTRAINEDSIZE) {
+      size = Clamp(adjustForBoxSizing(
+                       styleSize.AsLengthPercentage().Resolve(cbSizeInAxis)),
+                   min, max);
     } else if (aAspectRatio && IsInitialSize(styleSize, aAxis)) {
       const auto& styleRDSize = pos->Size(GetOrthogonalAxis(aAxis), aWM);
       if (Maybe<nscoord> resolvedSize = ComputeTransferredSize(
