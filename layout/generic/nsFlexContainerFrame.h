@@ -396,6 +396,7 @@ class nsFlexContainerFrame final : public nsContainerFrame,
   void GenerateFlexItemForChild(FlexLine& aLine, nsIFrame* aChildFrame,
                                 const ReflowInput& aParentReflowInput,
                                 const FlexboxAxisTracker& aAxisTracker,
+                                const nscoord aTentativeContentBoxMainSize,
                                 const nscoord aTentativeContentBoxCrossSize);
 
   /**

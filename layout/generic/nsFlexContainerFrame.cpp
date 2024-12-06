@@ -800,6 +800,8 @@ class nsFlexContainerFrame::FlexItem final {
 
   void SetHadMeasuringReflow() { mHadMeasuringReflow = true; }
 
+  void SetIsStretched() { mIsStretched = true; }
+
   void SetIsFlexBaseSizeContentBSize() { mIsFlexBaseSizeContentBSize = true; }
 
   void SetIsMainMinSizeContentBSize() { mIsMainMinSizeContentBSize = true; }
@@ -1380,9 +1382,12 @@ void nsFlexContainerFrame::GenerateFlexItemForChild(
     FlexLine& aLine, nsIFrame* aChildFrame,
     const ReflowInput& aParentReflowInput,
     const FlexboxAxisTracker& aAxisTracker,
+    const nscoord aTentativeContentBoxMainSize,
     const nscoord aTentativeContentBoxCrossSize) {
   const auto flexWM = aAxisTracker.GetWritingMode();
   const auto childWM = aChildFrame->GetWritingMode();
+  const bool isItemInlineAxisMainAxis =
+      aAxisTracker.IsInlineAxisMainAxis(childWM);
 
   // Note: we use GetStyleFrame() to access the sizing & flex properties here.
   // This lets us correctly handle table wrapper frames as flex items since
@@ -1424,7 +1429,7 @@ void nsFlexContainerFrame::GenerateFlexItemForChild(
     MOZ_ASSERT(styleFlexBaseSize, "We should've emplace styleFlexBaseSize!");
 
     // Provide the size override for the preferred main size property.
-    if (aAxisTracker.IsInlineAxisMainAxis(childWM)) {
+    if (isItemInlineAxisMainAxis) {
       sizeOverrides.mStyleISize = std::move(styleFlexBaseSize);
     } else {
       sizeOverrides.mStyleBSize = std::move(styleFlexBaseSize);
@@ -1433,6 +1438,68 @@ void nsFlexContainerFrame::GenerateFlexItemForChild(
     // 'flex-basis' should works on the inner table frame for a table flex item,
     // just like how 'height' works on a table element.
     sizeOverrides.mApplyOverridesVerbatim = true;
+  }
+
+  // A flex item with a definite cross size can transfer its cross size to the
+  // main-axis via its own aspect-ratio or serve as a percentage basis in the
+  // cross-axis for its children with aspect-ratios. Both may influence the
+  // item's main-size.
+  //
+  // This helper function determines whether we should "pre-stretch" a flex
+  // item's cross size (with that size considered to be definite) based on the
+  // flex container's definite cross size.
+  const bool childShouldStretchCrossSize = [&]() {
+    const bool isSingleLine =
+        aParentReflowInput.mStylePosition->mFlexWrap == StyleFlexWrap::Nowrap;
+    if (!isSingleLine ||
+        aTentativeContentBoxCrossSize == NS_UNCONSTRAINEDSIZE) {
+      // We perform "pre-stretch" for the item's cross size only if the flex
+      // container is single-line and has a definite cross size.
+      return false;
+    }
+    const StyleAlignFlags alignSelf = stylePos->UsedAlignSelf(Style())._0;
+    if ((alignSelf != StyleAlignFlags::STRETCH &&
+         alignSelf != StyleAlignFlags::NORMAL) ||
+        !stylePos->Size(aAxisTracker.CrossAxis(), flexWM).IsAuto() ||
+        aChildFrame->StyleMargin()->HasAuto(aAxisTracker.CrossAxis(), flexWM)) {
+      // Similar to FlexItem::ResolveStretchedCrossSize(), we only stretch the
+      // item if it satisfies all the following conditions:
+      // - 'align-self:stretch' or 'align-self:normal' (which behaves as
+      //   stretch) https://drafts.csswg.org/css-align-3/#align-flex
+      // - a cross-axis size property of value "auto"
+      // - no auto margins in the cross-axis
+      // https://drafts.csswg.org/css-flexbox-1/#valdef-align-items-stretch
+      return false;
+    }
+    // Let's stretch the item's cross size.
+    return true;
+  }();
+
+  if (childShouldStretchCrossSize) {
+    // The percentage basis is the flex container's inline size.
+    const nscoord percentageBasisForChildMBP =
+        aAxisTracker.IsRowOriented() ? aTentativeContentBoxMainSize
+                                     : aTentativeContentBoxCrossSize;
+
+    const bool isItemBlockAxisCrossAxis = isItemInlineAxisMainAxis;
+    const auto offsetData =
+        isItemBlockAxisCrossAxis
+            ? aChildFrame->IntrinsicBSizeOffsets(percentageBasisForChildMBP)
+            : aChildFrame->IntrinsicISizeOffsets(percentageBasisForChildMBP);
+    const nscoord boxSizingToMarginEdgeSize =
+        stylePos->mBoxSizing == StyleBoxSizing::Content
+            ? offsetData.MarginBorderPadding()
+            : offsetData.margin;
+    const nscoord stretchedCrossSize =
+        std::max(0, aTentativeContentBoxCrossSize - boxSizingToMarginEdgeSize);
+
+    const auto stretchedStyleCrossSize = StyleSize::LengthPercentage(
+        LengthPercentage::FromAppUnits(stretchedCrossSize));
+    if (isItemBlockAxisCrossAxis) {
+      sizeOverrides.mStyleBSize.emplace(stretchedStyleCrossSize);
+    } else {
+      sizeOverrides.mStyleISize.emplace(stretchedStyleCrossSize);
+    }
   }
 
   // Create temporary reflow input just for sizing -- to get hypothetical
@@ -1484,36 +1551,11 @@ void nsFlexContainerFrame::GenerateFlexItemForChild(
       childRI, flexGrow, flexShrink, flexBaseSize, mainMinSize, mainMaxSize,
       tentativeCrossSize, crossMinSize, crossMaxSize, aAxisTracker);
 
-  // We may be about to do computations based on our item's cross-size
-  // (e.g. using it as a constraint when measuring our content in the
-  // main axis, or using it with the preferred aspect ratio to obtain a main
-  // size). BEFORE WE DO THAT, we need let the item "pre-stretch" its cross size
-  // (if it's got 'align-self:stretch'), for a certain case where the spec says
-  // the stretched cross size is considered "definite". That case is if we
-  // have a single-line (nowrap) flex container which itself has a definite
-  // cross-size.  Otherwise, we'll wait to do stretching, since (in other
-  // cases) we don't know how much the item should stretch yet.
-  const bool isSingleLine =
-      StyleFlexWrap::Nowrap == aParentReflowInput.mStylePosition->mFlexWrap;
-  if (isSingleLine) {
-    // Is container's cross size "definite"?
-    // - If it's column-oriented, then "yes", because its cross size is its
-    // inline-size which is always definite from its descendants' perspective.
-    // - Otherwise (if it's row-oriented), then we check the actual size
-    // and call it definite if it's not NS_UNCONSTRAINEDSIZE.
-    if (aAxisTracker.IsColumnOriented() ||
-        aTentativeContentBoxCrossSize != NS_UNCONSTRAINEDSIZE) {
-      // Container's cross size is "definite", so we can resolve the item's
-      // stretched cross size using that.
-      item.ResolveStretchedCrossSize(aTentativeContentBoxCrossSize);
-    }
+  // If its cross size become definite due to "pre-stretch" above, set
+  // item.SetIsStretched();
+  if (childShouldStretchCrossSize) {
+    item.SetIsStretched();
   }
-
-  // Before thinking about freezing the item at its base size, we need to give
-  // it a chance to recalculate the base size from its cross size and aspect
-  // ratio (since its cross size might've *just* now become definite due to
-  // 'stretch' above)
-  item.ResolveFlexBaseSizeFromAspectRatio(childRI);
 
   // If we're inflexible, we can just freeze to our hypothetical main-size
   // up-front.
@@ -3888,7 +3930,7 @@ void FlexItem::ResolveStretchedCrossSize(nscoord aLineCrossSize) {
   // Update the cross-size & make a note that it's stretched, so we know to
   // override the reflow input's computed cross-size in our final reflow.
   SetCrossSize(stretchedSize);
-  mIsStretched = true;
+  SetIsStretched();
 }
 
 static nsBlockFrame* FindFlexItemBlockFrame(nsIFrame* aFrame) {
@@ -4204,6 +4246,7 @@ void nsFlexContainerFrame::GenerateFlexLines(
       nextStrutIdx++;
     } else {
       GenerateFlexItemForChild(*curLine, childFrame, aReflowInput, aAxisTracker,
+                               aTentativeContentBoxMainSize,
                                aTentativeContentBoxCrossSize);
     }
 
