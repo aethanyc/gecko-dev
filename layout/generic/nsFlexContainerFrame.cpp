@@ -136,6 +136,38 @@ static StyleContentDistribution ConvertLegacyStyleToJustifyContent(
   return {StyleAlignFlags::FLEX_START};
 }
 
+static std::pair<StyleAlignSelf, StyleAlignFlags> CSSAlignmentForFlexItem(
+    const nsIFrame* aFlexContainer, const nsIFrame* aFlexItem) {
+  MOZ_ASSERT(aFlexContainer->IsFlexContainerFrame());
+  MOZ_ASSERT(aFlexItem->IsFlexItem());
+
+  if (IsLegacyBox(aFlexContainer)) {
+    // For -webkit-{inline-}box and -moz-{inline-}box, we need to:
+    // (1) Use prefixed "box-align" instead of "align-items" to determine the
+    //     container's cross-axis alignment behavior.
+    // (2) Suppress the ability for flex items to override that with their own
+    //     cross-axis alignment. (The legacy box model doesn't support this.)
+    // So, each FlexItem simply copies the container's converted "align-items"
+    // value and disregards their own "align-self" property.
+    const StyleAlignSelf alignSelf = {
+        ConvertLegacyStyleToAlignItems(aFlexContainer->StyleXUL())};
+    const StyleAlignFlags alignSelfFlags = {0};
+    return {alignSelf, alignSelfFlags};
+  }
+
+  StyleAlignSelf alignSelf =
+      aFlexItem->StylePosition()->UsedAlignSelf(aFlexContainer->Style());
+  if (MOZ_LIKELY(alignSelf._0 == StyleAlignFlags::NORMAL)) {
+    alignSelf = {StyleAlignFlags::STRETCH};
+  }
+
+  // Store and strip off the <overflow-position> bits
+  const StyleAlignFlags alignSelfFlags =
+      alignSelf._0 & StyleAlignFlags::FLAG_BITS;
+  alignSelf._0 &= ~StyleAlignFlags::FLAG_BITS;
+  return {alignSelf, alignSelfFlags};
+}
+
 // Check if the size is auto or it is a keyword in the block axis.
 // |aIsInline| should represent whether aSize is in the inline axis, from the
 // perspective of the writing mode of the flex item that the size comes from.
@@ -2141,28 +2173,8 @@ FlexItem::FlexItem(ReflowInput& aFlexItemReflowInput, float aFlexGrow,
              "whether flex item's inline axis is flex container's main axis)");
 
   const ReflowInput* containerRS = aFlexItemReflowInput.mParentReflowInput;
-  if (IsLegacyBox(containerRS->mFrame)) {
-    // For -webkit-{inline-}box and -moz-{inline-}box, we need to:
-    // (1) Use prefixed "box-align" instead of "align-items" to determine the
-    //     container's cross-axis alignment behavior.
-    // (2) Suppress the ability for flex items to override that with their own
-    //     cross-axis alignment. (The legacy box model doesn't support this.)
-    // So, each FlexItem simply copies the container's converted "align-items"
-    // value and disregards their own "align-self" property.
-    const nsStyleXUL* containerStyleXUL = containerRS->mFrame->StyleXUL();
-    mAlignSelf = {ConvertLegacyStyleToAlignItems(containerStyleXUL)};
-    mAlignSelfFlags = {0};
-  } else {
-    mAlignSelf = aFlexItemReflowInput.mStylePosition->UsedAlignSelf(
-        containerRS->mFrame->Style());
-    if (MOZ_LIKELY(mAlignSelf._0 == StyleAlignFlags::NORMAL)) {
-      mAlignSelf = {StyleAlignFlags::STRETCH};
-    }
-
-    // Store and strip off the <overflow-position> bits
-    mAlignSelfFlags = mAlignSelf._0 & StyleAlignFlags::FLAG_BITS;
-    mAlignSelf._0 &= ~StyleAlignFlags::FLAG_BITS;
-  }
+  std::tie(mAlignSelf, mAlignSelfFlags) =
+      CSSAlignmentForFlexItem(containerRS->mFrame, aFlexItemReflowInput.mFrame);
 
   // Our main-size is considered definite if any of these are true:
   // (a) main axis is the item's inline axis.
