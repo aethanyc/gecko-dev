@@ -1,13 +1,29 @@
 <!DOCTYPE html>
 <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
 <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
-<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#valdef-align-items-stretch">
-<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://compat.spec.whatwg.org/#propdef--webkit-box-align">
 <link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
-<meta name="assert" content="This checks that a flex item with an aspect-ratio transfers its size when it also has stretch alignment.">
+<meta name="assert" content="This test checks that a legacy flex container with -webkit-box-align:start doesn't stretch the cross-axis of its items.">
+
+<style>
+.container {
+  display: -webkit-inline-box;
+  -webkit-box-align: start; /* Map to align-items: flex-start */
+  height: 100px;
+  background: green;
+}
+.item {
+  padding: 3px;
+  border: 7px solid green;
+  margin: 10px;
+  aspect-ratio: 1/1;
+}
+div {
+  vertical-align: top;
+}
+</style>
 
 <p>Test passes if there is a filled green square.</p>
-<div style="display: inline-flex; height: 100px; background: green;">
-  <div style="padding: 3px; border: 7px solid green; margin: 10px;
-              aspect-ratio: 1/1;"></div>
-</div>
+<div class="container">
+  <div class="item"></div>
+</div><div style="display: inline-block; width: 60px; height: 100px; background: green"></div>

@@ -337,12 +337,8 @@ class EarlyHintConnectArgs;
 }  // namespace mozilla::net
 
 // Must be kept in sync with xpcom/rust/xpcom/src/interfaces/nonidl.rs
-#define NS_IDOCUMENT_IID                             \
-  {                                                  \
-    0xce1f7627, 0x7109, 0x4977, {                    \
-      0xba, 0x77, 0x49, 0x0f, 0xfd, 0xe0, 0x7a, 0xaa \
-    }                                                \
-  }
+#define NS_IDOCUMENT_IID \
+  {0xce1f7627, 0x7109, 0x4977, {0xba, 0x77, 0x49, 0x0f, 0xfd, 0xe0, 0x7a, 0xaa}}
 
 namespace mozilla::dom {
 
@@ -500,8 +496,8 @@ class ExternalResourceMap {
     }                                                              \
     NS_DECL_ISUPPORTS                                              \
     NS_FORWARD_NSIINTERFACEREQUESTOR(mIfReq->)                     \
-    NS_FORWARD_##_allcaps(mRealPtr->) private                      \
-        : nsCOMPtr<nsIInterfaceRequestor> mIfReq;                  \
+   NS_FORWARD_##_allcaps(mRealPtr->) private                       \
+       : nsCOMPtr<nsIInterfaceRequestor> mIfReq;                   \
     nsCOMPtr<_i> mRealPtr;                                         \
   };
 
@@ -2835,9 +2831,10 @@ class Document : public nsINode,
    * use non-builtin XBL bindings.
    */
   bool AllowXULXBL() {
-    return mAllowXULXBL == eTriTrue    ? true
-           : mAllowXULXBL == eTriFalse ? false
-                                       : InternalAllowXULXBL();
+    return true;
+    // return mAllowXULXBL == eTriTrue    ? true
+    //        : mAllowXULXBL == eTriFalse ? false
+    //                                    : InternalAllowXULXBL();
   }
 
   /**
