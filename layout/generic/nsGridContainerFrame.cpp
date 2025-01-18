@@ -321,7 +321,10 @@ struct RepeatTrackSizingInput {
     }
 
     nscoord& size = mSize.Size(aAxis, aWM);
-    const auto& styleSize = pos->Size(aAxis, aWM);
+    // When computing the intrinsic inline-size, disregard the explicit
+    // inline-size property.
+    const auto& styleSize =
+        aAxis == LogicalAxis::Inline ? StyleSize::Auto() : pos->BSize(aWM);
     if (styleSize.ConvertsToLength()) {
       size = std::clamp(adjustForBoxSizing(styleSize.ToLength()), min, max);
     } else if (aAspectRatio && styleSize.BehavesLikeInitialValue(aAxis)) {
