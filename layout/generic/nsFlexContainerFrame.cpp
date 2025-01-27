@@ -969,7 +969,7 @@ class nsFlexContainerFrame::FlexLine final {
  public:
   explicit FlexLine(nscoord aMainGapSize) : mMainGapSize(aMainGapSize) {}
 
-  nscoord SumOfGaps() const {
+  AuCoord64 SumOfGaps() const {
     return NumItems() > 0 ? (NumItems() - 1) * mMainGapSize : 0;
   }
 
@@ -1118,7 +1118,7 @@ class nsFlexContainerFrame::FlexLine final {
   uint32_t mNumFrozenItems = 0;
 
   // Sum of margin/border/padding for the FlexItems in this FlexLine.
-  nscoord mTotalItemMBP = 0;
+  AuCoord64 mTotalItemMBP = 0;
 
   nscoord mLineCrossSize = 0;
   nscoord mFirstBaselineOffset = nscoord_MIN;
