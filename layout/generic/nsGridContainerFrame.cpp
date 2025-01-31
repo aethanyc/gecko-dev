@@ -740,6 +740,9 @@ struct nsGridContainerFrame::GridItemInfo {
     eAutoPlacement = 0x800,
     // Set if this item is the last item in its track (masonry layout only)
     eIsLastItemInMasonryTrack = 0x1000,
+
+    // Bits set during the track sizing step.
+    eTrackSizingBits = eIsFlexing | eApplyAutoMinSize | eClampMarginBoxMinSize,
   };
 
   GridItemInfo(nsIFrame* aFrame, const GridArea& aArea);
@@ -784,6 +787,9 @@ struct nsGridContainerFrame::GridItemInfo {
         mBaselineOffset[LogicalAxis::Block];
     return info;
   }
+
+  // Reset mState in aAxis that were set during the track sizing step.
+  void ResetTrackSizingFlags(LogicalAxis aAxis);
 
   /** Swap the start/end sides in aAxis. */
   inline void ReverseDirection(LogicalAxis aAxis, uint32_t aGridEnd);
@@ -984,6 +990,10 @@ GridItemInfo::GridItemInfo(nsIFrame* aFrame, const GridArea& aArea)
           StateBits::eIsSubgrid;
     }
   }
+}
+
+void GridItemInfo::ResetTrackSizingFlags(LogicalAxis aAxis) {
+  mState[aAxis] &= ~StateBits::eTrackSizingBits;
 }
 
 void GridItemInfo::ReverseDirection(LogicalAxis aAxis, uint32_t aGridEnd) {
@@ -7539,14 +7549,12 @@ LogicalSize nsGridContainerFrame::GridReflowInput::PercentageBasisFor(
     return LogicalSize(wm, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
   }
 
-  if (aAxis == LogicalAxis::Inline || !mCols.mCanResolveLineRangeSize) {
-    return LogicalSize(wm, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
-  }
-  // Note: for now, we only resolve transferred percentages to row sizing.
-  // We may need to adjust these assertions once we implement bug 1300366.
-  MOZ_ASSERT(!mRows.mCanResolveLineRangeSize);
-  nscoord colSize = aGridItem.mArea.mCols.ToLength(mCols.mSizes);
-  nscoord rowSize = NS_UNCONSTRAINEDSIZE;
+  const nscoord colSize = mCols.mCanResolveLineRangeSize
+                              ? aGridItem.mArea.mCols.ToLength(mCols.mSizes)
+                              : NS_UNCONSTRAINEDSIZE;
+  const nscoord rowSize = mRows.mCanResolveLineRangeSize
+                              ? aGridItem.mArea.mRows.ToLength(mRows.mSizes)
+                              : NS_UNCONSTRAINEDSIZE;
   return !wm.IsOrthogonalTo(mWM) ? LogicalSize(wm, colSize, rowSize)
                                  : LogicalSize(wm, rowSize, colSize);
 }
@@ -9813,6 +9821,13 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     return nscoord(0);
   }
 
+  gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
+                                    NS_UNCONSTRAINEDSIZE, constraint);
+  gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid,
+                                    NS_UNCONSTRAINEDSIZE, constraint);
+  for (auto& item : gridRI.mGridItems) {
+    item.ResetTrackSizingFlags(LogicalAxis::Inline);
+  }
   gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
                                     NS_UNCONSTRAINEDSIZE, constraint);
 
