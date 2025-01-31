@@ -740,6 +740,9 @@ struct nsGridContainerFrame::GridItemInfo {
     eAutoPlacement = 0x800,
     // Set if this item is the last item in its track (masonry layout only)
     eIsLastItemInMasonryTrack = 0x1000,
+
+    // Bits set during the track sizing step.
+    eTrackSizingBits = eIsFlexing | eApplyAutoMinSize | eClampMarginBoxMinSize,
   };
 
   GridItemInfo(nsIFrame* aFrame, const GridArea& aArea);
@@ -784,6 +787,9 @@ struct nsGridContainerFrame::GridItemInfo {
         mBaselineOffset[LogicalAxis::Block];
     return info;
   }
+
+  // Reset mState in aAxis that were set during the track sizing step.
+  void ResetTrackSizingFlags(LogicalAxis aAxis);
 
   /** Swap the start/end sides in aAxis. */
   inline void ReverseDirection(LogicalAxis aAxis, uint32_t aGridEnd);
@@ -984,6 +990,10 @@ GridItemInfo::GridItemInfo(nsIFrame* aFrame, const GridArea& aArea)
           StateBits::eIsSubgrid;
     }
   }
+}
+
+void GridItemInfo::ResetTrackSizingFlags(LogicalAxis aAxis) {
+  mState[aAxis] &= ~StateBits::eTrackSizingBits;
 }
 
 void GridItemInfo::ReverseDirection(LogicalAxis aAxis, uint32_t aGridEnd) {
@@ -9073,7 +9083,6 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
   const nscoord computedBSize = aReflowInput.ComputedBSize();
   const nscoord computedISize = aReflowInput.ComputedISize();
   const WritingMode& wm = gridRI.mWM;
-  const LogicalSize computedSize(wm, computedISize, computedBSize);
 
   nscoord consumedBSize = 0;
   nscoord bSize = 0;
@@ -9081,7 +9090,7 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
     Grid grid;
     if (MOZ_LIKELY(!IsSubgrid())) {
       RepeatTrackSizingInput repeatSizing(aReflowInput.ComputedMinSize(),
-                                          computedSize,
+                                          aReflowInput.ComputedSize(),
                                           aReflowInput.ComputedMaxSize());
       grid.PlaceGridItems(gridRI, repeatSizing);
     } else {
@@ -9098,39 +9107,48 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
     // 1488878.
     const Maybe<nscoord> containBSize =
         aReflowInput.mFrame->ContainIntrinsicBSize();
+    gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid, computedISize,
+                                      SizingConstraint::NoConstraint);
+
     const nscoord trackSizingBSize = [&] {
       // This clamping only applies to auto sizes.
       if (containBSize && computedBSize == NS_UNCONSTRAINEDSIZE) {
         return aReflowInput.ApplyMinMaxBSize(*containBSize);
       }
-      return computedBSize;
-    }();
-    const LogicalSize containSize(wm, computedISize, trackSizingBSize);
-    gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
-                                      containSize.ISize(wm),
-                                      SizingConstraint::NoConstraint);
-    gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid,
-                                      containSize.BSize(wm),
-                                      SizingConstraint::NoConstraint);
-    if (containBSize) {
-      bSize = *containBSize;
-    } else {
-      if (IsMasonry(LogicalAxis::Block)) {
-        bSize = computedBSize;
-      } else {
-        const auto& rowSizes = gridRI.mRows.mSizes;
-        if (MOZ_LIKELY(!IsSubgrid(LogicalAxis::Block))) {
+
+      if (computedBSize == NS_UNCONSTRAINEDSIZE) {
+        gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid,
+                                          NS_UNCONSTRAINEDSIZE,
+                                          SizingConstraint::NoConstraint);
+        if (!IsSubgrid(LogicalAxis::Block)) {
           // Note: we can't use GridLineEdge here since we haven't calculated
           // the rows' mPosition yet (happens in AlignJustifyContent below).
-          for (const auto& sz : rowSizes) {
+          for (const auto& sz : gridRI.mRows.mSizes) {
             bSize += sz.mBase;
           }
           bSize += gridRI.mRows.SumOfGridGaps();
-        } else if (computedBSize == NS_UNCONSTRAINEDSIZE) {
-          bSize = gridRI.mRows.GridLineEdge(rowSizes.Length(),
+        } else {
+          bSize = gridRI.mRows.GridLineEdge(gridRI.mRows.mSizes.Length(),
                                             GridLineSide::BeforeGridGap);
         }
+        bSize = aReflowInput.ApplyMinMaxBSize(bSize);
+
+        // Reset some track sizing state before final step below.
+        for (auto& item : gridRI.mGridItems) {
+          item.ResetTrackSizingFlags(LogicalAxis::Block);
+        }
+        gridRI.mRows.mCanResolveLineRangeSize = false;
+        return bSize;
       }
+      return computedBSize;
+    }();
+    gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid,
+                                      trackSizingBSize,
+                                      SizingConstraint::NoConstraint);
+    if (containBSize) {
+      bSize = *containBSize;
+    } else if (IsMasonry(LogicalAxis::Block)) {
+      bSize = computedBSize;
     }
   } else {
     consumedBSize = CalcAndCacheConsumedBSize();
