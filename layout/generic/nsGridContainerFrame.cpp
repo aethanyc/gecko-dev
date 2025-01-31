@@ -740,6 +740,9 @@ struct nsGridContainerFrame::GridItemInfo {
     eAutoPlacement = 0x800,
     // Set if this item is the last item in its track (masonry layout only)
     eIsLastItemInMasonryTrack = 0x1000,
+
+    // Bits set during the track sizing step.
+    eTrackSizingBits = eIsFlexing | eApplyAutoMinSize | eClampMarginBoxMinSize,
   };
 
   GridItemInfo(nsIFrame* aFrame, const GridArea& aArea);
@@ -784,6 +787,9 @@ struct nsGridContainerFrame::GridItemInfo {
         mBaselineOffset[LogicalAxis::Block];
     return info;
   }
+
+  // Reset mState in aAxis that were set during the track sizing step.
+  void ResetTrackSizingFlags(LogicalAxis aAxis);
 
   /** Swap the start/end sides in aAxis. */
   inline void ReverseDirection(LogicalAxis aAxis, uint32_t aGridEnd);
@@ -984,6 +990,10 @@ GridItemInfo::GridItemInfo(nsIFrame* aFrame, const GridArea& aArea)
           StateBits::eIsSubgrid;
     }
   }
+}
+
+void GridItemInfo::ResetTrackSizingFlags(LogicalAxis aAxis) {
+  mState[aAxis] &= ~StateBits::eTrackSizingBits;
 }
 
 void GridItemInfo::ReverseDirection(LogicalAxis aAxis, uint32_t aGridEnd) {
@@ -9082,7 +9092,7 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
   const WritingMode& wm = gridRI.mWM;
 
   nscoord consumedBSize = 0;
-  nscoord bSize = 0;
+  nscoord bSize = 0;  // XXX: should rename it to contentBSize.
   if (MOZ_LIKELY(!prevInFlow)) {
     Grid grid;
     if (MOZ_LIKELY(!IsSubgrid())) {
@@ -9098,6 +9108,10 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
       grid.mGridColEnd = subgrid->mGridColEnd;
       grid.mGridRowEnd = subgrid->mGridRowEnd;
     }
+
+    gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid, computedISize,
+                                      SizingConstraint::NoConstraint);
+
     // XXX Technically incorrect: 'contain-intrinsic-block-size: none' is
     // treated as 0, ignoring our row sizes, when really we should use them but
     // *they* should be computed as if we had no children. To be fixed in bug
@@ -9106,36 +9120,56 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
         aReflowInput.mFrame->ContainIntrinsicBSize();
 
     nscoord trackSizingBSize;
-    if (containBSize && computedBSize == NS_UNCONSTRAINEDSIZE) {
-      // This clamping only applies to unconstrained block-size.
-      trackSizingBSize = aReflowInput.ApplyMinMaxBSize(*containBSize);
+    if (computedBSize == NS_UNCONSTRAINEDSIZE) {
+      if (containBSize) {
+        // This clamping only applies to unconstrained block-size.
+        trackSizingBSize = aReflowInput.ApplyMinMaxBSize(*containBSize);
+      } else {
+        // This grid container's block size is unconstrained. Resolve the row
+        // sizes by treating the percentage row sizes as auto to compute the
+        // intrinsic content block size.
+        gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid,
+                                          NS_UNCONSTRAINEDSIZE,
+                                          SizingConstraint::NoConstraint);
+        if (!IsRowSubgrid()) {
+          // Note: we can't use GridLineEdge here since we haven't calculated
+          // the rows' mPosition yet (happens in AlignJustifyContent below).
+          trackSizingBSize = gridRI.mRows.SumOfGridTracksAndGaps();
+        } else {
+          trackSizingBSize = gridRI.mRows.GridLineEdge(
+              gridRI.mRows.mSizes.Length(), GridLineSide::BeforeGridGap);
+        }
+        trackSizingBSize = aReflowInput.ApplyMinMaxBSize(trackSizingBSize);
+
+        // Reset some track sizing flags before resolving the row sizes again
+        // below.
+        for (auto& item : gridRI.mGridItems) {
+          item.ResetTrackSizingFlags(LogicalAxis::Block);
+        }
+        gridRI.mRows.mCanResolveLineRangeSize = false;
+      }
     } else {
       trackSizingBSize = computedBSize;
     }
-
-    gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid, computedISize,
-                                      SizingConstraint::NoConstraint);
     gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid,
                                       trackSizingBSize,
                                       SizingConstraint::NoConstraint);
     if (containBSize) {
       bSize = *containBSize;
+    } else if (IsMasonry(LogicalAxis::Block)) {
+      bSize = computedBSize;
     } else {
-      if (IsMasonry(LogicalAxis::Block)) {
-        bSize = computedBSize;
-      } else {
-        const auto& rowSizes = gridRI.mRows.mSizes;
-        if (MOZ_LIKELY(!IsSubgrid(LogicalAxis::Block))) {
+      if (!IsRowSubgrid()) {
+        if (computedBSize == NS_UNCONSTRAINEDSIZE) {
+          bSize = trackSizingBSize;
+        } else {
           // Note: we can't use GridLineEdge here since we haven't calculated
           // the rows' mPosition yet (happens in AlignJustifyContent below).
-          for (const auto& sz : rowSizes) {
-            bSize += sz.mBase;
-          }
-          bSize += gridRI.mRows.SumOfGridGaps();
-        } else if (computedBSize == NS_UNCONSTRAINEDSIZE) {
-          bSize = gridRI.mRows.GridLineEdge(rowSizes.Length(),
-                                            GridLineSide::BeforeGridGap);
+          bSize = gridRI.mRows.SumOfGridTracksAndGaps();
         }
+      } else if (computedBSize == NS_UNCONSTRAINEDSIZE) {
+        bSize = gridRI.mRows.GridLineEdge(gridRI.mRows.mSizes.Length(),
+                                          GridLineSide::BeforeGridGap);
       }
     }
   } else {
@@ -9172,13 +9206,7 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
     const auto& rowSizes = gridRI.mRows.mSizes;
     if (!IsRowSubgrid()) {
       // Apply 'align-content' to the grid.
-      if (computedBSize == NS_UNCONSTRAINEDSIZE &&
-          stylePos->mRowGap.IsLengthPercentage() &&
-          stylePos->mRowGap.AsLengthPercentage().HasPercent()) {
-        // Re-resolve the row-gap now that we know our intrinsic block-size.
-        gridRI.mRows.mGridGap =
-            nsLayoutUtils::ResolveGapToLength(stylePos->mRowGap, bSize);
-      }
+      // XXX: Do we need to call AlignJustifyContent again here?
       if (!gridRI.mRows.mIsMasonry) {
         auto alignment = stylePos->mAlignContent;
         gridRI.mRows.AlignJustifyContent(stylePos, alignment, wm, bSize, false);
