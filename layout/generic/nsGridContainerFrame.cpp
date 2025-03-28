@@ -9102,39 +9102,56 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
       grid.mGridColEnd = subgrid->mGridColEnd;
       grid.mGridRowEnd = subgrid->mGridRowEnd;
     }
+
+    // Resolve the column sizes with the grid container's inline size.
+    gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid, computedISize,
+                                      SizingConstraint::NoConstraint);
+
     // XXX Technically incorrect: 'contain-intrinsic-block-size: none' is
     // treated as 0, ignoring our row sizes, when really we should use them but
     // *they* should be computed as if we had no children. To be fixed in bug
     // 1488878.
     const Maybe<nscoord> containBSize =
         aReflowInput.mFrame->ContainIntrinsicBSize();
+    const nscoord trackSizingBSize = [&] {
+      if (computedBSize == NS_UNCONSTRAINEDSIZE) {
+        if (containBSize) {
+          // We have an unconstrained block size, but we also have a specified
+          // 'contain-intrinsic-block-size'. We apply the min/max constraints to
+          // the value, and use that for track sizing.
+          return aReflowInput.ApplyMinMaxBSize(*containBSize);
+        }
+      }
 
-    nscoord trackSizingBSize;
-    if (containBSize && computedBSize == NS_UNCONSTRAINEDSIZE) {
-      // This clamping only applies to unconstrained block-size.
-      trackSizingBSize = aReflowInput.ApplyMinMaxBSize(*containBSize);
-    } else {
-      trackSizingBSize = computedBSize;
-    }
+      // We don't need to apply the min/max constraints to computed block size,
+      // which has already been clamped by ReflowInput, specifically when
+      // computing the value in nsIFrame::ComputeSize().
+      return computedBSize;
+    }();
 
-    gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid, computedISize,
-                                      SizingConstraint::NoConstraint);
+    // Resolve the row sizes with the determined trackSizingBSize.
     gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid,
                                       trackSizingBSize,
                                       SizingConstraint::NoConstraint);
-    if (containBSize) {
-      contentBSize = *containBSize;
-    } else if (IsMasonry(LogicalAxis::Block)) {
-      contentBSize = computedBSize;
-    } else if (MOZ_LIKELY(!IsRowSubgrid())) {
-      // Note: we can't use GridLineEdge here since we haven't calculated
-      // the rows' mPosition yet (happens in AlignJustifyContent below).
-      contentBSize = gridRI.mRows.SumOfGridTracksAndGaps();
-    } else if (computedBSize == NS_UNCONSTRAINEDSIZE) {
-      const uint32_t numRows = gridRI.mRows.mSizes.Length();
-      contentBSize =
-          gridRI.mRows.GridLineEdge(numRows, GridLineSide::BeforeGridGap);
-    }
+
+    contentBSize = [&] {
+      if (containBSize) {
+        return *containBSize;
+      }
+      if (IsMasonry(LogicalAxis::Block)) {
+        return computedBSize;
+      }
+      if (!IsRowSubgrid()) {
+        // Note: we can't use GridLineEdge here since we haven't calculated
+        // the rows' mPosition yet (happens in AlignJustifyContent below).
+        return gridRI.mRows.SumOfGridTracksAndGaps();
+      }
+      if (computedBSize == NS_UNCONSTRAINEDSIZE) {
+        const uint32_t numRows = gridRI.mRows.mSizes.Length();
+        return gridRI.mRows.GridLineEdge(numRows, GridLineSide::BeforeGridGap);
+      }
+      return computedBSize;
+    }();
   } else {
     consumedBSize = CalcAndCacheConsumedBSize();
     gridRI.InitializeForContinuation(this, consumedBSize);
