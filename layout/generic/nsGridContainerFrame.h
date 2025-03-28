@@ -506,6 +506,23 @@ class nsGridContainerFrame final : public nsContainerFrame,
                          const LogicalRect& aContentArea,
                          ReflowOutput& aDesiredSize, nsReflowStatus& aStatus);
 
+  // Helper for Reflow.
+  //
+  // @return the intrinsic content-box block size that can be used to
+  // (re-)resolve the row sizes.
+  nscoord ComputeIntrinsicContentBoxBSize(GridReflowInput& aGridRI,
+                                          nscoord aComputedBSize) const;
+
+  // Helper for Reflow. This intended to be called after the final call to
+  // CalculateTrackSizesForAxis() for the block-axis.
+  //
+  // @param aIntrinsicContentBoxBSize the value returned by
+  //   ComputeIntrinsicContentBoxBSize().
+  // @return the content-box block size.
+  nscoord ComputeContentBoxBSize(const GridReflowInput& aGridRI,
+                                 nscoord aComputedBSize,
+                                 nscoord aIntrinsicContentBoxBSize) const;
+
   /**
    * Places and reflows items when we have masonry layout.
    * It handles unconstrained reflow and also fragmentation when the row axis
