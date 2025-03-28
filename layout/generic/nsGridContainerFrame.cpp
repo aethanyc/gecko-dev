@@ -9102,23 +9102,34 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
       grid.mGridColEnd = subgrid->mGridColEnd;
       grid.mGridRowEnd = subgrid->mGridRowEnd;
     }
+
+    // Resolve the column sizes with the grid container's inline size.
+    gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid, computedISize,
+                                      SizingConstraint::NoConstraint);
+
     // XXX Technically incorrect: 'contain-intrinsic-block-size: none' is
     // treated as 0, ignoring our row sizes, when really we should use them but
     // *they* should be computed as if we had no children. To be fixed in bug
     // 1488878.
     const Maybe<nscoord> containBSize =
         aReflowInput.mFrame->ContainIntrinsicBSize();
+    const nscoord trackSizingBSize = [&] {
+      if (computedBSize == NS_UNCONSTRAINEDSIZE) {
+        if (containBSize) {
+          // We have an unconstrained block size, but we also have a specified
+          // 'contain-intrinsic-block-size'. We apply the min/max constraints to
+          // the value, and use that for track sizing.
+          return aReflowInput.ApplyMinMaxBSize(*containBSize);
+        }
+      }
 
-    nscoord trackSizingBSize;
-    if (containBSize && computedBSize == NS_UNCONSTRAINEDSIZE) {
-      // This clamping only applies to unconstrained block-size.
-      trackSizingBSize = aReflowInput.ApplyMinMaxBSize(*containBSize);
-    } else {
-      trackSizingBSize = computedBSize;
-    }
+      // We don't have to apply the min/max constraints to a constrained block
+      // size, which has already been clamped by ReflowInput, specially when
+      // computing the value in RefnsIFrame::ComputeSize().
+      return computedBSize;
+    }();
 
-    gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid, computedISize,
-                                      SizingConstraint::NoConstraint);
+    // Resolve the row sizes with the determined trackSizingBSize.
     gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid,
                                       trackSizingBSize,
                                       SizingConstraint::NoConstraint);
