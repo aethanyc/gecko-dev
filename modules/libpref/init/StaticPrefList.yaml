@@ -9768,7 +9768,7 @@
 #    https://drafts.csswg.org/css-grid-2/#algo-grid-sizing
 - name: layout.css.grid-multi-pass-track-sizing.enabled
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # Is support for :has() enabled?
