@@ -511,6 +511,7 @@ class nsGridContainerFrame final : public nsContainerFrame,
   // @return the intrinsic content-box block size that can be used to
   // (re-)resolve the row sizes.
   nscoord ComputeIntrinsicContentBoxBSize(GridReflowInput& aGridRI,
+                                          const Grid& aGrid,
                                           nscoord aComputedBSize) const;
 
   // Helper for Reflow. This intended to be called after the final call to
