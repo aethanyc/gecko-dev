@@ -7586,8 +7586,16 @@ LogicalSize nsGridContainerFrame::GridReflowInput::PercentageBasisFor(
   }
 
   if (aAxis == LogicalAxis::Inline || !mCols.mCanResolveLineRangeSize) {
+    if (mRows.mCanResolveLineRangeSize) {
+      const nscoord colSize = NS_UNCONSTRAINEDSIZE;
+      const nscoord rowSize = aGridItem.mArea.mRows.ToLength(mRows.mSizes);
+      return !wm.IsOrthogonalTo(mWM) ? LogicalSize(wm, colSize, rowSize)
+                                     : LogicalSize(wm, rowSize, colSize);
+    }
+
     return LogicalSize(wm, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
   }
+
   // Note: for now, we only resolve transferred percentages to row sizing.
   // We may need to adjust these assertions once we implement bug 1300366.
   MOZ_ASSERT(!mRows.mCanResolveLineRangeSize);
@@ -9962,8 +9970,36 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     return nscoord(0);
   }
 
+  // MOZ_DBG(aInput.mPercentageBasisForChildren);
+  // MOZ_DBG(aInput.mContainingBlockSize);
+  GRID_LOG("Resolve column size 1\n");
   gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
                                     NS_UNCONSTRAINEDSIZE, constraint);
+
+  const nscoord contentBoxBSize =
+      aInput.mPercentageBasisForChildren
+          ? aInput.mPercentageBasisForChildren->BSize(gridRI.mWM)
+          : NS_UNCONSTRAINEDSIZE;
+
+  GRID_LOG("Resolve row size 1\n");
+  gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid, contentBoxBSize,
+                                    constraint);
+
+  // Reset the track sizing bits before re-resolving the column sizes again.
+  for (auto& item : gridRI.mGridItems) {
+    item.ResetTrackSizingBits(LogicalAxis::Inline);
+  }
+  gridRI.mCols.mCanResolveLineRangeSize = false;
+
+  GRID_LOG("Resolve column size 2\n");
+  gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
+                                    NS_UNCONSTRAINEDSIZE, constraint);
+
+  GRID_LOG("column dump!\n");
+  // gridRI.mCols.Dump();
+
+  GRID_LOG("row dump!\n");
+  // gridRI.mRows.Dump();
 
   if (MOZ_LIKELY(!IsSubgrid())) {
     return gridRI.mCols.SumOfGridTracksAndGaps();
