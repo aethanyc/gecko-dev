@@ -7632,10 +7632,20 @@ LogicalSize nsGridContainerFrame::GridReflowInput::PercentageBasisFor(
   }
 
   if (aAxis == LogicalAxis::Inline || !mCols.mCanResolveLineRangeSize) {
+    if (StaticPrefs::layout_css_grid_multi_pass_track_sizing_enabled() &&
+        aAxis == LogicalAxis::Inline && mRows.mCanResolveLineRangeSize) {
+      // When calculating column sizes with definite row sizes, compute the row
+      // size for the grid area placed by aGridItem.
+      const nscoord colSize = NS_UNCONSTRAINEDSIZE;
+      const nscoord rowSize = aGridItem.mArea.mRows.ToLength(mRows.mSizes);
+      return !wm.IsOrthogonalTo(mWM) ? LogicalSize(wm, colSize, rowSize)
+                                     : LogicalSize(wm, rowSize, colSize);
+    }
     return LogicalSize(wm, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
   }
   // Note: for now, we only resolve transferred percentages to row sizing.
   // We may need to adjust these assertions once we implement bug 1300366.
+  // Tracked in Bug 1957503.
   MOZ_ASSERT(!mRows.mCanResolveLineRangeSize);
   nscoord colSize = aGridItem.mArea.mCols.ToLength(mCols.mSizes);
   nscoord rowSize = NS_UNCONSTRAINEDSIZE;
@@ -10010,6 +10020,30 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
 
   gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
                                     NS_UNCONSTRAINEDSIZE, constraint);
+
+  if (StaticPrefs::layout_css_grid_multi_pass_track_sizing_enabled()) {
+    const nscoord contentBoxBSize =
+        aInput.mPercentageBasisForChildren
+            ? aInput.mPercentageBasisForChildren->BSize(gridRI.mWM)
+            : NS_UNCONSTRAINEDSIZE;
+
+    // Resolve the rows sizes here so that when re-resolving the column sizes,
+    // grid items with percent-valued block-sizes can resolve against definite
+    // row sizes. This ensures that those grid items also with aspect-ratios can
+    // transfer the resolved block-size to the inline axis, contributing to the
+    // grid container's intrinsic inline-size.
+    gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid, contentBoxBSize,
+                                      SizingConstraint::NoConstraint);
+
+    // Reset the track sizing bits before re-resolving the column sizes.
+    for (auto& item : gridRI.mGridItems) {
+      item.ResetTrackSizingBits(LogicalAxis::Inline);
+    }
+    gridRI.mCols.mCanResolveLineRangeSize = false;
+
+    gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
+                                      NS_UNCONSTRAINEDSIZE, constraint);
+  }
 
   if (MOZ_LIKELY(!IsSubgrid())) {
     return gridRI.mCols.SumOfGridTracksAndGaps();
