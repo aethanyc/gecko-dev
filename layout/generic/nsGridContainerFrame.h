@@ -337,10 +337,6 @@ class nsGridContainerFrame final : public nsContainerFrame,
   };
 
  protected:
-  typedef mozilla::LogicalPoint LogicalPoint;
-  typedef mozilla::LogicalRect LogicalRect;
-  typedef mozilla::LogicalSize LogicalSize;
-  typedef mozilla::WritingMode WritingMode;
   struct Grid;
   struct GridArea;
   class LineNameMap;
@@ -383,7 +379,7 @@ class nsGridContainerFrame final : public nsContainerFrame,
    *         so far including this frame
    */
   nscoord ReflowChildren(GridReflowInput& aGridRI,
-                         const LogicalRect& aContentArea,
+                         const mozilla::LogicalRect& aContentArea,
                          const nsSize& aContainerSize,
                          ReflowOutput& aDesiredSize, nsReflowStatus& aStatus);
 
@@ -420,7 +416,8 @@ class nsGridContainerFrame final : public nsContainerFrame,
                           mozilla::CSSOrderAwareFrameIterator* aIter,
                           const nsTArray<GridItemInfo>* aGridItems,
                           const Tracks& aTracks, uint32_t aFragmentStartTrack,
-                          uint32_t aFirstExcludedTrack, WritingMode aWM,
+                          uint32_t aFirstExcludedTrack,
+                          mozilla::WritingMode aWM,
                           const nsSize& aCBPhysicalSize,
                           nscoord aCBBorderPaddingStart,
                           nscoord aCBBorderPaddingStartEnd, nscoord aCBSize);
@@ -431,7 +428,7 @@ class nsGridContainerFrame final : public nsContainerFrame,
   nscoord SynthesizeBaseline(const FindItemInGridOrderResult& aGridOrderItem,
                              LogicalAxis aAxis, BaselineSharingGroup aGroup,
                              const nsSize& aCBPhysicalSize, nscoord aCBSize,
-                             WritingMode aCBWM);
+                             mozilla::WritingMode aCBWM);
   /**
    * Find the first item in Grid Order in this fragment.
    * https://drafts.csswg.org/css-grid/#grid-order
@@ -501,7 +498,7 @@ class nsGridContainerFrame final : public nsContainerFrame,
 
   // @return the consumed size of all continuations so far including this frame
   nscoord ReflowInFragmentainer(GridReflowInput& aGridRI,
-                                const LogicalRect& aContentArea,
+                                const mozilla::LogicalRect& aContentArea,
                                 ReflowOutput& aDesiredSize,
                                 nsReflowStatus& aStatus,
                                 Fragmentainer& aFragmentainer,
@@ -510,7 +507,7 @@ class nsGridContainerFrame final : public nsContainerFrame,
   // Helper for ReflowInFragmentainer
   // @return the consumed size of all continuations so far including this frame
   nscoord ReflowRowsInFragmentainer(
-      GridReflowInput& aGridRI, const LogicalRect& aContentArea,
+      GridReflowInput& aGridRI, const mozilla::LogicalRect& aContentArea,
       ReflowOutput& aDesiredSize, nsReflowStatus& aStatus,
       Fragmentainer& aFragmentainer, const nsSize& aContainerSize,
       const nsTArray<const GridItemInfo*>& aItems, uint32_t aStartRow,
@@ -522,7 +519,7 @@ class nsGridContainerFrame final : public nsContainerFrame,
                          const mozilla::Maybe<nscoord>& aStretchBSize,
                          const Fragmentainer* aFragmentainer,
                          const GridReflowInput& aGridRI,
-                         const LogicalRect& aContentArea,
+                         const mozilla::LogicalRect& aContentArea,
                          ReflowOutput& aDesiredSize, nsReflowStatus& aStatus);
 
   // Helper for Reflow. This is intended to be called *before* the final call to
@@ -555,7 +552,7 @@ class nsGridContainerFrame final : public nsContainerFrame,
    * @return the intrinsic size in the masonry axis
    */
   nscoord MasonryLayout(GridReflowInput& aGridRI,
-                        const LogicalRect& aContentArea,
+                        const mozilla::LogicalRect& aContentArea,
                         SizingConstraint aConstraint,
                         ReflowOutput& aDesiredSize, nsReflowStatus& aStatus,
                         Fragmentainer* aFragmentainer,
