@@ -875,6 +875,14 @@ IntrinsicSize nsImageFrame::ComputeIntrinsicSize(
       ScaleIntrinsicSizeForDensity(
           intrinsicSize, GetImageFromStyle()->GetResolution(*Style()));
     }
+    printf("We got the image size!");
+    if (intrinsicSize.width) {
+      printf(" width=%d ", *intrinsicSize.width);
+    }
+    if (intrinsicSize.height) {
+      printf(" height=%d ", *intrinsicSize.height);
+    }
+    printf("\n");
     return FinishIntrinsicSize(containAxes, intrinsicSize);
   }
 
@@ -1545,7 +1553,9 @@ nscoord nsImageFrame::GetContinuationOffset() const {
 nscoord nsImageFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
                                      IntrinsicISizeType aType) {
   EnsureIntrinsicSizeAndRatio();
-  return mIntrinsicSize.ISize(GetWritingMode()).valueOr(0);
+  auto result = mIntrinsicSize.ISize(GetWritingMode()).valueOr(0);
+  printf("intrinsic isize for image %s is %d\n", ListTag().get(), result);
+  return result;
 }
 
 void nsImageFrame::ReflowChildren(nsPresContext* aPresContext,

@@ -11,6 +11,7 @@
 #include <functional>
 #include <stdlib.h>  // for div()
 #include <type_traits>
+#include "LayoutConstants.h"
 #include "gfxContext.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/Baseline.h"
@@ -5613,6 +5614,7 @@ static nscoord MeasuringReflow(nsIFrame* aChild,
                                const LogicalSize& aCBSize,
                                nscoord aIMinSizeClamp = NS_MAXSIZE,
                                nscoord aBMinSizeClamp = NS_MAXSIZE) {
+  GRID_LOG("MeasuringReflow for %s", aChild->ListTag().get());
   MOZ_ASSERT(aChild->IsGridItem(), "aChild should be a grid item!");
   auto* parent = static_cast<nsGridContainerFrame*>(aChild->GetParent());
   nsPresContext* pc = aChild->PresContext();
@@ -6075,6 +6077,7 @@ void nsGridContainerFrame::Tracks::CalculateSizes(
   // https://drafts.csswg.org/css-grid-2/#algo-content
   nscoord percentageBasis = aContentBoxSize;
   if (percentageBasis == NS_UNCONSTRAINEDSIZE) {
+    GRID_LOG("Setting percentageBasis to zero!");
     percentageBasis = 0;
   }
   // 12.5 step 1: Shim baseline-aligned items so their intrinsic size
@@ -9239,6 +9242,8 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
   DO_GLOBAL_REFLOW_COUNT("nsGridContainerFrame");
   MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
+  GRID_LOG("Reflow grid container frame %s", ListTag().get());
+
   if (IsFrameTreeTooDeep(aReflowInput, aDesiredSize, aStatus)) {
     return;
   }
@@ -9311,8 +9316,12 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
     gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid, computedISize,
                                       SizingConstraint::NoConstraint);
 
+    GRID_LOG("computedISize %d", computedISize);
+
     const nscoord bSizeForResolvingRowSizes = ComputeBSizeForResolvingRowSizes(
         gridRI, grid, computedBSize, containIntrinsicBSize);
+
+    GRID_LOG("bSizeForResolvingRowSizes %d", bSizeForResolvingRowSizes);
 
     // Resolve the row sizes with the determined bSizeForResolvingRowSizes.
     gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid,
@@ -10021,11 +10030,18 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
   gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
                                     NS_UNCONSTRAINEDSIZE, constraint);
 
+  GRID_LOG("compute grid container %s size",
+           aType == IntrinsicISizeType::MinISize ? "min" : "pref");
+  GRID_LOG("intrinsic isize after first pass %d",
+           gridRI.mCols.SumOfGridTracksAndGaps());
+
   if (StaticPrefs::layout_css_grid_multi_pass_track_sizing_enabled()) {
     const nscoord contentBoxBSize =
         aInput.mPercentageBasisForChildren
             ? aInput.mPercentageBasisForChildren->BSize(gridRI.mWM)
             : NS_UNCONSTRAINEDSIZE;
+
+    GRID_LOG("contentBoxBSize %d", contentBoxBSize);
 
     // Resolve the rows sizes here so that when re-resolving the column sizes,
     // grid items with percent-valued block-sizes can resolve against definite
@@ -10035,6 +10051,11 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid, contentBoxBSize,
                                       SizingConstraint::NoConstraint);
 
+    GRID_LOG("intrinsic bsize after first pass of row %d",
+             gridRI.mRows.SumOfGridTracksAndGaps());
+
+    const nscoord contentBoxISize = gridRI.mCols.SumOfGridTracksAndGaps();
+
     // Reset the track sizing bits before re-resolving the column sizes.
     for (auto& item : gridRI.mGridItems) {
       item.ResetTrackSizingBits(LogicalAxis::Inline);
@@ -10042,7 +10063,10 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     gridRI.mCols.mCanResolveLineRangeSize = false;
 
     gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
-                                      NS_UNCONSTRAINEDSIZE, constraint);
+                                      contentBoxISize, constraint);
+
+    GRID_LOG("intrinsic isize after second pass %d",
+             gridRI.mCols.SumOfGridTracksAndGaps());
   }
 
   if (MOZ_LIKELY(!IsSubgrid())) {
