@@ -4466,7 +4466,7 @@ static nscoord AddIntrinsicSizeOffset(
     const StyleSize& aStyleSize, const Maybe<nscoord> aFixedMinSize,
     const StyleSize& aStyleMinSize, const Maybe<nscoord> aFixedMaxSize,
     const StyleMaxSize& aStyleMaxSize, Maybe<nscoord> aISizeFromAspectRatio,
-    uint32_t aFlags, PhysicalAxis aAxis) {
+    uint32_t aFlags, PhysicalAxis aAxis, bool aIsInlineAxis) {
   const nscoord padding =
       aFlags & nsLayoutUtils::IGNORE_PADDING ? 0 : aOffsets.padding;
   nscoord contentBoxToBoxSizingDiff;
@@ -4506,7 +4506,7 @@ static nscoord AddIntrinsicSizeOffset(
   }
 
   // Compute size.
-  if (aType == IntrinsicISizeType::MinISize &&
+  if (aType == IntrinsicISizeType::MinISize && aIsInlineAxis &&
       aFrame->IsPercentageResolvedAgainstZero(aStyleSize, aStyleMaxSize)) {
     // XXX bug 1463700: this doesn't handle calc() according to spec
     result = 0;
@@ -5021,7 +5021,7 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   result = AddIntrinsicSizeOffset(
       aRenderingContext, aFrame, offsetInRequestedAxis, aType, boxSizing,
       result, *styleISize, fixedMinISize, *styleMinISize, fixedMaxISize,
-      *styleMaxISize, iSizeFromAspectRatio, aFlags, aAxis);
+      *styleMaxISize, iSizeFromAspectRatio, aFlags, aAxis, isInlineAxis);
   nscoord overflow = result - aMarginBoxMinSizeClamp;
   if (MOZ_UNLIKELY(overflow > 0)) {
     nscoord newContentBoxSize = std::max(nscoord(0), contentBoxSize - overflow);
@@ -5137,7 +5137,8 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
   // is Nothing()).
   result = AddIntrinsicSizeOffset(
       aRC, aFrame, offsets, aType, stylePos->mBoxSizing, result, *size,
-      fixedMinSize, *size, Nothing(), *maxSize, Nothing(), aFlags, aAxis);
+      fixedMinSize, *size, Nothing(), *maxSize, Nothing(), aFlags, aAxis,
+      ourInlineAxis == aAxis);
 
   return result;
 }
