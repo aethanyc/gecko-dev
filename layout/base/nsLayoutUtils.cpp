@@ -4494,7 +4494,9 @@ static nscoord AddIntrinsicSizeOffset(
   }
 
   // Compute size.
-  if (aType == IntrinsicISizeType::MinISize &&
+  const bool isInlineAxis =
+      aAxis == aFrame->GetWritingMode().PhysicalAxis(LogicalAxis::Inline);
+  if (aType == IntrinsicISizeType::MinISize && isInlineAxis &&
       aFrame->IsPercentageResolvedAgainstZero(aStyleSize, aStyleMaxSize)) {
     // XXX bug 1463700: this doesn't handle calc() according to spec
     result = 0;
