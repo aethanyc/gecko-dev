@@ -226,6 +226,17 @@ class HgRepository(Repository):
         )
         return FileListFinder(files)
 
+    def diff_stream(self, rev=None, extensions=(), exclude_file=None, context=8):
+        args = ["diff", f"-U{context}"]
+        if rev:
+            args += ["-c", rev]
+        else:
+            args += ["-r", ".^"]
+        for dot_extension in extensions:
+            args += ["--include", f"glob:**{dot_extension}"]
+        args += ["--exclude", f"listfile:{exclude_file}"]
+        return self._pipefrom(*args)
+
     def working_directory_clean(self, untracked=False, ignored=False):
         args = ["status", "--modified", "--added", "--removed", "--deleted"]
         if untracked:
@@ -294,7 +305,11 @@ class HgRepository(Repository):
             self._run("revert", "-a")
 
     def get_branch_nodes(
-        self, head: Optional[str] = None, base_ref: Optional[str] = None
+        self,
+        head: Optional[str] = None,
+        base_ref: Optional[str] = None,
+        limit: Optional[int] = None,
+        follow: Optional[List[str]] = None,
     ) -> List[str]:
         """Return a list of commit SHAs for nodes on the current branch."""
         if not base_ref:
@@ -302,13 +317,19 @@ class HgRepository(Repository):
 
         head_ref = head or self.head_ref
 
-        return self._run(
+        cmd = [
             "log",
             "-r",
             f"{base_ref}::{head_ref} and not {base_ref}",
             "-T",
             "{node}\n",
-        ).splitlines()
+        ]
+        if limit is not None:
+            cmd.append(f"-l{limit}")
+        if follow is not None:
+            cmd += ["-f", "--", *follow]
+
+        return self._run(*cmd).splitlines()
 
     def get_commit_patches(self, nodes: List[str]) -> List[bytes]:
         """Return the contents of the patch `node` in the VCS' standard format."""

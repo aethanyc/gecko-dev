@@ -61,7 +61,6 @@ import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
-import org.mozilla.fenix.ext.openSetDefaultBrowserOption
 import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.home.HomeFragmentDirections
 import org.mozilla.fenix.home.mars.MARSUseCases
@@ -403,7 +402,6 @@ class DefaultSessionControlController(
         when (topSite.url) {
             SupportUtils.POCKET_TRENDING_URL -> Pocket.pocketTopSiteRemoved.record(NoExtras())
             SupportUtils.GOOGLE_URL -> TopSites.googleTopSiteRemoved.record(NoExtras())
-            SupportUtils.BAIDU_URL -> TopSites.baiduTopSiteRemoved.record(NoExtras())
         }
 
         viewLifecycleScope.launch(Dispatchers.IO) {
@@ -441,7 +439,6 @@ class DefaultSessionControlController(
 
         when (topSite.url) {
             SupportUtils.GOOGLE_URL -> TopSites.openGoogleSearchAttribution.record(NoExtras())
-            SupportUtils.BAIDU_URL -> TopSites.openBaiduSearchAttribution.record(NoExtras())
             SupportUtils.POCKET_TRENDING_URL -> Pocket.pocketTopSiteClicked.record(NoExtras())
         }
 
@@ -690,7 +687,7 @@ class DefaultSessionControlController(
 
     @VisibleForTesting
     internal fun navigationActionFor(item: ChecklistItem.Task) = when (item.type) {
-        ChecklistItem.Task.Type.SET_AS_DEFAULT -> activity.openSetDefaultBrowserOption()
+        ChecklistItem.Task.Type.SET_AS_DEFAULT -> activity.showSetDefaultBrowserPrompt()
 
         ChecklistItem.Task.Type.SIGN_IN ->
             navigateTo(HomeFragmentDirections.actionGlobalTurnOnSync(FenixFxAEntryPoint.NewUserOnboarding))

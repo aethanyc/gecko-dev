@@ -303,8 +303,7 @@ class RootCompiler {
   // The current stack of bytecode offsets of the caller functions of the
   // function currently being inlined.
   BytecodeOffsetVector inlinedCallerOffsets_;
-  // A copy of the above stack for efficient sharing.
-  SharedBytecodeOffsetVector inlinedCallerOffsetsVector_;
+  InlinedCallerOffsetIndex inlinedCallerOffsetsIndex_;
 
   // Accumulated statistics about this tier.
   TierStats tierStats_;
@@ -325,12 +324,16 @@ class RootCompiler {
   // Reference to masm.tryNotes()
   wasm::TryNoteVector& tryNotes_;
 
+  // Reference to masm.inliningContext()
+  wasm::InliningContext& inliningContext_;
+
  public:
   RootCompiler(const CompilerEnvironment& compilerEnv,
                const CodeMetadata& codeMeta,
                const CodeTailMetadata* codeTailMeta, TempAllocator& alloc,
                const ValTypeVector& locals, const FuncCompileInput& func,
-               Decoder& decoder, wasm::TryNoteVector& tryNotes)
+               Decoder& decoder, wasm::TryNoteVector& tryNotes,
+               wasm::InliningContext& inliningContext)
       : compilerEnv_(compilerEnv),
         codeMeta_(codeMeta),
         codeTailMeta_(codeTailMeta),
@@ -345,7 +348,8 @@ class RootCompiler {
                 IonOptimizations.get(OptimizationLevel::Wasm), &codeMeta),
         loopDepth_(0),
         localInliningBudget_(0),
-        tryNotes_(tryNotes) {}
+        tryNotes_(tryNotes),
+        inliningContext_(inliningContext) {}
 
   const CompilerEnvironment& compilerEnv() const { return compilerEnv_; }
   const CodeMetadata& codeMeta() const { return codeMeta_; }
@@ -363,8 +367,8 @@ class RootCompiler {
 
   [[nodiscard]] bool generate();
 
-  const ShareableBytecodeOffsetVector* inlinedCallerOffsets() {
-    return inlinedCallerOffsetsVector_.get();
+  InlinedCallerOffsetIndex inlinedCallerOffsetsIndex() const {
+    return inlinedCallerOffsetsIndex_;
   }
 
   // Add a compile info for an inlined function. This keeps the inlined
@@ -533,11 +537,11 @@ class FunctionCompiler {
   BytecodeOffset bytecodeOffset() const { return iter_.bytecodeOffset(); }
   TrapSiteDesc trapSiteDesc() {
     return TrapSiteDesc(wasm::BytecodeOffset(bytecodeOffset()),
-                        rootCompiler_.inlinedCallerOffsets());
+                        rootCompiler_.inlinedCallerOffsetsIndex());
   }
   TrapSiteDesc trapSiteDescWithCallSiteLineNumber() {
     return TrapSiteDesc(wasm::BytecodeOffset(readCallSiteLineOrBytecode()),
-                        rootCompiler_.inlinedCallerOffsets());
+                        rootCompiler_.inlinedCallerOffsetsIndex());
   }
   FeatureUsage featureUsage() const { return iter_.featureUsage(); }
 
@@ -2016,7 +2020,7 @@ class FunctionCompiler {
           /*isConst=*/true, instancePointer_);
       curBlock_->add(cellPtr);
       load = MWasmLoadGlobalCell::New(alloc(), global.type().toMIRType(),
-                                      cellPtr, global.type().toMaybeRefType());
+                                      cellPtr, global.type());
     } else {
       // Pull the value directly out of Instance::globalArea.
       load = MWasmLoadInstanceDataField::New(
@@ -2046,9 +2050,8 @@ class FunctionCompiler {
       if (global.type().toMIRType() == MIRType::WasmAnyRef) {
         // Load the previous value for the post-write barrier
         MOZ_ASSERT(v->type() == MIRType::WasmAnyRef);
-        auto* prevValue =
-            MWasmLoadGlobalCell::New(alloc(), MIRType::WasmAnyRef, valueAddr,
-                                     global.type().toMaybeRefType());
+        auto* prevValue = MWasmLoadGlobalCell::New(alloc(), MIRType::WasmAnyRef,
+                                                   valueAddr, global.type());
         curBlock_->add(prevValue);
 
         // Store the new value
@@ -2078,9 +2081,8 @@ class FunctionCompiler {
 
       // Load the previous value for the post-write barrier
       MOZ_ASSERT(v->type() == MIRType::WasmAnyRef);
-      auto* prevValue =
-          MWasmLoadGlobalCell::New(alloc(), MIRType::WasmAnyRef, valueAddr,
-                                   global.type().toMaybeRefType());
+      auto* prevValue = MWasmLoadGlobalCell::New(alloc(), MIRType::WasmAnyRef,
+                                                 valueAddr, global.type());
       curBlock_->add(prevValue);
 
       // Store the new value
@@ -2782,7 +2784,7 @@ class FunctionCompiler {
     MOZ_ASSERT(!inDeadCode());
 
     CallCompileState callState;
-    CallSiteDesc desc(lineOrBytecode, rootCompiler_.inlinedCallerOffsets(),
+    CallSiteDesc desc(lineOrBytecode, rootCompiler_.inlinedCallerOffsetsIndex(),
                       CallSiteKind::Func);
     ResultType resultType = ResultType::Vector(funcType.results());
     auto callee = CalleeDesc::function(funcIndex);
@@ -2936,7 +2938,7 @@ class FunctionCompiler {
       }
     }
 
-    CallSiteDesc desc(lineOrBytecode, rootCompiler_.inlinedCallerOffsets(),
+    CallSiteDesc desc(lineOrBytecode, rootCompiler_.inlinedCallerOffsetsIndex(),
                       CallSiteKind::Indirect);
     ArgTypeVector argTypes(funcType);
     ResultType resultType = ResultType::Vector(funcType.results());
@@ -2953,7 +2955,7 @@ class FunctionCompiler {
     MOZ_ASSERT(!inDeadCode());
 
     CallCompileState callState;
-    CallSiteDesc desc(lineOrBytecode, rootCompiler_.inlinedCallerOffsets(),
+    CallSiteDesc desc(lineOrBytecode, rootCompiler_.inlinedCallerOffsetsIndex(),
                       CallSiteKind::Import);
     auto callee = CalleeDesc::import(instanceDataOffset);
     ArgTypeVector argTypes(funcType);
@@ -2975,7 +2977,7 @@ class FunctionCompiler {
 
     MOZ_ASSERT(builtin.failureMode == FailureMode::Infallible);
 
-    CallSiteDesc desc(lineOrBytecode, rootCompiler_.inlinedCallerOffsets(),
+    CallSiteDesc desc(lineOrBytecode, rootCompiler_.inlinedCallerOffsetsIndex(),
                       CallSiteKind::Symbolic);
     auto callee = CalleeDesc::builtin(builtin.identity);
 
@@ -3055,7 +3057,7 @@ class FunctionCompiler {
       return true;
     }
 
-    CallSiteDesc desc(lineOrBytecode, rootCompiler_.inlinedCallerOffsets(),
+    CallSiteDesc desc(lineOrBytecode, rootCompiler_.inlinedCallerOffsetsIndex(),
                       CallSiteKind::Symbolic);
     if (builtin.failureMode != FailureMode::Infallible &&
         !beginCatchableCall(callState)) {
@@ -3246,7 +3248,7 @@ class FunctionCompiler {
 
     CallCompileState callState;
     CalleeDesc callee = CalleeDesc::wasmFuncRef();
-    CallSiteDesc desc(lineOrBytecode, rootCompiler_.inlinedCallerOffsets(),
+    CallSiteDesc desc(lineOrBytecode, rootCompiler_.inlinedCallerOffsetsIndex(),
                       CallSiteKind::FuncRef);
     ArgTypeVector argTypes(funcType);
     ResultType resultType = ResultType::Vector(funcType.results());
@@ -10637,13 +10639,15 @@ CompileInfo* RootCompiler::startInlineCall(
 
   // Cache a copy of the current stack of inlined caller offsets that can be
   // shared across all call sites
-  MutableBytecodeOffsetVector inlinedCallerOffsetsVector =
-      js_new<ShareableBytecodeOffsetVector>();
-  if (!inlinedCallerOffsetsVector ||
-      !inlinedCallerOffsetsVector->appendAll(inlinedCallerOffsets_)) {
+  InlinedCallerOffsets inlinedCallerOffsets;
+  if (!inlinedCallerOffsets.appendAll(inlinedCallerOffsets_)) {
     return nullptr;
   }
-  inlinedCallerOffsetsVector_ = inlinedCallerOffsetsVector;
+
+  if (!inliningContext_.append(std::move(inlinedCallerOffsets),
+                               &inlinedCallerOffsetsIndex_)) {
+    return nullptr;
+  }
 
   UniqueCompileInfo compileInfo = MakeUnique<CompileInfo>(numLocals);
   if (!compileInfo || !compileInfos_.append(std::move(compileInfo))) {
@@ -10709,7 +10713,8 @@ bool wasm::IonCompileFunctions(const CodeMetadata& codeMeta,
 
     // Set up for Ion compilation.
     RootCompiler rootCompiler(compilerEnv, codeMeta, codeTailMeta, alloc,
-                              locals, func, d, masm.tryNotes());
+                              locals, func, d, masm.tryNotes(),
+                              masm.inliningContext());
     if (!rootCompiler.generate()) {
       return false;
     }
@@ -10807,8 +10812,9 @@ bool wasm::IonDumpFunction(const CompilerEnvironment& compilerEnv,
   }
 
   TryNoteVector tryNotes;
+  InliningContext inliningContext;
   RootCompiler rootCompiler(compilerEnv, codeMeta, nullptr, alloc, locals, func,
-                            d, tryNotes);
+                            d, tryNotes, inliningContext);
   if (!rootCompiler.generate()) {
     return false;
   }

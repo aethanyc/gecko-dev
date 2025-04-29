@@ -8014,6 +8014,10 @@ bool CodeGenerator::generateBody() {
       continue;
     }
 
+    if (gen->shouldCancel("Generate Code (block loop)")) {
+      return false;
+    }
+
 #ifdef JS_JITSPEW
     const char* filename = nullptr;
     size_t lineNumber = 0;
@@ -8048,6 +8052,9 @@ bool CodeGenerator::generateBody() {
 
     for (LInstructionIterator iter = current->begin(); iter != current->end();
          iter++) {
+      if (gen->shouldCancel("Generate Code (instruction loop)")) {
+        return false;
+      }
       if (!alloc().ensureBallast()) {
         return false;
       }
@@ -9327,8 +9334,19 @@ void CodeGenerator::visitArrayLength(LArrayLength* lir) {
   Address length(elements, ObjectElements::offsetOfLength());
   masm.load32(length, output);
 
-  // Bail out if the length doesn't fit in int32.
-  bailoutTest32(Assembler::Signed, output, output, lir->snapshot());
+  bool intact = hasSeenArrayExceedsInt32LengthFuseIntactAndDependencyNoted();
+
+  if (intact) {
+#ifdef DEBUG
+    Label done;
+    masm.branchTest32(Assembler::NotSigned, output, output, &done);
+    masm.assumeUnreachable("Unexpected array with length > INT32_MAX");
+    masm.bind(&done);
+#endif
+  } else {
+    // Bail out if the length doesn't fit in int32.
+    bailoutTest32(Assembler::Signed, output, output, lir->snapshot());
+  }
 }
 
 static void SetLengthFromIndex(MacroAssembler& masm, const LAllocation* index,
@@ -10419,8 +10437,8 @@ void EmitSignalNullCheckTrapSite(MacroAssembler& masm,
   if (!ins->maybeTrap()) {
     return;
   }
-  masm.append(wasm::Trap::NullPointerDereference,
-              wasm::TrapSite(tmi, fco, *ins->maybeTrap()));
+  masm.append(wasm::Trap::NullPointerDereference, tmi, fco.get(),
+              *ins->maybeTrap());
 }
 
 template <typename InstructionWithMaybeTrapSite, class AddressOrBaseIndex>
@@ -16559,8 +16577,38 @@ struct EmulatesUndefinedDependency final : public CompilationDependency {
   }
 };
 
+struct ArrayExceedsInt32LengthDependency final : public CompilationDependency {
+  explicit ArrayExceedsInt32LengthDependency()
+      : CompilationDependency(
+            CompilationDependency::Type::ArrayExceedsInt32Length) {};
+
+  virtual bool operator==(const CompilationDependency& dep) const override {
+    return dep.type == type;
+  }
+
+  virtual bool checkDependency(JSContext* cx) override {
+    return cx->runtime()->hasSeenArrayExceedsInt32LengthFuse.ref().intact();
+  }
+
+  virtual bool registerDependency(JSContext* cx, HandleScript script) override {
+    MOZ_ASSERT(checkDependency(cx));
+    return cx->runtime()
+        ->hasSeenArrayExceedsInt32LengthFuse.ref()
+        .addFuseDependency(cx, script);
+  }
+
+  virtual UniquePtr<CompilationDependency> clone() const override {
+    return MakeUnique<ArrayExceedsInt32LengthDependency>();
+  }
+};
+
 bool CodeGenerator::addHasSeenObjectEmulateUndefinedFuseDependency() {
   EmulatesUndefinedDependency dep;
+  return mirGen().tracker.addDependency(dep);
+}
+
+bool CodeGenerator::addHasSeenArrayExceedsInt32LengthFuseDependency() {
+  ArrayExceedsInt32LengthDependency dep;
   return mirGen().tracker.addDependency(dep);
 }
 

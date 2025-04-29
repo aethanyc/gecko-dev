@@ -3918,6 +3918,9 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
   // Enable retrying to execute commands in the child process in case the
   // JSWindowActor gets destroyed.
   pref("remote.retry-on-abort", true);
+
+  // Enable the NavigationManager using parent process WebProgress listeners
+  pref("remote.experimental-parent-navigation.enabled", false);
 #endif
 
 // Enable the JSON View tool (an inspector for application/json documents).
@@ -4054,6 +4057,8 @@ pref("extensions.formautofill.heuristics.detectDynamicFormChanges", true);
 pref("extensions.formautofill.heuristics.fillOnDynamicFormChanges", true);
 // Note: The greater the timeout value the higher the risk of automatically filling fields after a non-script/user action.
 pref("extensions.formautofill.heuristics.fillOnDynamicFormChanges.timeout", 1000);
+pref("extensions.formautofill.heuristics.refillOnSiteClearingFields", true);
+pref("extensions.formautofill.heuristics.refillOnSiteClearingFields.timeout", 500);
 
 pref("extensions.formautofill.heuristics.autofillSameOriginWithTop", true);
 

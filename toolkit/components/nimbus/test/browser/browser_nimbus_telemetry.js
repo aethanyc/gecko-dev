@@ -27,15 +27,16 @@ add_setup(async function () {
 
 add_task(async function test_experiment_enroll_unenroll_Telemetry() {
   Services.telemetry.clearEvents();
-  const cleanup = await ExperimentFakes.enrollWithFeatureConfig({
+  const cleanup = await NimbusTestUtils.enrollWithFeatureConfig({
     featureId: "test-feature",
     value: { enabled: false },
   });
-  let experiment = ExperimentAPI.getExperiment({
+
+  const experiment = ExperimentAPI.getExperimentMetaData({
     featureId: "test-feature",
   });
 
-  Assert.ok(experiment.branch, "Should be enrolled in the experiment");
+  Assert.ok(!!experiment, "Should be enrolled in the experiment");
   TelemetryTestUtils.assertEvents(
     [
       {
@@ -70,21 +71,20 @@ add_task(async function test_experiment_enroll_unenroll_Telemetry() {
 });
 
 add_task(async function test_experiment_expose_Telemetry() {
-  const featureManifest = {
+  const feature = new ExperimentFeature("test-feature", {
     description: "Test feature",
     exposureDescription: "Used in tests",
-  };
+  });
+
+  const cleanupFeature = NimbusTestUtils.addTestFeatures(feature);
   const cleanup = await ExperimentFakes.enrollWithFeatureConfig({
     featureId: "test-feature",
     value: { enabled: false },
   });
 
-  let experiment = ExperimentAPI.getExperiment({
+  let experiment = ExperimentAPI.getExperimentMetaData({
     featureId: "test-feature",
   });
-
-  const { featureId } = experiment.branch.features[0];
-  const feature = new ExperimentFeature(featureId, featureManifest);
 
   Services.telemetry.clearEvents();
   feature.recordExposureEvent();
@@ -97,7 +97,7 @@ add_task(async function test_experiment_expose_Telemetry() {
         value: experiment.slug,
         extra: {
           branchSlug: experiment.branch.slug,
-          featureId,
+          featureId: "test-feature",
         },
       },
     ],
@@ -105,6 +105,7 @@ add_task(async function test_experiment_expose_Telemetry() {
   );
 
   cleanup();
+  cleanupFeature();
 });
 
 add_task(async function test_rollout_expose_Telemetry() {

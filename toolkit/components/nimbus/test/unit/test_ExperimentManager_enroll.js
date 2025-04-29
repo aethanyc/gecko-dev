@@ -335,11 +335,15 @@ add_task(async function test_failure_name_conflict() {
     "no Glean enroll_failed events before failure"
   );
 
+  const experiment = NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+    featureId: "testFeature",
+  });
+
   // simulate adding a previouly enrolled experiment
-  await manager.store.addEnrollment(ExperimentFakes.experiment("foo"));
+  await manager.enroll(experiment, "test");
 
   await Assert.rejects(
-    manager.enroll(ExperimentFakes.recipe("foo"), "test_failure_name_conflict"),
+    manager.enroll(experiment, "test_failure_name_conflict"),
     /An experiment with the slug "foo" already exists/,
     "should throw if a conflicting experiment exists"
   );
@@ -361,6 +365,12 @@ add_task(async function test_failure_name_conflict() {
       .testGetValue("events")
       .map(ev => ev.extra),
     [
+      {
+        slug: "foo",
+        status: "Enrolled",
+        reason: "Qualified",
+        branch: "control",
+      },
       {
         slug: "foo",
         status: "NotEnrolled",
@@ -402,17 +412,18 @@ add_task(async function test_failure_group_conflict() {
   };
 
   // simulate adding an experiment with a conflicting group "pink"
-  await manager.store.addEnrollment(
-    ExperimentFakes.experiment("foo", {
-      branch: existingBranch,
-    })
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe("foo", {
+      branches: [existingBranch],
+    }),
+    "test_failure_group_conflict"
   );
 
   // ensure .enroll chooses the special branch with the conflict
   sandbox.stub(manager, "chooseBranch").returns(newBranch);
   Assert.equal(
     await manager.enroll(
-      ExperimentFakes.recipe("bar", { branches: [newBranch] }),
+      NimbusTestUtils.factories.recipe("bar", { branches: [newBranch] }),
       "test_failure_group_conflict"
     ),
     null,
@@ -1202,6 +1213,47 @@ add_task(async function test_getAllOptInRecipes() {
     ["match-1", "match-2"].sort(),
     "Should only return the matching recipes"
   );
+
+  cleanup();
+});
+
+add_task(async function testCoenrolling() {
+  const { manager, cleanup } = await setupTest();
+
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "rollout-1",
+      { featureId: "no-feature-firefox-desktop" },
+      { isRollout: true }
+    )
+  );
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "rollout-2",
+      { featureId: "no-feature-firefox-desktop" },
+      { isRollout: true }
+    )
+  );
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-1", {
+      featureId: "no-feature-firefox-desktop",
+    })
+  );
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-2", {
+      featureId: "no-feature-firefox-desktop",
+    })
+  );
+
+  Assert.ok(manager.store.get("rollout-1").active, "rollout-1 is active");
+  Assert.ok(manager.store.get("rollout-2").active, "rollout-2 is active");
+  Assert.ok(manager.store.get("experiment-1").active, "experiment-1 is active");
+  Assert.ok(manager.store.get("experiment-2").active, "experiment-2 is active");
+
+  manager.unenroll("rollout-1");
+  manager.unenroll("rollout-2");
+  manager.unenroll("experiment-1");
+  manager.unenroll("experiment-2");
 
   cleanup();
 });
