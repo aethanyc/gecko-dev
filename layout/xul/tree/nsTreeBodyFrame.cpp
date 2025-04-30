@@ -379,9 +379,14 @@ void nsTreeBodyFrame::EnsureView() {
 
 void nsTreeBodyFrame::ManageReflowCallback() {
   const nscoord horzWidth = mRect.width;
+  printf(
+      "nsTreeBodyFrame::ManageReflowCallback: mRect %s, mHorzWidth %d, "
+      "mOriginalHorzWidth %d\n",
+      ToString(mRect).c_str(), mHorzWidth, mOriginalHorzWidth);
   if (!mReflowCallbackPosted) {
     if (!mLastReflowRect || !mLastReflowRect->IsEqualEdges(mRect) ||
         mHorzWidth != horzWidth) {
+      printf("nsTreeBodyFrame::ManageReflowCallback:  PostReflowCallback\n");
       PresShell()->PostReflowCallback(this);
       mReflowCallbackPosted = true;
       mOriginalHorzWidth = mHorzWidth;
@@ -389,6 +394,7 @@ void nsTreeBodyFrame::ManageReflowCallback() {
   } else if (mHorzWidth != horzWidth && mOriginalHorzWidth == horzWidth) {
     // FIXME(emilio): This doesn't seem sound to me, if the rect changes in the
     // block axis.
+    printf("nsTreeBodyFrame::ManageReflowCallback: CancelReflowCallback\n");
     PresShell()->CancelReflowCallback(this);
     mReflowCallbackPosted = false;
     mOriginalHorzWidth = -1;
@@ -412,6 +418,7 @@ void nsTreeBodyFrame::DidReflow(nsPresContext* aPresContext,
 }
 
 bool nsTreeBodyFrame::ReflowFinished() {
+  printf("nsTreeBodyFrame::ReflowFinished()\n");
   if (!mView) {
     AutoWeakFrame weakFrame(this);
     EnsureView();
@@ -808,6 +815,11 @@ void nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts) {
     verticalOverflowChanged = true;
   }
 
+  printf(
+      "nsTreeBodyFrame::CheckOverflow: mVerticalOverflow %d, "
+      "mRowCount %d, mPageLength %d\n",
+      mVerticalOverflow, mRowCount, mPageLength);
+
   if (!verticalOverflowChanged) {
     return;
   }
@@ -835,6 +847,7 @@ void nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts) {
   // Don't use AutoRestore since we want to not touch mCheckingOverflow if we
   // fail the weakFrame.IsAlive() check below
   mCheckingOverflow = true;
+  printf("nsTreeBodyFrame::CheckOverflow: Flush layout\n");
   presShell->FlushPendingNotifications(FlushType::Layout);
   if (!weakFrame.IsAlive()) {
     return;
@@ -4176,8 +4189,10 @@ bool nsTreeBodyFrame::FullScrollbarsUpdate(bool aNeedsFullInvalidation) {
   // 905909.
   RefPtr<nsOverflowChecker> checker = new nsOverflowChecker(this);
   if (!mCheckingOverflow) {
+    printf("Add nsOverflowChecker to script runner\n");
     nsContentUtils::AddScriptRunner(checker);
   } else {
+    printf("Dispatch nsOverflowChecker to doc\n");
     mContent->OwnerDoc()->Dispatch(checker.forget());
   }
   return weakFrame.IsAlive();

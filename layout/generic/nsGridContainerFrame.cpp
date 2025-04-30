@@ -11,6 +11,7 @@
 #include <functional>
 #include <stdlib.h>  // for div()
 #include <type_traits>
+#include "LayoutConstants.h"
 #include "gfxContext.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/Baseline.h"
@@ -5886,6 +5887,7 @@ static nscoord ContentContribution(
       }
     } else if (aGridRI.mCols.mCanResolveLineRangeSize) {
       nscoord sz = aGridRI.mCols.ResolveSize(aGridItem.mArea.mCols);
+      GRID_LOG("column size for %s is %d", child->ListTag().get(), sz);
       if (isOrthogonal) {
         availBSize = sz;
         cbSize.BSize(childWM) = sz;
@@ -10027,6 +10029,14 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
             ? aInput.mPercentageBasisForChildren->BSize(gridRI.mWM)
             : NS_UNCONSTRAINEDSIZE;
 
+    // Reset the track sizing bits before re-resolving the column sizes.
+    for (auto& item : gridRI.mGridItems) {
+      item.ResetTrackSizingBits(LogicalAxis::Inline);
+    }
+    gridRI.mCols.mCanResolveLineRangeSize = false;
+
+    GRID_LOG("Can solve column size %d", gridRI.mCols.mCanResolveLineRangeSize);
+
     // Resolve row sizes so that when we re-resolve the column sizes, grid items
     // with percent-valued block-sizes (and aspect ratios) have definite row
     // sizes as the percentage basis. Their resolved block-size can then
@@ -10035,12 +10045,6 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid, contentBoxBSize,
                                       SizingConstraint::NoConstraint);
 
-    // Reset the track sizing bits before re-resolving the column sizes.
-    for (auto& item : gridRI.mGridItems) {
-      item.ResetTrackSizingBits(LogicalAxis::Inline);
-    }
-    gridRI.mCols.mCanResolveLineRangeSize = false;
-
     // Re-resolve the column sizes, using the resolved row sizes establish
     // above.
     gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
@@ -10048,6 +10052,9 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
   }
 
   if (MOZ_LIKELY(!IsSubgrid())) {
+    GRID_LOG("%s: intrinsic %s isize = %d\n", ListTag().get(),
+             aType == IntrinsicISizeType::MinISize ? "min" : "pref",
+             gridRI.mCols.SumOfGridTracksAndGaps());
     return gridRI.mCols.SumOfGridTracksAndGaps();
   }
   const auto& last = gridRI.mCols.mSizes.LastElement();
